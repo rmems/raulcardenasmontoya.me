@@ -590,7 +590,7 @@ in V1 without a contract-version increase.
   `kinetic-signals` features handed to `axon-encoder` by the latest input,
   for telemetry inspection and feature-level replay checks.
 - `encoder_mode`, `encoder_name`, `encoded_spike_count`,
-  `encoded_spike_channels`, `encoded_spike_total` — contract-4/5 encoder
+  `encoded_spike_channels`, `encoded_spike_total` — contract 4, 5 and 6 encoder
   inspection: the active mode and the derived spike-train diagnostics from the
   most recent `input` (count and distinct channels) plus the cumulative total
   since construction.
