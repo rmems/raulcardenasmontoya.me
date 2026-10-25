@@ -98,6 +98,10 @@ test('the browser harness only runs fixture topologies through the renderer, nev
   assert.doesNotMatch(tasks, /provenance: 'live-wasm'/);
   const harness = readSource('../scripts/perf/measure-browser.mjs');
   assert.match(harness, /neuromorphic-perf/);
+  // `--contract 5` reaches the page task and the bench, so the Chrome rows can compare contracts.
+  assert.match(harness, /contract: Number\(option\('contract', 6\)\)/);
+  assert.match(tasks, /boundaryBench\(\{[^}]*\bcontract\b[^}]*\}\)/);
+  assert.match(tasks, /\{ ticks, repeats, contract \}/);
   assert.match(readSource('../src/runtime/perf-probe.ts'), /PERF_PROBE_QUERY = 'neuromorphic-perf'/);
 });
 
