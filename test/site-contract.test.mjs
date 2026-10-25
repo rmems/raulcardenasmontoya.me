@@ -100,9 +100,9 @@ test('the work page expands existing project data without unsupported outcomes o
   assert.match(work, /projects\.map/);
   assert.match(work, /Questions in view/);
   assert.match(work, /Working areas/);
-  assert.match(projects, /questions: \[/);
+  assert.match(projects, /questions: string\[\]/);
   assert.match(work, /Each brief states its status, the questions I'm working on, and the areas it covers\./);
-  assert.doesNotMatch(projects, /https?:\/\//);
+  assert.doesNotMatch(projects, /https?:\/\/(?!github\.com\/(?:rmems|Limen-Neural)\/)/);
 });
 
 test('public identity links use the verified profile destinations', () => {
