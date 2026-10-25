@@ -1,0 +1,128 @@
+{
+  "asOf": "2026-10-25",
+  "source": "https://crates.io/api/v1/crates?user_id=390342&per_page=50",
+  "userId": 390342,
+  "crates": [
+    {
+      "name": "axon-encoder",
+      "version": "0.6.0",
+      "description": "Flexible sensory encoding pipelines for spiking neural networks — rate, temporal, predictive, population, and neuromodulator-driven encoding for telemetry and cyber-physical data.",
+      "downloads": 2120,
+      "recentDownloads": 2120,
+      "updatedAt": "2026-10-09",
+      "repository": "https://github.com/Limen-Neural/axon-encoder",
+      "documentation": "https://docs.rs/axon-encoder",
+      "homepage": null
+    },
+    {
+      "name": "corpus-ipc",
+      "version": "0.1.0",
+      "description": "Inter-Process Communication (IPC) library for bridging Rust to external compute engines via ZeroMQ.",
+      "downloads": 1444,
+      "recentDownloads": 1444,
+      "updatedAt": "2026-09-16",
+      "repository": "https://github.com/Limen-Neural/corpus-ipc",
+      "documentation": "https://docs.rs/corpus-ipc",
+      "homepage": "https://github.com/Limen-Neural/corpus-ipc"
+    },
+    {
+      "name": "engram-parser",
+      "version": "0.3.0",
+      "description": "Pure-Rust GGUF + Safetensors checkpoint/tensor substrate: format-independent tensor inventory, metadata, and raw payload access for ANN/SNN research. Default builds are zero-dependency (`fs::read` into `Vec<u8>`). Optional `mmap` feature adds memmap2. Packed dequant for Q8_0/Q5_K/Q6_K/IQ3_M. Off-by-default `safetensors` feature adds manifest/discovery plus raw tensor payload access via the upstream safetensors crate. MoE per-expert weight extraction ships as a GGUF model-analysis specialization.",
+      "downloads": 252,
+      "recentDownloads": 252,
+      "updatedAt": "2026-10-05",
+      "repository": "https://github.com/rmems/engram-parser",
+      "documentation": null,
+      "homepage": "https://github.com/rmems/engram-parser"
+    },
+    {
+      "name": "kinetic-signals",
+      "version": "0.5.0",
+      "description": "Streaming feature extraction for high-velocity stochastic signals.",
+      "downloads": 455,
+      "recentDownloads": 455,
+      "updatedAt": "2026-10-16",
+      "repository": "https://github.com/rmems/kinetic-signals",
+      "documentation": "https://docs.rs/kinetic-signals",
+      "homepage": "https://github.com/rmems/kinetic-signals"
+    },
+    {
+      "name": "limbic-critic",
+      "version": "0.3.0",
+      "description": "Reward-shaping / modulator-mapping primitive for SNNs (not a full actor-critic).",
+      "downloads": 814,
+      "recentDownloads": 814,
+      "updatedAt": "2026-09-16",
+      "repository": "https://github.com/Limen-Neural/limbic-critic",
+      "documentation": "https://docs.rs/limbic-critic",
+      "homepage": "https://github.com/Limen-Neural/limbic-critic"
+    },
+    {
+      "name": "myelin-accelerator",
+      "version": "0.2.0",
+      "description": "Rust/CUDA acceleration primitives for spiking neural networks and neuromorphic workloads",
+      "downloads": 277,
+      "recentDownloads": 277,
+      "updatedAt": "2026-10-02",
+      "repository": "https://github.com/Limen-Neural/myelin-accelerator",
+      "documentation": null,
+      "homepage": null
+    },
+    {
+      "name": "neuromod",
+      "version": "0.7.0",
+      "description": "Biologically inspired SNN primitives in Rust: LIF/Izhikevich SpikingNetwork, neuromodulators, STDP building blocks, and standalone neuron models.",
+      "downloads": 4301,
+      "recentDownloads": 4044,
+      "updatedAt": "2026-09-30",
+      "repository": "https://github.com/Limen-Neural/neuromod",
+      "documentation": "https://docs.rs/neuromod",
+      "homepage": "https://github.com/Limen-Neural/neuromod"
+    },
+    {
+      "name": "nir-rs",
+      "version": "0.4.5",
+      "description": "Pure-Rust implementation of the Neuromorphic Intermediate Representation (NIR) — the standard interchange format for spiking neural networks.",
+      "downloads": 2367,
+      "recentDownloads": 2367,
+      "updatedAt": "2026-10-08",
+      "repository": "https://github.com/Limen-Neural/nir-rs",
+      "documentation": "https://docs.rs/nir-rs",
+      "homepage": "https://github.com/Limen-Neural/nir-rs"
+    },
+    {
+      "name": "plasticity-lab",
+      "version": "0.2.1",
+      "description": "Reward-modulated SNN training/session orchestration loop above neuromod's plasticity primitives",
+      "downloads": 381,
+      "recentDownloads": 381,
+      "updatedAt": "2026-09-19",
+      "repository": "https://github.com/Limen-Neural/plasticity-lab",
+      "documentation": null,
+      "homepage": null
+    },
+    {
+      "name": "silicon-bridge",
+      "version": "0.3.0",
+      "description": "Deploy spiking neural networks to FPGAs: Q8.8 fixed-point export, optional UART spike I/O, and Vivado timing-report parsing for CI gating",
+      "downloads": 1509,
+      "recentDownloads": 1509,
+      "updatedAt": "2026-09-17",
+      "repository": "https://github.com/rmems/silicon-bridge",
+      "documentation": "https://docs.rs/silicon-bridge",
+      "homepage": "https://github.com/rmems/silicon-bridge"
+    },
+    {
+      "name": "synaptic-wiring",
+      "version": "0.3.0",
+      "description": "SNN wiring, topology, temporal delays, sparse connectivity, and routing infrastructure for neuromorphic computing.",
+      "downloads": 828,
+      "recentDownloads": 828,
+      "updatedAt": "2026-09-16",
+      "repository": "https://github.com/Limen-Neural/synaptic-wiring",
+      "documentation": "https://docs.rs/synaptic-wiring",
+      "homepage": "https://docs.rs/synaptic-wiring"
+    }
+  ]
+}
