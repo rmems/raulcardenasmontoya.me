@@ -14,16 +14,64 @@
   list-style: none;
 }
 
+/* Copy on the left, the lab's build-time preview beside it on wide screens. */
 .lab-entry {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  justify-items: start;
-  gap: 0.2rem;
+  gap: 1.5rem clamp(2rem, 5vw, 4rem);
+  align-items: start;
   padding: 2rem 0;
   border-bottom: 1px solid var(--line);
 }
 
+.lab-entry-copy {
+  display: grid;
+  justify-items: start;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
 .lab-entry .execution-origin { margin-bottom: 0.6rem; }
+
+.lab-preview {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid var(--line-strong);
+  background: var(--paper-deep);
+}
+
+.lab-preview svg { display: block; width: 100%; height: auto; }
+/* The NIR graph is taller than it is wide; cap it so the entry stays compact.
+   Beside the copy (901px and up) that leaves the operator names about 8px,
+   still a legible teaser; in one column the capped graph would be a thin
+   strip with 5px labels, so the index shows the copy alone there and the lab
+   page draws the graph full size. */
+.lab-preview-nir svg { height: clamp(14rem, 36vw, 20rem); }
+@media (max-width: 900px) {
+  .lab-preview-nir { display: none; }
+}
+
+.lab-preview figcaption {
+  margin-top: 0.7rem;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.lab-preview-edges path { color: var(--line-strong); stroke: var(--line-strong); stroke-width: 1.5; }
+.lab-preview-nodes rect { fill: var(--surface); stroke: var(--ink); stroke-width: 1.25; }
+.lab-preview-node-name { fill: var(--ink); font-family: var(--mono); font-size: 15px; font-weight: 650; }
+.lab-preview-synapses line { stroke: var(--accent); stroke-opacity: 0.75; stroke-linecap: round; }
+.lab-preview-channels circle { fill: var(--muted); }
+.lab-preview-neurons circle { fill: var(--spike); }
+.lab-preview-label { fill: var(--ink); font-family: var(--mono); font-size: 11px; }
+
+@media (min-width: 901px) {
+  .lab-entry { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); }
+}
 
 .lab-entry h2 {
   margin: 0;
@@ -36,7 +84,7 @@
 
 .lab-entry h2 a { text-decoration: none; }
 
-.lab-entry > p {
+.lab-entry-copy > p {
   max-width: 42rem;
   margin: 0.8rem 0 0;
 }

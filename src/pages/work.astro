@@ -6,7 +6,7 @@ import { projects } from '../data/projects';
 const counts = await loadSiteCounts();
 ---
 
-<BaseLayout title="Work" description="Selected AI/ML systems work, research infrastructure, and ongoing technical explorations.">
+<BaseLayout preloadSerif title="Work" description="Selected AI/ML systems work, research infrastructure, and ongoing technical explorations.">
   <section class="page-intro work-intro" aria-labelledby="work-title">
     <p class="eyebrow">Selected work · {String(projects.length).padStart(2, '0')}</p>
     <h1 id="work-title">Systems work,<br /><em>shown in context.</em></h1>

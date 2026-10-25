@@ -1,5 +1,8 @@
 import type { ExecutionOrigin } from '../native-evidence/view';
 
+/** Build-time SVG previews the labs index can draw from a lab's committed data (no script). */
+export type LabPreview = 'nir-diagram' | 'plasticity-network';
+
 /**
  * One entry on the `/labs/` index. Each lab is a focused, self-contained page
  * that states where its data comes from with an execution-origin label.
@@ -12,6 +15,7 @@ export interface LabEntry {
   origin: ExecutionOrigin;
   /** Upstream crates the lab relies on, shown as tags. */
   crates: readonly string[];
+  preview?: LabPreview;
 }
 
 export const labs: readonly LabEntry[] = [
@@ -22,6 +26,7 @@ export const labs: readonly LabEntry[] = [
       'A small, hand-authored NIR graph parsed and validated by nir-rs inside the Rust/WASM adapter, with each operator’s type and parameters open for inspection. Structure only: nothing is simulated.',
     origin: 'imported-nir',
     crates: ['nir-rs'],
+    preview: 'nir-diagram',
   },
   {
     href: '/labs/plasticity/',
@@ -30,5 +35,6 @@ export const labs: readonly LabEntry[] = [
       'Two input patterns, two LIF neurons, and a reward button. limbic-critic maps reward and penalty to neuromodulators, plasticity-lab steps a neuromod network with them, and reward-modulated STDP changes the weights, live in Rust/WASM with a replayable scripted session.',
     origin: 'live-wasm',
     crates: ['limbic-critic', 'plasticity-lab', 'neuromod'],
+    preview: 'plasticity-network',
   },
 ];

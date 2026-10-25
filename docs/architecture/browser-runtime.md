@@ -655,6 +655,11 @@ spike-event buffer, and #10's adaptive quality.
   three.js does. `test/hero-live-mesh.test.mjs` checks the topology against the
   committed homepage package and every edge colour against `THREE.Color`. The
   first live frame therefore lands on the drawing it replaces, at rotation 0.
+  The drawing carries one edge set per colour scheme (`SITE_TOPOLOGY_PALETTE`
+  and `SITE_TOPOLOGY_PALETTE_DARK`, the tokens of `global.css` and of its
+  `prefers-color-scheme: dark` block); `hero.css` shows the matching set, and
+  the renderer reads the same tokens when it starts. A scheme change while the
+  view is live keeps the renderer's colours until it next starts.
   Nothing is synthesized: no WASM runs at build time, and the drawing has no
   membrane state or spikes.
 - **No layout shift.** The plate's size is fixed by `aspect-ratio` before any

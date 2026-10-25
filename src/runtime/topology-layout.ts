@@ -84,6 +84,20 @@ export const SITE_TOPOLOGY_PALETTE: TopologyPalette = Object.freeze({
   line: '#e3e7ed',
 });
 
+/**
+ * The same tokens inside `@media (prefers-color-scheme: dark)` in
+ * `src/styles/global.css`. The hero draws one edge set per scheme and CSS
+ * shows the matching one, so the first live frame, whose renderer reads the
+ * computed tokens, lands on the drawing in either scheme.
+ */
+export const SITE_TOPOLOGY_PALETTE_DARK: TopologyPalette = Object.freeze({
+  accent: '#8b85ff',
+  secondary: '#2dd4bf',
+  spike: '#fb7185',
+  muted: '#9aa3b2',
+  line: '#2a3140',
+});
+
 /** Canonical topology fields the drawing needs (a contract-5 snapshot subset). */
 export interface TopologyDrawingInput {
   nodeIds: ArrayLike<number>;
