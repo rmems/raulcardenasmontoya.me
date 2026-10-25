@@ -60,3 +60,14 @@ required-features = ["protocol"]
 [[test]]
 name = "plasticity_session"
 required-features = ["plasticity"]
+
+# Browser packages: the smallest output for both packages, measured in
+# docs/architecture/performance-budgets.md (section 11). Fat LTO and one
+# codegen unit let wasm-bindgen see one tight module; opt-level 2 beat 3, "s"
+# and "z" in raw, gzip and brotli size for the homepage package every visitor
+# downloads. `cargo test` uses the dev profile and is unaffected;
+# `perf:stages` (an --release example) shares this profile.
+[profile.release]
+opt-level = 2
+lto = "fat"
+codegen-units = 1

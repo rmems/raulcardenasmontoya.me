@@ -3,7 +3,9 @@ import {
   ENCODER_MODES,
   NEUROMORPHIC_CONTRACT_VERSION_V5,
   initNeuromorphicAdapter,
+  type EncoderModeName,
   type NeuromorphicAdapter,
+  type NeuromorphicAdapterOptions,
   type NeuromorphicState,
 } from './neuromorphic-adapter';
 import { DEMO_SEED, DEMO_TICK_MS } from './demo-stimulus';
@@ -36,10 +38,16 @@ export const LIVE_ADAPTER_OPTIONS = {
   contractVersion: NEUROMORPHIC_CONTRACT_VERSION_V5,
   encoderMode: DEFAULT_ENCODER_MODE,
 } as const;
-const LIVE_ADAPTER_CONFIG = [
-  LIVE_ADAPTER_OPTIONS.contractVersion,
-  ENCODER_MODES[LIVE_ADAPTER_OPTIONS.encoderMode],
-] as const;
+
+/** The live options with one session's `axon-encoder` mode (the default when none is given). */
+export function liveAdapterOptions(encoderMode: EncoderModeName = LIVE_ADAPTER_OPTIONS.encoderMode): NeuromorphicAdapterOptions {
+  return { contractVersion: LIVE_ADAPTER_OPTIONS.contractVersion, encoderMode };
+}
+
+/** The `[contract, mode]` init config a session's trace records, so it replays under the same encoder. */
+export function liveAdapterConfig(encoderMode: EncoderModeName = LIVE_ADAPTER_OPTIONS.encoderMode): readonly number[] {
+  return [LIVE_ADAPTER_OPTIONS.contractVersion, ENCODER_MODES[encoderMode]];
+}
 
 /** Published after every completed tick for development/telemetry views. */
 export interface TelemetryFrame {
@@ -71,15 +79,10 @@ interface DriverOptions {
   onFrame?: (frame: TelemetryFrame) => void;
   /** Opt-in timing (see `perf-probe.ts`); `null` in normal production visits. */
   probe?: PerfProbe | null;
+  /** This session's `[contract, mode]`, recorded with its trace. */
+  config?: readonly number[];
 }
 
-/**
- * Fixed-cadence driver: each tick feeds one telemetry packet (pointer, or the
- * deterministic scripted path when idle), advances exactly one logical step,
- * then publishes the snapshot. Every packet is recorded so the session can be
- * replayed from `init`. rAF only controls presentation; the tick owns
- * simulation time.
- */
 /** Surface an observer error without failing the caller (browser `reportError`). */
 function reportObserverError(error: unknown): void {
   const report = (globalThis as { reportError?: (error: unknown) => void }).reportError;
@@ -90,17 +93,24 @@ function reportObserverError(error: unknown): void {
   }
 }
 
+/**
+ * Fixed-cadence driver: each tick feeds one telemetry packet (pointer, or the
+ * deterministic scripted path when idle), advances exactly one logical step,
+ * then publishes the snapshot. Every packet is recorded so the session can be
+ * replayed from `init`. rAF only controls presentation; the tick owns
+ * simulation time.
+ */
 function createDriver(
   engine: Engine,
   channel: SimulationChannel,
   onFailure: () => void,
-  { telemetry, onFrame, probe = null }: DriverOptions,
+  { telemetry, onFrame, probe = null, config = liveAdapterConfig() }: DriverOptions,
 ): WasmSession {
   let timer: ReturnType<typeof setInterval> | null = null;
   let sequence = 0n;
   let inFlight = false;
   let disposed = false;
-  const recorder = createTelemetryRecorder(DEMO_SEED, LIVE_ADAPTER_CONFIG);
+  const recorder = createTelemetryRecorder(DEMO_SEED, config);
   const trace = () => recorder.trace();
   // Frame observers (dev inspector, telemetry) are optional consumers. A
   // throwing observer must not be mistaken for a simulation failure, so its
@@ -206,6 +216,7 @@ function workerEngine(
   worker: Worker,
   signal: AbortSignal,
   onWorkerFailure: (phase: WorkerFailurePhase) => void,
+  adapterOptions: NeuromorphicAdapterOptions,
 ): Promise<Engine> {
   let nextId = 1;
   let ready = false;
@@ -328,7 +339,7 @@ function workerEngine(
       type: 'init',
       seed: DEMO_SEED,
       moduleUrl: moduleUrl(),
-      options: LIVE_ADAPTER_OPTIONS,
+      options: adapterOptions,
     } satisfies WorkerRequest);
   });
 }
@@ -354,6 +365,9 @@ export function createWasmSeam(options: WasmSeamOptions): WasmSeam {
   return {
     async init(initOptions: WasmInitOptions): Promise<WasmSession> {
       const reportFailure = () => initOptions.onWorkerFailure('after-init');
+      // One contract, one seed; only the encoder mode is per session.
+      const adapterOptions = liveAdapterOptions(initOptions.encoderMode);
+      const config = liveAdapterConfig(initOptions.encoderMode);
       const driver = (engine: Engine) => {
         let telemetry: TelemetrySource;
         try {
@@ -367,6 +381,7 @@ export function createWasmSeam(options: WasmSeamOptions): WasmSeam {
           telemetry,
           onFrame: options.onFrame,
           probe: options.probe,
+          config,
         });
       };
 
@@ -387,7 +402,7 @@ export function createWasmSeam(options: WasmSeamOptions): WasmSeam {
         } catch {
           throw new SeamError('worker-unavailable', 'simulation worker is unavailable');
         }
-        const engine = await workerEngine(worker, initOptions.signal, reportFailure);
+        const engine = await workerEngine(worker, initOptions.signal, reportFailure, adapterOptions);
         return driver(engine);
       }
 
@@ -397,7 +412,7 @@ export function createWasmSeam(options: WasmSeamOptions): WasmSeam {
           initNeuromorphicAdapter(
             () => import(/* @vite-ignore */ moduleUrl()),
             DEMO_SEED,
-            LIVE_ADAPTER_OPTIONS,
+            adapterOptions,
           ));
       try {
         const adapter = await loadAdapter();

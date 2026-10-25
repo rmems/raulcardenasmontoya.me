@@ -3,7 +3,7 @@ import DemoTelemetry from './DemoTelemetry.astro';
 import ExecutionOrigin from './ExecutionOrigin.astro';
 import { ADAPTER_SOURCE_URL, crateLayerHref, crateLayerPin, liveCrateLayers } from '../data/live-runtime';
 import { STATIC_DEMO_STATUS } from '../runtime/demo-runtime';
-import { auditedBrowserTopology } from '../runtime/neuromorphic-adapter';
+import { DEFAULT_ENCODER_MODE, ENCODER_MODE_NAMES, auditedBrowserTopology } from '../runtime/neuromorphic-adapter';
 import { staticMeshGeometry } from '../runtime/topology-layout';
 import '../styles/hero.css';
 
@@ -51,6 +51,14 @@ const nodePath = mesh.nodes.map((node) => `M${node.x} ${node.y}h0`).join('');
           ))}
         </ol>
         <p class="hero-mesh-links"><a href="#live-telemetry">Inspect the live runtime <span aria-hidden="true">↓</span></a><a href="/labs/">Explore the labs <span aria-hidden="true">→</span></a></p>
+        <fieldset class="hero-mesh-encoder" data-demo-encoder disabled>
+          <legend>axon-encoder mode · restarts the simulation with the same seed</legend>
+          <div class="hero-mesh-encoder-options">
+            {ENCODER_MODE_NAMES.map((mode) => (
+              <label><input type="radio" name="encoder-mode" value={mode} checked={mode === DEFAULT_ENCODER_MODE} /> {mode}</label>
+            ))}
+          </div>
+        </fieldset>
         <p class="demo-status" data-demo-status role="status" aria-live="polite">{STATIC_DEMO_STATUS}</p>
         <noscript>
           <p class="demo-status demo-status-noscript">JavaScript is required for the live visualization. Navigation and the rest of this page remain available.</p>
