@@ -585,7 +585,8 @@ weaken capability checks or fallback behavior.
 ## Homepage hero (GitHub #13 / Linear RM-1649)
 
 The live demo island is the homepage hero. `src/pages/index.astro` keeps the
-copy (eyebrow, headline, introduction, both calls to action, focus index) and
+copy (eyebrow, headline, introduction, the calls to action and the dated stat
+row, whose counts come from `src/artifacts/counts.ts`) and
 passes it through the slots of `src/components/NeuromorphicDemo.astro`, which
 renders the island root (`[data-neuromorphic-demo]`), the mesh beside the copy,
 and, below the first screen, a short explanation and the telemetry panel. It

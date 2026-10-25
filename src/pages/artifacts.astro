@@ -1,32 +1,83 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { loadCrates } from '../artifacts/crates';
+import { CRATE_STATUS_NOTES, cratesIoUrl, docsUrl } from '../artifacts/crates-source.mjs';
 import { loadHfArtifacts } from '../artifacts/hf';
 import { prUrl, upstreamPrs, upstreamVerifiedAt } from '../artifacts/upstream';
 
-const hf = await loadHfArtifacts();
+const [crates, hf] = await Promise.all([loadCrates(), loadHfArtifacts()]);
 const number = new Intl.NumberFormat('en-US');
+const snapshotNote = (source: 'live' | 'snapshot', reason: 'skipped' | 'unreachable' | undefined, service: string) =>
+  source === 'snapshot'
+    ? reason === 'skipped'
+      ? ' (from the committed snapshot; the live fetch was skipped for this build)'
+      : ` (from the committed snapshot; the ${service} was unreachable at build time)`
+    : '';
 ---
-<BaseLayout title="Artifacts" description="Published Hugging Face datasets and merged upstream pull requests, with counts dated as of the day they were checked.">
+<BaseLayout title="Artifacts" description={`Published Rust crates, Hugging Face datasets and merged upstream pull requests: ${crates.crates.length} crates, ${hf.datasets.length} datasets and ${upstreamPrs.length} merged PRs, with counts dated as of the day they were checked.`}>
   <section class="page-intro compact" aria-labelledby="artifacts-page-title">
     <p class="eyebrow">Published artifacts</p>
     <h1 id="artifacts-page-title">What I've published and merged.</h1>
-    <p>Hugging Face datasets and pull requests merged into other people's projects. Measured CUDA and FPGA captures are separate and live on <a href="/evidence/">Evidence</a>.</p>
+    <p>Rust crates on crates.io, Hugging Face datasets, and pull requests merged into other people's projects. Measured CUDA and FPGA captures are separate and live on <a href="/evidence/">Evidence</a>.</p>
+    <nav class="artifacts-jump" aria-label="On this page"><a href="#crates">Crates</a><a href="#datasets">Datasets</a><a href="#upstream">Upstream PRs</a></nav>
   </section>
 
-  <section class="section artifacts-section" aria-labelledby="artifacts-hf-title" data-hf-source={hf.source}>
+  <section class="section artifacts-section" id="crates" aria-labelledby="artifacts-crates-title" data-crates-source={crates.source}>
+    <p class="eyebrow">crates.io · as of {crates.asOf}</p>
+    <h2 id="artifacts-crates-title">{crates.crates.length} published crates, {number.format(crates.totalDownloads)} downloads.</h2>
+    <p class="artifacts-note">Versions, descriptions and download counts come from the crates.io API at build time{snapshotNote(crates.source, crates.fallbackReason, 'crates.io API')}. Download totals include CI and mirror traffic and are not a measure of users; no external-adoption claim is made.</p>
+    {crates.groups.map((group) => (
+      <>
+        <h3 id={`crates-${group.key}`}>{group.title}</h3>
+        <ul class="artifact-list crate-list" aria-labelledby={`crates-${group.key}`}>
+          {group.crates.map((crate) => {
+            const note = CRATE_STATUS_NOTES[crate.name];
+            return (
+              <li>
+                <p class="crate-head"><a href={cratesIoUrl(crate)} target="_blank" rel="noopener noreferrer">{crate.name}</a> <span class="crate-version">{crate.version}</span></p>
+                <p class="crate-description">{crate.description}</p>
+                <p class="crate-links"><a href={docsUrl(crate)} target="_blank" rel="noopener noreferrer">docs.rs</a>{crate.repository ? <a href={crate.repository} target="_blank" rel="noopener noreferrer">Repository</a> : null}</p>
+                <span class="artifact-status">{number.format(crate.downloads)} downloads as of {crates.asOf} · updated {crate.updatedAt}</span>
+                {note ? <span class="artifact-status">{note.text} <a href={note.href} target="_blank" rel="noopener noreferrer">Issue</a></span> : null}
+              </li>
+            );
+          })}
+        </ul>
+      </>
+    ))}
+  </section>
+
+  <section class="section artifacts-section" id="datasets" aria-labelledby="artifacts-hf-title" data-hf-source={hf.source}>
     <p class="eyebrow">Hugging Face · as of {hf.asOf}</p>
     <h2 id="artifacts-hf-title">{hf.datasets.length} datasets, {hf.models.length} {hf.models.length === 1 ? 'model' : 'models'}.</h2>
-    <p class="artifacts-note">Each label is the status its own dataset card states. A missing label means none of the status wording this page recognizes (research-only, personal research, raw/uncurated, not training data) appears on the card; read the card itself. Repos that hold only a card and no data are not listed. Counts as of {hf.asOf}{hf.source === 'snapshot' ? (hf.fallbackReason === 'skipped' ? ' (from the committed snapshot; the live fetch was skipped for this build)' : ' (from the committed snapshot; the Hugging Face API was unreachable at build time)') : ''}.</p>
+    <p class="artifacts-note">Datasets are grouped by the collections they belong to on the Hub; a dataset in several collections is listed once, under the newest. Each label is the status its own dataset card states. A missing label means none of the status wording this page recognizes (research-only, personal research, raw/uncurated, not training data) appears on the card; read the card itself. Repos that hold only a card and no data are not listed. Counts as of {hf.asOf}{snapshotNote(hf.source, hf.fallbackReason, 'Hugging Face API')}.</p>
 
-    <h3>Datasets</h3>
-    <ul class="artifact-list" data-hf-datasets>
-      {hf.datasets.map((dataset) => (
-        <li>
-          <a href={dataset.url} target="_blank" rel="noopener noreferrer">{dataset.id}</a>
-          {dataset.statusLabels.length > 0 ? <span class="artifact-status">{dataset.statusLabels.join(' · ')}</span> : null}
-        </li>
-      ))}
-    </ul>
+    {hf.collections.map((collection) => (
+      <>
+        <h3 class="collection-title"><a href={collection.url} target="_blank" rel="noopener noreferrer">{collection.title}</a> <span class="collection-count">{collection.datasets.length} {collection.datasets.length === 1 ? 'dataset' : 'datasets'}</span></h3>
+        <ul class="artifact-list" data-hf-datasets>
+          {collection.datasets.map((dataset) => (
+            <li>
+              <a href={dataset.url} target="_blank" rel="noopener noreferrer">{dataset.id}</a>
+              {dataset.statusLabels.length > 0 ? <span class="artifact-status">{dataset.statusLabels.join(' · ')}</span> : null}
+            </li>
+          ))}
+        </ul>
+      </>
+    ))}
+    {hf.ungrouped.length > 0 ? (
+      <>
+        <h3 class="collection-title">Not in a collection <span class="collection-count">{hf.ungrouped.length} {hf.ungrouped.length === 1 ? 'dataset' : 'datasets'}</span></h3>
+        <ul class="artifact-list" data-hf-datasets>
+          {hf.ungrouped.map((dataset) => (
+            <li>
+              <a href={dataset.url} target="_blank" rel="noopener noreferrer">{dataset.id}</a>
+              {dataset.statusLabels.length > 0 ? <span class="artifact-status">{dataset.statusLabels.join(' · ')}</span> : null}
+            </li>
+          ))}
+        </ul>
+      </>
+    ) : null}
 
     <h3>Models</h3>
     <ul class="artifact-list" data-hf-models>
@@ -36,7 +87,7 @@ const number = new Intl.NumberFormat('en-US');
     </ul>
   </section>
 
-  <section class="section artifacts-section" aria-labelledby="artifacts-prs-title">
+  <section class="section artifacts-section" id="upstream" aria-labelledby="artifacts-prs-title">
     <p class="eyebrow">Upstream contributions · verified {upstreamVerifiedAt}</p>
     <h2 id="artifacts-prs-title">{upstreamPrs.length} merged pull requests.</h2>
     <p class="artifacts-note">Each one is checked against the GitHub API as merged. Diff sizes are additions and deletions as GitHub reports them. Package registrations are not contributions and are not listed.</p>

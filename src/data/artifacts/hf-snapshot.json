@@ -1,5 +1,5 @@
 {
-  "asOf": "2026-10-22",
+  "asOf": "2026-10-25",
   "source": "https://huggingface.co/api/datasets?author=rmems",
   "datasets": [
     {
@@ -59,7 +59,7 @@
     },
     {
       "id": "rmems/browser-tool-use-trajectories",
-      "dataFiles": 4055,
+      "dataFiles": 4050,
       "status": [
         "research-only",
         "raw-uncurated",
@@ -145,7 +145,7 @@
     },
     {
       "id": "rmems/email-webhook-retry-trajectories",
-      "dataFiles": 105,
+      "dataFiles": 102,
       "status": [
         "research-only",
         "raw-uncurated",
@@ -154,7 +154,7 @@
     },
     {
       "id": "rmems/eval-harness-trajectories",
-      "dataFiles": 5011,
+      "dataFiles": 5015,
       "status": [
         "research-only",
         "raw-uncurated",
@@ -456,7 +456,7 @@
     },
     {
       "id": "rmems/rag-retrieval-debug-trajectories",
-      "dataFiles": 3459,
+      "dataFiles": 3450,
       "status": [
         "research-only",
         "raw-uncurated",
@@ -492,7 +492,7 @@
     },
     {
       "id": "rmems/search-index-rebuild-trajectories",
-      "dataFiles": 253,
+      "dataFiles": 260,
       "status": [
         "research-only",
         "raw-uncurated",
@@ -515,7 +515,7 @@
     },
     {
       "id": "rmems/sparse-reward-long-tasks",
-      "dataFiles": 15939,
+      "dataFiles": 15944,
       "status": [
         "research-only",
         "raw-uncurated",
@@ -524,7 +524,7 @@
     },
     {
       "id": "rmems/Spikenaut-SNN-Telemetry",
-      "dataFiles": 42,
+      "dataFiles": 48,
       "status": []
     },
     {
@@ -577,6 +577,318 @@
     {
       "id": "rmems/Spikenaut-SNN",
       "dataFiles": 11
+    }
+  ],
+  "collections": [
+    {
+      "slug": "rmems/synthetic-data-factory-procedural-and-deterministic-6ac6d580a7f8dd780d70505e",
+      "title": "Synthetic data factory: procedural and deterministic",
+      "lastUpdated": "2026-10-15",
+      "items": [
+        {
+          "type": "dataset",
+          "id": "rmems/oracle-grounded-neuromorphic-20261006"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/python-function-repair-20261006"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/execution-verified-repair-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/mcp-tool-use-episodes"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/agent-trajectory-preference-pairs"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/delegation-planning-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/agent-honest-stop-episodes"
+        }
+      ]
+    },
+    {
+      "slug": "rmems/operation-prometheus-se-trajectories-6ac76057ac2e40984bf17b11",
+      "title": "Operation Prometheus - SE Trajectories",
+      "lastUpdated": "2026-10-08",
+      "items": [
+        {
+          "type": "dataset",
+          "id": "rmems/operation-prometheus-trajectories"
+        }
+      ]
+    },
+    {
+      "slug": "rmems/synthetic-data-factory-spacexai-grok-46-6a8570931720e862b5638e90",
+      "title": "Synthetic data factory: SpaceXAI/Grok 4.6 🚀",
+      "lastUpdated": "2026-09-21",
+      "items": [
+        {
+          "type": "dataset",
+          "id": "rmems/secret-scan-remediation-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/sparse-reward-long-tasks"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/multi-agent-coordination-transcripts"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/infra-as-code-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/browser-tool-use-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/long-horizon-coding-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/cascading-error-recovery-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/tool-use-preference-pairs"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/safety-calibration-cases"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/eval-harness-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/incident-response-oncall-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/data-pipeline-repair-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/git-ops-recovery-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/rag-retrieval-debug-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/code-review-preference-pairs"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/api-contract-migration-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/observability-debug-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/agent-memory-compaction-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/authz-regression-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/cache-stampede-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/csv-excel-ingest-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/db-migration-repair-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/distributed-lock-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/docker-build-cache-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/email-webhook-retry-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/feature-flag-debug-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/flaky-test-quarantine-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/graphql-nplusone-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/k8s-crashloop-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/llm-eval-flakiness-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/log-redaction-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/mcp-tool-schema-drift-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/monorepo-dep-bump-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/notebook-to-pipeline-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/package-release-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/payment-idempotency-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/prompt-cache-invalidation-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/proto-breaking-change-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/queue-backpressure-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/rate-limit-backoff-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/sandbox-refusal-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/search-index-rebuild-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/ssl-cert-rotation-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/websocket-reconnect-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/thalamic-relay-trajectories-grok46"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/neuromorphic-event-language-bridge-grok46"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/multi-agent-ouroboros-swarm-grok46"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/failure-as-fuel-preference-cascade-grok46"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/agentic-coding-trajectories-grok46"
+        }
+      ]
+    },
+    {
+      "slug": "rmems/synthetic-data-factory-anthropic-claude-fable-5-6a8457fb329c5940a4b988c7",
+      "title": "Synthetic data factory: Anthropic/Claude Fable 5👑",
+      "lastUpdated": "2026-08-31",
+      "items": [
+        {
+          "type": "dataset",
+          "id": "rmems/agentic-coding-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/thalamic-relay-trajectories"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/failure-as-fuel-preference-cascade"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/neuromorphic-event-language-bridge"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/multi-agent-ouroboros-swarm"
+        }
+      ]
+    },
+    {
+      "slug": "rmems/spikenaut-6a815194cb17b66bbadb5736",
+      "title": "Spikenaut",
+      "lastUpdated": "2026-08-25",
+      "items": [
+        {
+          "type": "model",
+          "id": "rmems/Spikenaut-SNN"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/Spikenaut-SNN-Telemetry"
+        }
+      ]
+    },
+    {
+      "slug": "rmems/grok-1-dissection-and-ternary-packing-6a7927095f6a7ca444f003af",
+      "title": "Grok-1 dissection and ternary packing",
+      "lastUpdated": "2026-08-10",
+      "items": [
+        {
+          "type": "dataset",
+          "id": "rmems/grok-1-dissect-artifacts"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/grok-1-ternary-quant-experiments"
+        },
+        {
+          "type": "dataset",
+          "id": "rmems/grok-1-goz1-packs"
+        }
+      ]
     }
   ]
 }

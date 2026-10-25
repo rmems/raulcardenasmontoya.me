@@ -311,19 +311,6 @@ button.button {
 .button-primary:hover { color: var(--paper); border-color: var(--accent); background: var(--accent); }
 .button-secondary:hover { color: var(--paper); background: var(--accent); border-color: var(--accent); }
 
-.hero-index {
-  display: flex;
-  flex-wrap: wrap;
-  gap: clamp(0.8rem, 3vw, 2rem);
-  margin-top: auto;
-  padding-top: 4rem;
-  padding-left: 0;
-  color: var(--muted);
-  font-family: var(--mono);
-  font-size: 0.72rem;
-  list-style: none;
-}
-
 .section { padding: clamp(4.5rem, 8vw, 7.5rem) 0; }
 
 .section-heading {
@@ -767,6 +754,8 @@ button.button {
 
 .case-study-summary { margin: 0; font-family: var(--display); font-size: clamp(1.35rem, 2.5vw, 2rem); line-height: 1.3; }
 .case-study-detail { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.7fr); gap: 2.5rem; }
+.case-study-shipped { grid-column: 1 / -1; }
+.case-study-shipped p:last-child { margin: 0.8rem 0 0; font-size: 1.02rem; line-height: 1.6; }
 .detail-label { padding-top: 0.8rem; border-top: 1px solid var(--line); }
 .question-list { margin: 0; padding: 0; list-style: none; }
 
@@ -841,7 +830,6 @@ button.button {
   .hero h1 { font-size: min(17vw, 5rem); }
   .page-intro h1, .resume-panel h1, .note-article h1 { font-size: min(15.5vw, 5rem); }
   .page-intro.compact h1 { font-size: min(11vw, 3rem); }
-  .hero-index { flex-direction: column; padding-top: 4rem; }
   .section-heading, .focus-band, .prose-grid, .case-study-detail, .native-evidence { grid-template-columns: minmax(0, 1fr); }
   .section h2, .focus-band h2, .work-principle h2 { font-size: clamp(min(2.5rem, 11vw), 4.4vw, 4.4rem); }
   .project-card { min-height: 0; }
@@ -875,6 +863,19 @@ button.button {
 
 .artifacts-section h3 { margin: 2rem 0 0.6rem; }
 .artifacts-note { max-width: 42rem; color: var(--ink); }
+.artifacts-jump { display: flex; flex-wrap: wrap; gap: 0.5rem 1.4rem; margin-top: 1.5rem; }
+.artifacts-jump a { font-family: var(--mono); font-size: 0.72rem; font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase; }
 .artifact-list { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--line-strong); }
 .artifact-list li { padding: 0.6rem 0; border-bottom: 1px solid var(--line-strong); overflow-wrap: anywhere; }
 .artifact-status { display: block; color: var(--muted); font-size: 0.9rem; }
+.collection-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.3rem 0.8rem; }
+.collection-title a { text-decoration-color: var(--line-strong); }
+.collection-count { color: var(--muted); font-family: var(--mono); font-size: 0.72rem; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
+.crate-list li { display: grid; gap: 0.25rem; padding: 0.9rem 0; }
+.crate-list p { margin: 0; }
+.crate-head { font-weight: 650; }
+.crate-head a { text-decoration: none; }
+.crate-head a:hover { text-decoration: underline; }
+.crate-version { margin-left: 0.4rem; color: var(--muted); font-family: var(--mono); font-size: 0.78rem; font-weight: 500; }
+.crate-description { max-width: 48rem; font-size: 0.95rem; line-height: 1.55; }
+.crate-links { display: flex; flex-wrap: wrap; gap: 0.3rem 1.2rem; font-family: var(--mono); font-size: 0.72rem; font-weight: 650; }

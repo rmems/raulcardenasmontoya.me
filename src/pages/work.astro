@@ -1,13 +1,16 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { fillCounts, loadSiteCounts } from '../artifacts/counts';
 import { projects } from '../data/projects';
+
+const counts = await loadSiteCounts();
 ---
 
 <BaseLayout preloadSerif title="Work" description="Selected AI/ML systems work, research infrastructure, and ongoing technical explorations.">
   <section class="page-intro work-intro" aria-labelledby="work-title">
     <p class="eyebrow">Selected work · {String(projects.length).padStart(2, '0')}</p>
     <h1 id="work-title">Systems work,<br /><em>shown in context.</em></h1>
-    <p>Each brief states its status, the questions I'm working on, and the areas it covers. I add links and results once there is something public to point at.</p>
+    <p>Each brief states its status, the questions I'm working on, and the areas it covers. Where the linked repository already shows a result, the brief says what has shipped; I add links once there is something public to point at.</p>
   </section>
 
   <nav class="work-index" aria-label="On this page">
@@ -32,6 +35,12 @@ import { projects } from '../data/projects';
         <div class="case-study-body">
           <p class="case-study-summary">{project.summary}</p>
           <div class="case-study-detail">
+            {project.shipped ? (
+              <section class="case-study-shipped" aria-labelledby={`${project.slug}-shipped`}>
+                <p class="detail-label" id={`${project.slug}-shipped`}>Shipped</p>
+                <p>{fillCounts(project.shipped, counts)}</p>
+              </section>
+            ) : null}
             <section aria-labelledby={`${project.slug}-questions`}>
               <p class="detail-label" id={`${project.slug}-questions`}>Questions in view</p>
               <ul class="question-list">

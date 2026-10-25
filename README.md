@@ -36,6 +36,7 @@ Codecov/Qlty setup, and fork-PR behavior.
 
 - Site-wide identity, social URL placeholders, email placeholder, and résumé path: `src/data/site.ts`
 - Project cards and work-page briefs: `src/data/projects.ts`
+- Dated snapshots behind every count on the site (crates.io and Hugging Face, with collections): `src/data/artifacts/`, refreshed with `node scripts/build-crates-snapshot.mjs` and `node scripts/build-hf-snapshot.mjs`; `src/artifacts/counts.ts` is the only place pages read counts from
 - Markdown notes: `src/content/notes/`
 - Publishing checklist: `CONTENT.md`
 - Browser renderer, Rust/WASM boundary, compatibility policy, and crate audit: `docs/architecture/browser-runtime.md`

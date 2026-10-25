@@ -32,11 +32,14 @@ DNS and any `shipoftheseus.dev` redirect live outside this repository (Namecheap
 
 Evidence and Notes appear in the primary nav only when their collection has a published entry (a native-evidence artifact, or a note with `draft: false`). This is decided at build time in `src/components/SiteHeader.astro`. The pages still build while empty, so direct links and the sitemap keep working. `/projects/` redirects to `/work/`.
 
-## Artifacts page
+## Artifacts page and counts
 
-`/artifacts/` lists Hugging Face datasets and merged upstream PRs. `/evidence/` stays reserved for measured CUDA/FPGA captures.
+`/artifacts/` lists published Rust crates, Hugging Face datasets (grouped by collection) and merged upstream PRs. `/evidence/` stays reserved for measured CUDA/FPGA captures.
 
-- The Hugging Face lists are fetched from the public API at build time (no token). If the API is unreachable, or `SKIP_HF_FETCH=1`, the page uses `src/data/artifacts/hf-snapshot.json` and says so. Refresh it with `node scripts/build-hf-snapshot.mjs`.
+- Every count the site prints (the homepage stat row, About, the project briefs, the meta descriptions) comes from `src/artifacts/counts.ts`, which reads the dated snapshots below. Never type a count into copy; `npm test` scans every template, component, layout, data file and note for one in digits (and the briefs for one in words) and fails when it finds any. Briefs in `src/data/projects.ts` take counts through `{{crates}}`, `{{datasets}}`, `{{factoryDatasets}}`, `{{factoryCollections}}`, `{{cratesAsOf}}` and `{{datasetsAsOf}}` tokens.
+- The Hugging Face lists and the owner's collections are fetched from the public API at build time (no token). If the API is unreachable, or `SKIP_HF_FETCH=1`, the page uses `src/data/artifacts/hf-snapshot.json` and says so. Refresh it with `node scripts/build-hf-snapshot.mjs`. A dataset in several collections is listed once, under the newest; datasets in none are listed under "Not in a collection".
+- The crates come from `https://crates.io/api/v1/crates?user_id=390342` at build time, with the site's `User-Agent` (crates.io crawler policy). If the API is unreachable, or `SKIP_CRATES_FETCH=1`, the page uses `src/data/artifacts/crates-snapshot.json` and says so. Refresh it with `node scripts/build-crates-snapshot.mjs`. Display groups live in `CRATE_GROUPS` (`src/artifacts/crates-source.mjs`); a crate in no group is listed under "Other". Download totals include CI and mirror traffic, so the page says so and makes no adoption claim.
+- A project brief's "Shipped" line states only what the linked README or published artifact shows. Keep the agoge-forger framing from #57 (SFT taught fence formatting; never "0/16 → 10/16").
 - Each dataset shows only the status its own card states. Repos with no data files (card only) and `rmems/agent-honest-stop-episodes` are never listed (`EXCLUDED_DATASETS` in `src/artifacts/hf-source.mjs`).
 - `src/data/artifacts/upstream-prs.json` lists only PRs the GitHub API reports as merged, with additions, deletions and changed files. Re-verify before adding one. Never list JuliaRegistries/General registrations as contributions.
 - Counts carry their "as of" date; update `verifiedAt` when you re-verify.

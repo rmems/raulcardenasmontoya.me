@@ -2,16 +2,25 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import NeuromorphicDemo from '../components/NeuromorphicDemo.astro';
 import ProjectCard from '../components/ProjectCard.astro';
+import { loadSiteCounts } from '../artifacts/counts';
 import { projects } from '../data/projects';
 import { site } from '../data/site';
+
+// Every number on this page comes from a dated snapshot (src/artifacts/counts.ts).
+const counts = await loadSiteCounts();
+const stats = [
+  { value: counts.crates, label: 'published Rust crates', dated: `as of ${counts.cratesAsOf}`, href: site.social.cratesio, external: true },
+  { value: counts.datasets, label: 'Hugging Face datasets', dated: `as of ${counts.datasetsAsOf}`, href: site.social.huggingface, external: true },
+  { value: counts.mergedPrs, label: 'merged upstream pull requests', dated: `verified ${counts.mergedPrsVerifiedAt}`, href: '/artifacts/#upstream', external: false },
+];
 ---
-<BaseLayout preloadSerif description="Rust and Python infrastructure for agentic systems, synthetic data, and model evaluation: 11 published Rust crates, 60 Hugging Face datasets, and a spiking-network demo that runs in your browser.">
+<BaseLayout preloadSerif description={`Rust and Python infrastructure for agentic systems, synthetic data, and model evaluation: ${counts.crates} published Rust crates, ${counts.datasets} Hugging Face datasets, and a spiking-network demo that runs in your browser.`}>
   <NeuromorphicDemo>
     <div class="hero-heading" slot="heading"><p class="eyebrow">Raul Cardenas Montoya · AI Engineer</p><p class="hero-coordinate">San Marcos, TX · open to relocation</p></div>
     <h1 id="hero-title">I build infrastructure for <em>agentic systems</em>, synthetic data, and model evaluation.</h1>
     <p class="hero-copy">I work mostly in Rust and Python. I'm finishing a B.S. in AI Engineering at WGU (expected September 2027) and I'm open to junior and new-grad roles.</p>
     <div class="hero-actions"><a class="button button-primary" href={site.resumePath}>Résumé (PDF) <span aria-hidden="true">↓</span></a><a class="button button-secondary" href={`mailto:${site.email}`}>Email me <span aria-hidden="true">↗</span></a><a class="button button-secondary" href={site.social.github} target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a><a class="button button-secondary" href="/work/">Selected work <span aria-hidden="true">→</span></a></div>
-    <ul class="hero-index" slot="index" aria-label="Proof points"><li><a href={site.social.cratesio} target="_blank" rel="noreferrer">11 published Rust crates</a></li><li><a href={site.social.huggingface} target="_blank" rel="noreferrer">60 Hugging Face datasets</a></li><li>Merged PRs to agent-afk and UsagePal</li></ul>
+    <ul class="hero-stats" aria-label="Proof points">{stats.map((stat) => <li><a href={stat.href} target={stat.external ? '_blank' : undefined} rel={stat.external ? 'noreferrer' : undefined}><strong>{stat.value}</strong><span>{stat.label}</span><small>{stat.dated}</small></a></li>)}</ul>
   </NeuromorphicDemo>
   <section class="section featured-section" aria-labelledby="featured-title"><div class="section-heading"><p class="eyebrow">Selected work</p><h2 id="featured-title">Projects with a systems spine.</h2><a class="text-link" href="/work/">View the portfolio <span aria-hidden="true">→</span></a></div><div class="project-grid">{projects.filter((project) => project.featured).map((project, index) => <ProjectCard project={project} index={index} />)}</div></section>
   <section class="focus-band" aria-labelledby="focus-title"><div><p class="eyebrow">Current focus</p><h2 id="focus-title">Systems that can explain themselves.</h2></div><p>Designing engineering workflows that preserve their inputs, decisions, and evidence—while continuing to explore the boundary between efficient compute and brain-inspired architectures.</p></section>
