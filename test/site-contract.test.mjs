@@ -77,6 +77,26 @@ test('the responsive stylesheet does not force horizontal scrolling on narrow sc
   assert.match(layoutCheck, /TEXT_SCALES = Object\.freeze\(\['100%', '200%'\]\)/);
 });
 
+test('every count on the site comes from a dated snapshot, never from the copy', () => {
+  const counts = read('src/artifacts/counts.ts');
+  assert.match(counts, /loadCrates\(\)/);
+  assert.match(counts, /loadHfArtifacts\(\)/);
+  assert.match(counts, /upstreamPrs\.length/);
+  for (const page of ['src/pages/index.astro', 'src/pages/about.astro', 'src/pages/resume.astro', 'src/pages/work.astro']) {
+    const source = read(page);
+    assert.match(source, /loadSiteCounts\(\)/, `${page} reads the shared counts`);
+    assert.doesNotMatch(source, /\b\d+ (?:published |merged )?(?:Rust crates|Hugging Face datasets|datasets|crates|pull requests)\b/, `${page} types a count by hand`);
+  }
+  // Project briefs take counts through tokens; the hero shows each one with its date.
+  assert.doesNotMatch(read('src/data/projects.ts'), /\b\d+ (?:public )?(?:datasets|crates)\b/);
+  const home = read('src/pages/index.astro');
+  assert.match(home, /<ul class="hero-stats" aria-label="Proof points">/);
+  assert.match(home, /counts\.cratesAsOf/);
+  assert.match(home, /counts\.datasetsAsOf/);
+  assert.match(home, /counts\.mergedPrsVerifiedAt/);
+  assert.match(home, /href: '\/artifacts\/#upstream'/);
+});
+
 test('the static site does not depend on remotely hosted fonts', () => {
   assert.doesNotMatch(read('src/styles/global.css'), /@import\s+url/);
 });
@@ -675,6 +695,7 @@ test('the about page is first person and the main pages carry their own meta des
   assert.doesNotMatch(about, /Concordia Texas University|Electrical Engineering/);
   assert.doesNotMatch(about, /systems-minded approach/);
   for (const page of ['index', 'about', 'contact', 'resume']) {
-    assert.match(read(`src/pages/${page}.astro`), /<BaseLayout[^>]* description="[^"]{40,}"/, page);
+    // A literal string, or a template expression that derives counts from the snapshots.
+    assert.match(read(`src/pages/${page}.astro`), /<BaseLayout[^>]* description=(?:"[^"]{40,}"|\{`[^`]{40,}`\})/, page);
   }
 });
