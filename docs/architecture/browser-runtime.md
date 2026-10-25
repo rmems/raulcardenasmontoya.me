@@ -73,8 +73,9 @@ state(instance) -> StateView
 ```
 
 - `init` requires an explicit 64-bit seed and validated, versioned configuration.
-  The topology-projection adapter release accepts the single V2 configuration byte `[2]`; it
-  rejects other payloads rather than pretending to support custom topologies.
+  The adapter accepts `[3]`, `[4]` / `[4, mode]`, `[5]` / `[5, mode]` and
+  `[6]` / `[6, mode]`; it rejects other payloads rather than pretending to
+  support custom topologies.
   No entropy, wall clock, locale, device capability, or frame timing may affect
   simulation results.
 - `input` accepts canonical `Float32Array` data plus a monotonic sequence.
@@ -197,6 +198,38 @@ pointer/touch/demo telemetry → kinetic-signals → axon-encoder → neuromod �
   `globalThis.__neuromorphicTelemetry.latest()` returns the active source,
   encoder, encoded spike count, and features, and `.trace()` returns the
   replayable recording (capped at 6000 ticks, then `null`).
+
+### Contract 6: the topology once (GitHub #95)
+
+A contract-5 snapshot is 2,184 to 2,248 bytes of typed arrays, of which 2,056
+bytes (91%) is the topology projection, which never changes within a session
+(`performance-budgets.md`, section 3). Contract 6 (`[6]` / `[6, mode]`) is
+contract 5 with that projection sent once:
+
+- **Adapter.** `WasmAdapter.topology()` returns a `WasmTopology` handle with
+  the same `topology_*` getters a snapshot has (routed CSR arrays, canonical
+  projection, digest). On contract 6 `state()` leaves the twelve topology
+  arrays empty and keeps `topology_digest`; input, encoding, dynamics and the
+  exported neuron state are byte-identical to contract 5
+  (`tests/trace_fixture.rs` replays the contract-5 golden under contract 6, and
+  `tests/adapter_contract.rs` compares the two contracts step by step).
+- **Bridge.** `initNeuromorphicAdapter` reads the topology once at init, runs
+  every structural, identity and ordering check on it (the same checks
+  contracts 3 to 5 run on every snapshot), and keeps JS-owned copies. Each
+  snapshot is then required to carry empty topology arrays and the same
+  digest, and is handed out with the shared arrays attached, so every consumer
+  (renderer, spike-event buffer, telemetry) still reads one `NeuromorphicState`
+  shape. `adapter.topology()` returns the shared projection; on earlier
+  contracts it reads a fresh snapshot.
+- **Worker.** The worker's `ready` reply carries a copy of the topology
+  (transferred once); each `state` reply carries the snapshot detached (empty
+  topology arrays, digest kept) with three buffers transferred instead of
+  fifteen. The main thread re-attaches its copy (`attachTopology`), which
+  refuses a snapshot whose digest differs.
+- **Live path.** `LIVE_ADAPTER_OPTIONS` selects contract 6 with the default
+  encoder mode; a session's trace records `[6, mode]`, so it replays under the
+  same contract. Contracts 3 to 5 remain for their goldens and for callers
+  that send raw sample packets or need the projection in every snapshot.
 
 ### Recorded `corpus-ipc` protocol viewer (GitHub #21 / Linear RM-1657)
 

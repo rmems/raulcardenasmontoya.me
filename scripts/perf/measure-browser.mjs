@@ -231,6 +231,7 @@ async function measureBoundary(page, report) {
       stimulusUrl: dataUrl(runtimeModuleSource('demo-stimulus')),
       workerSource: runtimeModuleSource('neuromorphic-worker'),
       ticks: Number(option('ticks', 2000)),
+      contract: Number(option('contract', 6)),
       repeats: Number(option('repeats', 7)),
     }),
     { timeoutMs: 900_000 },

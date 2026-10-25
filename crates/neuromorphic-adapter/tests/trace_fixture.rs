@@ -6,7 +6,9 @@
 //! `regenerate_*` tests. Expected values are never hand-edited: if upstream
 //! behavior legitimately changes, regenerate the fixture instead.
 
-use neuromorphic_adapter::{BrowserRuntime, CONTRACT_VERSION_V5, encoder::EncoderMode};
+use neuromorphic_adapter::{
+    BrowserRuntime, CONTRACT_VERSION_V5, CONTRACT_VERSION_V6, encoder::EncoderMode,
+};
 use serde_json::Value;
 use std::path::PathBuf;
 
@@ -343,4 +345,38 @@ fn write_fixture(
     )
     .expect("fixture is writable");
     eprintln!("wrote {}", path.display());
+}
+
+#[test]
+fn contract_6_replays_the_kinetic_golden_trace_without_per_step_topology() {
+    let fixture: Value = serde_json::from_str(KINETIC_FIXTURE).expect("fixture parses");
+    let expected = expected_steps(&fixture);
+    let operations = fixture["operations"].as_array().expect("operation list");
+
+    let mut runtime = BrowserRuntime::with_mode(
+        fixture_seed(&fixture),
+        EncoderMode::DEFAULT,
+        CONTRACT_VERSION_V6,
+    )
+    .expect("fixed topology is valid");
+    let topology = runtime.topology();
+    let actual = replay(&mut runtime, operations, true);
+    assert_eq!(actual.len(), expected.len(), "step count");
+    for (index, (actual_step, expected_step)) in actual.iter().zip(&expected).enumerate() {
+        assert_eq!(
+            actual_step, expected_step,
+            "step {index}: contract 6 must reproduce contract 5's golden trace"
+        );
+    }
+
+    let state = runtime.state();
+    assert_eq!(state.contract_version, CONTRACT_VERSION_V6);
+    assert!(
+        state.topology_rows.is_empty(),
+        "contract 6 snapshots carry no topology arrays"
+    );
+    assert!(state.topology_edge_sources.is_empty());
+    assert_eq!(state.topology_digest, topology.topology_digest);
+    assert_eq!(topology.topology_edge_sources.len(), 64);
+    assert_eq!(runtime.topology(), topology);
 }
