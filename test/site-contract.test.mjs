@@ -81,6 +81,84 @@ test('the static site does not depend on remotely hosted fonts', () => {
   assert.doesNotMatch(read('src/styles/global.css'), /@import\s+url/);
 });
 
+test('the fonts are self-hosted Latin subsets with their licences, preloaded where the headline uses them', () => {
+  const styles = read('src/styles/global.css');
+  const layout = read('src/layouts/BaseLayout.astro');
+  for (const file of ['inter-latin.woff2', 'inter-italic-latin.woff2', 'newsreader-italic-latin.woff2', 'LICENSE-Inter.txt', 'LICENSE-Newsreader.txt']) {
+    assert.equal(existsSync(new URL(`../public/fonts/${file}`, import.meta.url)), true, file);
+  }
+  assert.match(styles, /@font-face \{\s*font-family: Inter;\s*font-style: normal;\s*font-weight: 400 800;\s*font-display: swap;\s*src: url\('\/fonts\/inter-latin\.woff2'\)/);
+  assert.match(styles, /@font-face \{\s*font-family: Inter;\s*font-style: italic;/);
+  assert.match(styles, /@font-face \{\s*font-family: Newsreader;\s*font-style: italic;/);
+  assert.match(styles, /--serif: Newsreader, 'Iowan Old Style'/);
+  assert.match(layout, /<link rel="preload" href="\/fonts\/inter-latin\.woff2" as="font" type="font\/woff2" crossorigin \/>/);
+  assert.match(layout, /preloadSerif \? <link rel="preload" href="\/fonts\/newsreader-italic-latin\.woff2"/);
+  assert.match(read('src/pages/index.astro'), /<BaseLayout preloadSerif /);
+  assert.match(read('src/pages/work.astro'), /<BaseLayout preloadSerif /);
+  for (const file of readdirSync(new URL('../src', import.meta.url), { recursive: true })) {
+    if (!/\.(astro|css|ts|mjs)$/.test(String(file))) continue;
+    assert.doesNotMatch(read(`src/${file}`), /fonts\.googleapis\.com|fonts\.gstatic\.com/, `${file} references a remote font host`);
+  }
+});
+
+test('small labels stay at or above 0.72rem, apart from the phone navigation', () => {
+  for (const file of readdirSync(new URL('../src/styles', import.meta.url))) {
+    const styles = read(`src/styles/${file}`);
+    const small = [...styles.matchAll(/font-size: (0\.[0-6]\d*|0\.7)rem/g)].map((match) => match[0]);
+    assert.deepEqual(small, file === 'global.css' ? ['font-size: 0.68rem'] : [], `${file}: ${small.join(', ')}`);
+  }
+  assert.match(read('src/styles/global.css'), /\.primary-nav a, \.header-profile \{ font-size: 0\.68rem; \}/);
+  // Cards and chips read the cool tokens; no warm literal colours remain.
+  assert.doesNotMatch(read('src/styles/global.css'), /#4f504a|241 240 233|229 227 217/);
+  assert.match(read('src/styles/global.css'), /\.project-card \{[^}]*background: var\(--surface\);/);
+});
+
+test('inner pages with a compact intro use a smaller heading so content starts on the first screen', () => {
+  const styles = read('src/styles/global.css');
+  assert.match(styles, /\.page-intro\.compact h1 \{ font-size: clamp\(2\.6rem, 4\.6vw, 4\.6rem\);/);
+  assert.match(styles, /\.page-intro\.compact h1 \{ font-size: min\(11vw, 3rem\); \}/);
+  for (const page of ['labs/index', 'artifacts', 'evidence', 'protocol', 'notes/index', 'contact', 'labs/nir', 'labs/plasticity']) {
+    assert.match(read(`src/pages/${page}.astro`), /class="page-intro compact"/, page);
+  }
+});
+
+test('the site has a dark scheme through the tokens, and the hero drawing carries both edge sets', () => {
+  const styles = read('src/styles/global.css');
+  const hero = read('src/styles/hero.css');
+  const island = read('src/components/NeuromorphicDemo.astro');
+  const dark = styles.match(/@media \(prefers-color-scheme: dark\) \{\s*:root \{([\s\S]*?)\}/);
+  assert.ok(dark, 'dark token block');
+  for (const token of ['--ink', '--paper', '--surface', '--paper-deep', '--muted', '--line', '--line-strong', '--accent', '--accent-soft', '--secondary', '--spike', '--code-bg']) {
+    assert.match(dark[1], new RegExp(`${token}:\\s*[^;]+;`), token);
+  }
+  assert.match(dark[1], /color-scheme: dark;/);
+  assert.match(styles, /^code \{[^}]*background: var\(--code-bg\);/m);
+  assert.match(read('src/layouts/BaseLayout.astro'), /name="theme-color" content="#0f1218" media="\(prefers-color-scheme: dark\)"/);
+  assert.match(island, /staticMeshGeometry\(topology, SITE_TOPOLOGY_PALETTE_DARK\)/);
+  assert.match(island, /class="hero-mesh-edges hero-mesh-edges-light"/);
+  assert.match(island, /class="hero-mesh-edges hero-mesh-edges-dark"/);
+  assert.match(hero, /\.hero-mesh-edges-dark \{ display: none; \}/);
+  assert.match(hero, /@media \(prefers-color-scheme: dark\) \{\s*\.hero-mesh-edges-light \{ display: none; \}\s*\.hero-mesh-edges-dark \{ display: inline; \}/);
+  assert.match(hero, /\.hero-mesh-nodes \{ fill: none; stroke: var\(--muted\);/);
+  // Every lab canvas reads its colours from the tokens, so it follows the scheme.
+  for (const file of ['src/runtime/telemetry-view.ts', 'src/runtime/enhance-plasticity.ts', 'src/runtime/topology-renderer.ts']) {
+    assert.match(read(file), /getPropertyValue\(name\)/, file);
+  }
+});
+
+test('the labs index previews each lab from its committed data, without JavaScript', () => {
+  const page = read('src/pages/labs/index.astro');
+  const data = read('src/data/labs.ts');
+  assert.match(data, /preview: 'nir-diagram'/);
+  assert.match(data, /preview: 'plasticity-network'/);
+  assert.match(page, /NirDiagramPreview/);
+  assert.match(page, /PlasticityNetworkPreview/);
+  assert.doesNotMatch(page, /<script/);
+  assert.match(read('src/components/NirDiagramPreview.astro'), /layoutNirDiagram\(projection\)/);
+  assert.match(read('src/components/PlasticityNetworkPreview.astro'), /final_weight_bits/);
+  assert.doesNotMatch(read('src/components/NirDiagramPreview.astro') + read('src/components/PlasticityNetworkPreview.astro'), /<script/);
+});
+
 test('publishing handoff values become live only when configured', () => {
   const contact = read('src/pages/contact.astro');
   const resume = read('src/pages/resume.astro');

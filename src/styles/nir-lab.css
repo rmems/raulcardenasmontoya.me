@@ -49,7 +49,7 @@
   margin: 0;
   color: var(--accent);
   font-family: var(--mono);
-  font-size: 0.66rem;
+  font-size: 0.72rem;
   font-weight: 650;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -86,7 +86,7 @@
   margin-top: 0.8rem;
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   line-height: 1.5;
 }
 
@@ -155,7 +155,7 @@
   margin: 0 0 0.8rem;
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 0.68rem;
+  font-size: 0.72rem;
 }
 
 .nir-inspector header .eyebrow { margin-bottom: 0.4rem; }
@@ -185,7 +185,7 @@
   margin-bottom: 0.5rem;
   color: var(--accent);
   font-family: var(--mono);
-  font-size: 0.66rem;
+  font-size: 0.72rem;
   font-weight: 650;
   letter-spacing: 0.08em;
   text-align: left;
@@ -204,7 +204,7 @@
 .nir-field-table thead th {
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 0.66rem;
+  font-size: 0.72rem;
   font-weight: 650;
 }
 
@@ -259,7 +259,7 @@
 .nir-operator {
   padding: 1.2rem 1rem 1.3rem;
   border: 1px solid var(--line-strong);
-  background: rgb(241 240 233 / 45%);
+  background: var(--surface);
   scroll-margin-top: 2rem;
 }
 

@@ -2,8 +2,8 @@
 import '../styles/global.css';
 import SiteHeader from '../components/SiteHeader.astro';
 import { site } from '../data/site';
-interface Props { title?: string; description?: string; }
-const { title, description = site.description } = Astro.props;
+interface Props { title?: string; description?: string; /** Pages whose heading uses the serif italic preload it, so the headline does not reflow. */ preloadSerif?: boolean; }
+const { title, description = site.description, preloadSerif = false } = Astro.props;
 const brandTitle = `${site.fullName} — ${site.title}`;
 const pageTitle = title ? `${brandTitle} · ${title}` : brandTitle;
 const metaDescription = description.startsWith(site.fullName) ? description : `${site.fullName} — ${site.title}. ${description}`;
@@ -26,7 +26,10 @@ const socialImage = new URL('/assets/social-card.png', Astro.site);
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={metaDescription} />
-    <meta name="theme-color" content="#f7f8fa" />
+    <meta name="theme-color" content="#f7f8fa" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0f1218" media="(prefers-color-scheme: dark)" />
+    <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
+    {preloadSerif ? <link rel="preload" href="/fonts/newsreader-italic-latin.woff2" as="font" type="font/woff2" crossorigin /> : null}
     <meta name="generator" content={Astro.generator} />
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={metaDescription} />

@@ -134,11 +134,26 @@ test('static drawing helpers reject inconsistent topologies and bad colours', ()
   assert.equal(layout.edgeStrength(-2, 1), 1);
 });
 
-test('the build-time palette matches the stylesheet tokens', () => {
+test('the build-time palettes match the stylesheet tokens in both colour schemes', () => {
   const styles = readSource('../src/styles/global.css');
+  const light = styles.match(/^:root \{([\s\S]*?)\}/m);
+  assert.ok(light, 'light token block');
   for (const [name, value] of Object.entries(layout.SITE_TOPOLOGY_PALETTE)) {
-    assert.match(styles, new RegExp(`--${name}:\\s*${value};`), `--${name}`);
+    assert.match(light[1], new RegExp(`--${name}:\\s*${value};`), `--${name}`);
   }
+  const dark = styles.match(/@media \(prefers-color-scheme: dark\) \{\s*:root \{([\s\S]*?)\}/);
+  assert.ok(dark, 'dark token block');
+  for (const [name, value] of Object.entries(layout.SITE_TOPOLOGY_PALETTE_DARK)) {
+    assert.match(dark[1], new RegExp(`--${name}:\\s*${value};`), `dark --${name}`);
+  }
+  // The dark drawing is the same geometry with the dark colours.
+  const topology = adapterModule.auditedBrowserTopology();
+  const lightMesh = layout.staticMeshGeometry(topology);
+  const darkMesh = layout.staticMeshGeometry(topology, layout.SITE_TOPOLOGY_PALETTE_DARK);
+  assert.deepEqual(darkMesh.nodes, lightMesh.nodes);
+  assert.deepEqual(darkMesh.edges.map((edge) => [edge.x1, edge.y1, edge.x2, edge.y2]), lightMesh.edges.map((edge) => [edge.x1, edge.y1, edge.x2, edge.y2]));
+  assert.ok(darkMesh.edges.some((edge) => edge.stroke === layout.SITE_TOPOLOGY_PALETTE_DARK.accent), 'the strongest excitatory edge is the dark --accent');
+  assert.notEqual(darkMesh.nodeFill, lightMesh.nodeFill);
 });
 
 test('the crate trail pins every layer exactly as the adapter manifest and lockfile do', () => {

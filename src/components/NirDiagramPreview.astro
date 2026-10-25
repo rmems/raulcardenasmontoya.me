@@ -1,0 +1,35 @@
+---
+import projectionText from '../data/nir/lif-readout-example.v1.inspection.json?raw';
+import { layoutNirDiagram, type NirInspectionProjection } from '../runtime/nir-inspection';
+
+// A build-time drawing of the graph the NIR lab inspects, from the committed
+// projection that nir-rs generated (src/data/nir/, see tests/nir_example.rs).
+// The lab page draws the same layout at full size and links each box to its
+// details; this is the preview on the labs index, with no script behind it.
+const projection = JSON.parse(projectionText) as NirInspectionProjection;
+const layout = layoutNirDiagram(projection);
+---
+<figure class="lab-preview lab-preview-nir">
+  <svg viewBox={`0 0 ${layout.width} ${layout.height}`} role="img" aria-labelledby="lab-preview-nir-title lab-preview-nir-desc">
+    <title id="lab-preview-nir-title">Preview of the NIR graph: {projection.asset.title}</title>
+    <desc id="lab-preview-nir-desc">{layout.nodes.length} operators joined by {layout.edges.length} directed edges, laid out from the input at the top to the output at the bottom, as the lab draws them from the committed nir-rs projection.</desc>
+    <defs>
+      <marker id="lab-preview-nir-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M0 0L8 4L0 8z" fill="currentColor" />
+      </marker>
+    </defs>
+    <g class="lab-preview-edges" fill="none">
+      {layout.edges.map((edge) => <path d={edge.path} marker-end="url(#lab-preview-nir-arrow)" />)}
+    </g>
+    <g class="lab-preview-nodes">
+      {layout.nodes.map((node) => (
+        <g>
+          <rect x={node.x} y={node.y} width={node.width} height={node.height} rx="6" />
+          <text class="lab-preview-node-name" x={node.x + 14} y={node.y + 23}>{node.name}</text>
+          <text class="lab-preview-node-summary" x={node.x + 14} y={node.y + 42}>{node.operator}</text>
+        </g>
+      ))}
+    </g>
+  </svg>
+  <figcaption>The graph the lab inspects: {layout.nodes.length} NIR operators, drawn at build time from the committed nir-rs projection.</figcaption>
+</figure>

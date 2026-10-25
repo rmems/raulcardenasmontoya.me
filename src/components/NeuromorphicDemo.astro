@@ -4,7 +4,7 @@ import ExecutionOrigin from './ExecutionOrigin.astro';
 import { ADAPTER_SOURCE_URL, crateLayerHref, crateLayerPin, liveCrateLayers } from '../data/live-runtime';
 import { STATIC_DEMO_STATUS } from '../runtime/demo-runtime';
 import { auditedBrowserTopology } from '../runtime/neuromorphic-adapter';
-import { staticMeshGeometry } from '../runtime/topology-layout';
+import { SITE_TOPOLOGY_PALETTE_DARK, staticMeshGeometry } from '../runtime/topology-layout';
 import '../styles/hero.css';
 
 // The homepage hero hosts the live demo island. Its first paint is a static
@@ -15,6 +15,8 @@ import '../styles/hero.css';
 // the page through the slots.
 const topology = auditedBrowserTopology();
 const mesh = staticMeshGeometry(topology);
+// The dark-scheme edge colours; hero.css shows one set per colour scheme.
+const meshDark = staticMeshGeometry(topology, SITE_TOPOLOGY_PALETTE_DARK);
 const nodeCount = mesh.nodes.length;
 const edgeCount = mesh.edges.length;
 const nodePath = mesh.nodes.map((node) => `M${node.x} ${node.y}h0`).join('');
@@ -28,9 +30,12 @@ const nodePath = mesh.nodes.map((node) => `M${node.x} ${node.y}h0`).join('');
         <div class="demo-surface" data-demo-surface role="img" aria-label="Live drawing of the same network, from Rust/WASM snapshots" hidden></div>
         <svg class="hero-mesh-static" viewBox={mesh.viewBox} role="img" aria-labelledby="hero-mesh-title hero-mesh-desc">
           <title id="hero-mesh-title">Static drawing of the live network</title>
-          <desc id="hero-mesh-desc">{`${nodeCount} neurons on a ring, joined by the ${edgeCount} synapses that synaptic-wiring defines. Excitatory synapses are rust and inhibitory ones dark grey; weaker synapses fade toward grey. This is the network the Rust/WASM simulation runs, drawn at build time.`}</desc>
-          <g class="hero-mesh-edges" stroke-opacity={mesh.edgeOpacity}>
+          <desc id="hero-mesh-desc">{`${nodeCount} neurons on a ring, joined by the ${edgeCount} synapses that synaptic-wiring defines. Excitatory synapses are drawn in the site's accent colour and inhibitory ones in teal; weaker synapses fade toward the rule colour. This is the network the Rust/WASM simulation runs, drawn at build time.`}</desc>
+          <g class="hero-mesh-edges hero-mesh-edges-light" stroke-opacity={mesh.edgeOpacity}>
             {mesh.edges.map((edge) => <line x1={edge.x1} y1={edge.y1} x2={edge.x2} y2={edge.y2} stroke={edge.stroke} />)}
+          </g>
+          <g class="hero-mesh-edges hero-mesh-edges-dark" stroke-opacity={meshDark.edgeOpacity}>
+            {meshDark.edges.map((edge) => <line x1={edge.x1} y1={edge.y1} x2={edge.x2} y2={edge.y2} stroke={edge.stroke} />)}
           </g>
           <path class="hero-mesh-nodes" d={nodePath} stroke={mesh.nodeFill} stroke-width={mesh.nodeSizePx} />
         </svg>
