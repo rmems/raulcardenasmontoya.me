@@ -135,14 +135,15 @@ deterministic for identical ordered input. The per-tick order is fixed:
   mode/config pairs before loading WASM, keeps contract-3 callers delta-only,
   and surfaces the active mode plus diagnostics on every contract-4 snapshot
   for inspection. WASM is required; there is no JavaScript encoding fallback.
-  The live demo's worker and main-thread session paths both use contract 5
-  (below) with the default mode; contracts 3 and 4 remain for their goldens
-  and for callers that send raw sample packets.
+  The live demo's worker and main-thread session paths both use contract 6
+  (below), which is contract 5 with the topology sent once, with the default
+  mode; contracts 3 to 5 remain for their goldens and for callers that send
+  raw sample packets or need the projection in every snapshot.
 - **Live switch (#95).** The hero caption offers the three modes as radios
   once a session can start. Selecting one calls `DemoRuntime.setEncoderMode`:
   before a session exists the next init uses the mode; while a WASM session
   exists it is disposed and a new one starts with the same seed and
-  `[5, mode]` on the same worker or main-thread path. The renderer keeps its
+  `[6, mode]` on the same worker or main-thread path. The renderer keeps its
   geometry (same topology digest), the spike-event buffer restarts on the step
   reset, and each session records its own trace with its own config. Quick
   changes coalesce: the latest mode wins. A choice made while the first
@@ -491,8 +492,8 @@ raster ring + latest snapshot ─ throttled flush (default 4 Hz) ─→ canvas +
   buffer's runtime, and `UNAVAILABLE · Rust/WASM` otherwise, including the
   static and no-JavaScript state. Each block names its crate layer
   (`kinetic-signals`, `axon-encoder`, `neuromod`, `synaptic-wiring`), and the
-  panel restates that contract 5 does not feed `neuromod` spikes back into the
-  mesh.
+  panel restates that the live contract (6) does not feed `neuromod` spikes
+  back into the mesh.
 - **Inspection.** Under `astro dev`, `globalThis.__neuromorphicTelemetryPanel`
   exposes `inspect()`, `setCadenceHz(hz)`, and `setEnabled(enabled)`. The panel
   element reports `data-telemetry-state` and `data-telemetry-step`.
@@ -585,11 +586,11 @@ in V1 without a contract-version increase.
   provenance.
 - `spike_neurons`, `membrane_potentials` — the neuron state raster and
   inspection views render.
-- `encoder_features` — contract 5 only (empty on 3 and 4): the clamped
+- `encoder_features` — contracts 5 and 6 only (empty on 3 and 4): the clamped
   `kinetic-signals` features handed to `axon-encoder` by the latest input,
   for telemetry inspection and feature-level replay checks.
 - `encoder_mode`, `encoder_name`, `encoded_spike_count`,
-  `encoded_spike_channels`, `encoded_spike_total` — contract-4/5 encoder
+  `encoded_spike_channels`, `encoded_spike_total` — contract 4, 5 and 6 encoder
   inspection: the active mode and the derived spike-train diagnostics from the
   most recent `input` (count and distinct channels) plus the cumulative total
   since construction.
@@ -635,7 +636,7 @@ row, whose counts come from `src/artifacts/counts.ts`) and
 passes it through the slots of `src/components/NeuromorphicDemo.astro`, which
 renders the island root (`[data-neuromorphic-demo]`), the mesh beside the copy,
 and, below the first screen, a short explanation and the telemetry panel. It
-uses the runtime above unchanged: contract 5, the worker path, the `live-wasm`
+uses the runtime above unchanged: contract 6, the worker path, the `live-wasm`
 spike-event buffer, and #10's adaptive quality.
 
 - **Composition** (`src/styles/hero.css`). Desktop: copy on the left, the mesh
@@ -672,8 +673,9 @@ spike-event buffer, and #10's adaptive quality.
   layout shift of 0 from navigation to live at 1440, 1024, and 768 px, with the
   headline as the largest contentful paint at every width.
 - **Input.** Pointer and touch events over the plate go to the same
-  `createPointerTelemetry(surface)` path as before (contract 5 `[x, y,
-  pressure]` packets into `kinetic-signals` → `axon-encoder` → `neuromod`, with
+  `createPointerTelemetry(surface)` path as before (`[x, y, pressure]`
+  packets, the layout contracts 5 and 6 share, into `kinetic-signals` →
+  `axon-encoder` → `neuromod`, with
   `synaptic-wiring` routing). The plate sets no `touch-action`, so a touch drag
   still scrolls the page (it ends in `pointercancel` and the scripted path
   resumes, as #8 chose); taps reach the pipeline. The indicator in the plate
