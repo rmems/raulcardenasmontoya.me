@@ -196,6 +196,14 @@ in events.
 and the shipped bridge. Cells are the median of 7 runs × 2000 ticks, in µs per
 tick. A contract-5 snapshot carries 2,184 to 2,248 bytes of typed arrays, of
 which 2,056 bytes (91%) is the static topology projection, re-sent every step.
+Contract 6 (#95, `browser-runtime.md`) sends that projection once at init and
+leaves the twelve topology arrays empty in every snapshot, so a per-step
+snapshot carries 128 to 192 bytes of typed arrays (measured over 400 steps
+against the committed package: potentials, spikes and features) and the
+projection crosses once as 2,056 bytes plus the digest; the worker transfers
+three buffers per step instead of fifteen; the live demo uses it. The bench
+below measured contract 5; its `contract` option now defaults to the live
+contract.
 
 | stage | what it times |
 | --- | --- |
@@ -776,10 +784,11 @@ harness (`test/perf-harness.test.mjs`). Coverage excludes `scripts/perf/**` and
 
 ## Follow-ups this data suggests
 
-- A future contract version could send the static topology projection once,
-  not in every snapshot. It is 91% of each snapshot's bytes today, and that
-  share grows with topology size. This would change the contract, so it needs a
-  new contract version (see `browser-runtime.md`).
+- ~~A future contract version could send the static topology projection once,
+  not in every snapshot.~~ Done as contract 6 (#95): the projection crosses the
+  WASM boundary and the worker boundary once, every snapshot shares it, and a
+  per-step snapshot carries 128 to 192 bytes instead of 2,184 to 2,248, with
+  identical spikes step for step (`tests/trace_fixture.rs`).
 - Before shipping more than ~256 neurons, the spike-event ring capacity
   (sized for 64 edges × 5 steps) and main-thread ingestion need their own
   budget; quality cannot reduce either.

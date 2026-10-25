@@ -605,7 +605,7 @@ test('encoder inspection shows the active axon-encoder mode and the exported kin
       Object.keys(encoder).sort(),
       ['contractVersion', 'encodedSpikeChannels', 'encodedSpikeCount', 'encodedSpikeTotal', 'features', 'inputSource', 'mode', 'name', 'step'],
     );
-    assert.equal(encoder.contractVersion, 5);
+    assert.equal(encoder.contractVersion, 6, 'the live rig runs contract 6');
     assert.equal(encoder.name, 'temporal');
     assert.equal(encoder.mode, adapterModule.ENCODER_MODES.temporal);
     assert.equal(encoder.encodedSpikeCount, state.encodedSpikeCount);
@@ -782,7 +782,7 @@ test('only live-wasm data is labeled as the live Rust/WASM runtime', async () =>
     assert.match(live.status, /live Rust\/WASM runtime/);
     assert.match(live.rasterSummary, /neuromod/);
     assert.match(live.rasterSummary, /axon-encoder/);
-    assert.equal(live.snapshot.contractVersion, 5);
+    assert.equal(live.snapshot.contractVersion, 6, 'the live rig runs contract 6');
     assert.equal(live.encoder.inputSource, 'pointer');
 
     livePanel.setMode('awaiting-play');

@@ -41,6 +41,12 @@ pub const CONTRACT_VERSION_V4_U32: u32 = CONTRACT_VERSION_V4 as u32;
 /// packets routed through `kinetic-signals` feature extraction (see
 /// [`kinetic`]) before `axon-encoder`. Adds `encoder_features` to the state.
 pub const CONTRACT_VERSION_V5: u32 = 5;
+/// Contract version whose per-step state carries no topology arrays. The
+/// projection is identical on every step, so [`WasmAdapter::topology`] returns
+/// it once and `state()` leaves the twelve topology vectors empty; the digest
+/// stays, so a consumer can still key a snapshot to its topology. Input,
+/// encoding, dynamics and the exported neuron state are exactly contract 5's.
+pub const CONTRACT_VERSION_V6: u32 = 6;
 const CHANNEL_COUNT: usize = 16;
 const STATUS_OK: &str = "ok";
 
@@ -182,6 +188,32 @@ pub struct BrowserState {
     pub encoder_features: Vec<f32>,
 }
 
+/// The topology a runtime exports once on contract 6, and that every contract
+/// 3 to 5 snapshot repeats: the routed CSR arrays `synaptic-wiring` exports
+/// plus the adapter's canonical [`TopologyProjection`] and the upstream digest.
+#[derive(Clone, Debug, PartialEq)]
+pub struct BrowserTopology {
+    pub topology_rows: Vec<u32>,
+    pub topology_targets: Vec<u32>,
+    pub topology_weights: Vec<f32>,
+    pub topology_delays: Vec<u16>,
+    pub topology_node_ids: Vec<u32>,
+    pub topology_edge_sources: Vec<u32>,
+    pub topology_edge_targets: Vec<u32>,
+    pub topology_edge_weights: Vec<f32>,
+    pub topology_edge_delays: Vec<u16>,
+    pub topology_polarities: Vec<u8>,
+    pub topology_weight_bits: Vec<u32>,
+    pub topology_outgoing_edge_offsets: Vec<u32>,
+    pub topology_digest: String,
+}
+
+/// A per-step copy of a topology array on contracts 3 to 5; nothing on
+/// contract 6, where the projection travels once through `topology()`.
+fn per_step<T: Clone>(include: bool, values: &[T]) -> Vec<T> {
+    if include { values.to_vec() } else { Vec::new() }
+}
+
 /// Construct the `neuromod` network for the selected model. All dynamics and
 /// spike generation live inside `neuromod`; the adapter only picks dimensions
 /// and initial synaptic weights.
@@ -243,6 +275,7 @@ impl BrowserRuntime {
             CONTRACT_VERSION,
             CONTRACT_VERSION_V4_U32,
             CONTRACT_VERSION_V5,
+            CONTRACT_VERSION_V6,
         ]
         .contains(&contract)
         {
@@ -268,7 +301,8 @@ impl BrowserRuntime {
             completed_step: 0,
             last_sequence: None,
             encoder: V1Encoder::for_mode(mode),
-            kinetic: (contract == CONTRACT_VERSION_V5).then(KineticExtractor::new),
+            kinetic: (contract == CONTRACT_VERSION_V5 || contract == CONTRACT_VERSION_V6)
+                .then(KineticExtractor::new),
             encoder_features: [0.0; ENCODER_CHANNELS],
             encoded_spike_count: 0,
             encoded_spike_channels: 0,
@@ -291,8 +325,8 @@ impl BrowserRuntime {
     /// Accept a monotonically increasing browser input sequence.
     ///
     /// On contracts 3 and 4, raw samples are summarized by `kinetic-signals`
-    /// statistics into a bounded feature vector. On contract 5, samples are
-    /// one `[x, y, pressure]` telemetry packet that the stateful
+    /// statistics into a bounded feature vector. On contracts 5 and 6, samples
+    /// are one `[x, y, pressure]` telemetry packet that the stateful
     /// [`KineticExtractor`] turns into clamped motion features. Either way the
     /// features are encoded by `axon-encoder`. The resulting
     /// spikes are queued, so each logical `step` advances `synaptic-wiring`
@@ -388,6 +422,10 @@ impl BrowserRuntime {
     }
 
     pub fn state(&self) -> BrowserState {
+        // Contract 6 sends the projection once (`topology()`); earlier
+        // contracts keep repeating it in every snapshot.
+        let repeat = self.contract_version != CONTRACT_VERSION_V6;
+        let projection = &self.topology_projection;
         BrowserState {
             contract_version: self.contract_version,
             seed: self.seed,
@@ -395,18 +433,18 @@ impl BrowserRuntime {
             last_sequence: self.last_sequence.unwrap_or(0),
             membrane_potentials: self.network.get_membrane_potentials(),
             spike_neurons: self.last_spikes.clone(),
-            topology_rows: self.topology_rows.clone(),
-            topology_targets: self.topology_targets.clone(),
-            topology_weights: self.topology_weights.clone(),
-            topology_delays: self.topology_delays.clone(),
-            topology_node_ids: self.topology_projection.node_ids.clone(),
-            topology_edge_sources: self.topology_projection.edge_sources.clone(),
-            topology_edge_targets: self.topology_projection.edge_targets.clone(),
-            topology_edge_weights: self.topology_projection.edge_weights.clone(),
-            topology_edge_delays: self.topology_projection.edge_delays.clone(),
-            topology_polarities: self.topology_projection.edge_polarities.clone(),
-            topology_weight_bits: self.topology_projection.edge_weight_bits.clone(),
-            topology_outgoing_edge_offsets: self.topology_projection.outgoing_edge_offsets.clone(),
+            topology_rows: per_step(repeat, &self.topology_rows),
+            topology_targets: per_step(repeat, &self.topology_targets),
+            topology_weights: per_step(repeat, &self.topology_weights),
+            topology_delays: per_step(repeat, &self.topology_delays),
+            topology_node_ids: per_step(repeat, &projection.node_ids),
+            topology_edge_sources: per_step(repeat, &projection.edge_sources),
+            topology_edge_targets: per_step(repeat, &projection.edge_targets),
+            topology_edge_weights: per_step(repeat, &projection.edge_weights),
+            topology_edge_delays: per_step(repeat, &projection.edge_delays),
+            topology_polarities: per_step(repeat, &projection.edge_polarities),
+            topology_weight_bits: per_step(repeat, &projection.edge_weight_bits),
+            topology_outgoing_edge_offsets: per_step(repeat, &projection.outgoing_edge_offsets),
             topology_digest: self.topology_digest.clone(),
             protocol_wire_version: WireCompatibility::CURRENT,
             error_status: self.last_error_status.clone(),
@@ -416,11 +454,33 @@ impl BrowserRuntime {
             encoded_spike_channels: self.encoded_spike_channels,
             encoded_spike_total: self.encoded_spike_total,
             // Contracts 3 and 4 keep their frozen state shape: no features.
-            encoder_features: if self.contract_version == CONTRACT_VERSION_V5 {
+            encoder_features: if self.contract_version >= CONTRACT_VERSION_V5 {
                 self.encoder_features.to_vec()
             } else {
                 Vec::new()
             },
+        }
+    }
+
+    /// The topology every snapshot of this runtime belongs to. Identical on
+    /// every step; contract 6 consumers read it once and attach it to each
+    /// per-step state themselves.
+    pub fn topology(&self) -> BrowserTopology {
+        let projection = &self.topology_projection;
+        BrowserTopology {
+            topology_rows: self.topology_rows.clone(),
+            topology_targets: self.topology_targets.clone(),
+            topology_weights: self.topology_weights.clone(),
+            topology_delays: self.topology_delays.clone(),
+            topology_node_ids: projection.node_ids.clone(),
+            topology_edge_sources: projection.edge_sources.clone(),
+            topology_edge_targets: projection.edge_targets.clone(),
+            topology_edge_weights: projection.edge_weights.clone(),
+            topology_edge_delays: projection.edge_delays.clone(),
+            topology_polarities: projection.edge_polarities.clone(),
+            topology_weight_bits: projection.edge_weight_bits.clone(),
+            topology_outgoing_edge_offsets: projection.outgoing_edge_offsets.clone(),
+            topology_digest: self.topology_digest.clone(),
         }
     }
 
@@ -563,16 +623,84 @@ impl WasmState {
     }
 }
 
+/// The topology a contract-6 session sends once (`WasmAdapter.topology()`).
+/// Getters mirror the `topology_*` fields of [`WasmState`].
+#[wasm_bindgen]
+pub struct WasmTopology {
+    topology: BrowserTopology,
+}
+
+#[wasm_bindgen]
+impl WasmTopology {
+    #[wasm_bindgen(getter)]
+    pub fn topology_rows(&self) -> js_sys::Uint32Array {
+        js_sys::Uint32Array::from(self.topology.topology_rows.as_slice())
+    }
+    #[wasm_bindgen(getter)]
+    pub fn topology_targets(&self) -> js_sys::Uint32Array {
+        js_sys::Uint32Array::from(self.topology.topology_targets.as_slice())
+    }
+    #[wasm_bindgen(getter)]
+    pub fn topology_weights(&self) -> js_sys::Float32Array {
+        js_sys::Float32Array::from(self.topology.topology_weights.as_slice())
+    }
+    #[wasm_bindgen(getter)]
+    pub fn topology_delays(&self) -> js_sys::Uint16Array {
+        js_sys::Uint16Array::from(self.topology.topology_delays.as_slice())
+    }
+    #[wasm_bindgen(getter)]
+    pub fn topology_node_ids(&self) -> js_sys::Uint32Array {
+        js_sys::Uint32Array::from(self.topology.topology_node_ids.as_slice())
+    }
+    #[wasm_bindgen(getter)]
+    pub fn topology_edge_sources(&self) -> js_sys::Uint32Array {
+        js_sys::Uint32Array::from(self.topology.topology_edge_sources.as_slice())
+    }
+    #[wasm_bindgen(getter)]
+    pub fn topology_edge_targets(&self) -> js_sys::Uint32Array {
+        js_sys::Uint32Array::from(self.topology.topology_edge_targets.as_slice())
+    }
+    #[wasm_bindgen(getter)]
+    pub fn topology_edge_weights(&self) -> js_sys::Float32Array {
+        js_sys::Float32Array::from(self.topology.topology_edge_weights.as_slice())
+    }
+    #[wasm_bindgen(getter)]
+    pub fn topology_edge_delays(&self) -> js_sys::Uint16Array {
+        js_sys::Uint16Array::from(self.topology.topology_edge_delays.as_slice())
+    }
+    #[wasm_bindgen(getter)]
+    pub fn topology_polarities(&self) -> js_sys::Uint8Array {
+        js_sys::Uint8Array::from(self.topology.topology_polarities.as_slice())
+    }
+    #[wasm_bindgen(getter)]
+    pub fn topology_weight_bits(&self) -> js_sys::Uint32Array {
+        js_sys::Uint32Array::from(self.topology.topology_weight_bits.as_slice())
+    }
+    #[wasm_bindgen(getter)]
+    pub fn topology_outgoing_edge_offsets(&self) -> js_sys::Uint32Array {
+        js_sys::Uint32Array::from(self.topology.topology_outgoing_edge_offsets.as_slice())
+    }
+    #[wasm_bindgen(getter)]
+    pub fn topology_digest(&self) -> String {
+        self.topology.topology_digest.clone()
+    }
+}
+
 #[wasm_bindgen]
 impl WasmAdapter {
     /// `config` is `[3]` for the legacy delta-only contract, `[4]` for the
     /// default v1 encoder mode, or `[4, mode]` to select it explicitly
     /// (`0 = delta`, `1 = temporal`, `2 = rate`). `[5]` and `[5, mode]` select
     /// the same encoder modes behind `kinetic-signals` telemetry extraction.
+    /// `[6]` and `[6, mode]` are contract 5 with the topology sent once
+    /// through [`WasmAdapter::topology`] instead of in every snapshot.
     #[wasm_bindgen(js_name = init)]
     pub fn init(seed: u64, config: &[u8]) -> Result<WasmAdapter, JsValue> {
-        let invalid =
-            || JsValue::from_str("adapter config must be [3], [4], [4, mode], [5], or [5, mode]");
+        let invalid = || {
+            JsValue::from_str(
+                "adapter config must be [3], [4], [4, mode], [5], [5, mode], [6], or [6, mode]",
+            )
+        };
         let runtime = match config {
             [3] => BrowserRuntime::new(seed),
             [4] => BrowserRuntime::with_mode(seed, EncoderMode::DEFAULT, CONTRACT_VERSION_V4_U32),
@@ -586,6 +714,12 @@ impl WasmAdapter {
                 let selected =
                     EncoderMode::parse(*mode).map_err(|error| JsValue::from_str(&error))?;
                 BrowserRuntime::with_mode(seed, selected, CONTRACT_VERSION_V5)
+            }
+            [6] => BrowserRuntime::with_mode(seed, EncoderMode::DEFAULT, CONTRACT_VERSION_V6),
+            [6, mode] => {
+                let selected =
+                    EncoderMode::parse(*mode).map_err(|error| JsValue::from_str(&error))?;
+                BrowserRuntime::with_mode(seed, selected, CONTRACT_VERSION_V6)
             }
             _ => return Err(invalid()),
         }
@@ -616,6 +750,17 @@ impl WasmAdapter {
             .ok_or_else(|| JsValue::from_str("the Rust/WASM runtime has been disposed"))?;
         Ok(WasmState {
             state: runtime.state(),
+        })
+    }
+
+    /// The topology every snapshot belongs to; contract 6 reads it once.
+    pub fn topology(&self) -> Result<WasmTopology, JsValue> {
+        let runtime = self
+            .runtime
+            .as_ref()
+            .ok_or_else(|| JsValue::from_str("the Rust/WASM runtime has been disposed"))?;
+        Ok(WasmTopology {
+            topology: runtime.topology(),
         })
     }
 

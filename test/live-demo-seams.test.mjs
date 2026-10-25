@@ -297,7 +297,7 @@ test('the session feeds telemetry packets to the adapter and records a replayabl
   assert.equal(last.source, 'scripted');
   const trace = last.trace();
   assert.equal(trace.seed, stimulus.DEMO_SEED.toString());
-  assert.deepEqual(trace.config, [5, 1], 'live sessions use contract 5 with the temporal encoder');
+  assert.deepEqual(trace.config, [6, 1], 'live sessions use contract 6 with the temporal encoder');
   assert.deepEqual(
     trace.operations,
     received.flatMap(([sequence, samples]) => [
@@ -408,7 +408,7 @@ test('failed ticks are not recorded, and exported recordings replay without expe
       step: () => ({ error_status: 'ok' }),
     };
   });
-  assert.deepEqual(seenConfig, [5, 1]);
+  assert.deepEqual(seenConfig, [6, 1]);
   assert.deepEqual(replayed, [
     [1n, Array.from(stimulus.scriptedTelemetry(1n))],
     [2n, Array.from(stimulus.scriptedTelemetry(2n))],

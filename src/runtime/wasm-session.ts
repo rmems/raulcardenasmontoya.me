@@ -1,12 +1,14 @@
 import {
+  attachTopology,
   DEFAULT_ENCODER_MODE,
   ENCODER_MODES,
-  NEUROMORPHIC_CONTRACT_VERSION_V5,
+  NEUROMORPHIC_CONTRACT_VERSION_V6,
   initNeuromorphicAdapter,
   type EncoderModeName,
   type NeuromorphicAdapter,
   type NeuromorphicAdapterOptions,
   type NeuromorphicState,
+  type NeuromorphicTopology,
 } from './neuromorphic-adapter';
 import { DEMO_SEED, DEMO_TICK_MS } from './demo-stimulus';
 import {
@@ -30,12 +32,13 @@ import type { PerfProbe } from './perf-probe';
 export const WASM_MODULE_URL = '/wasm/neuromorphic-adapter/neuromorphic_adapter.js';
 
 /**
- * Live demo adapter configuration: contract 5 routes telemetry through
- * `kinetic-signals` before the default `axon-encoder` mode. The worker and the
- * main-thread fallback use the identical options.
+ * Live demo adapter configuration: contract 6 routes telemetry through
+ * `kinetic-signals` before the default `axon-encoder` mode, exactly as
+ * contract 5 does, and sends the topology projection once instead of in every
+ * snapshot. The worker and the main-thread fallback use the identical options.
  */
 export const LIVE_ADAPTER_OPTIONS = {
-  contractVersion: NEUROMORPHIC_CONTRACT_VERSION_V5,
+  contractVersion: NEUROMORPHIC_CONTRACT_VERSION_V6,
   encoderMode: DEFAULT_ENCODER_MODE,
 } as const;
 
@@ -220,6 +223,7 @@ function workerEngine(
 ): Promise<Engine> {
   let nextId = 1;
   let ready = false;
+  let topology: NeuromorphicTopology | null = null;
   let failed = false;
   const pending = new Map<number, PendingRequest>();
 
@@ -273,7 +277,9 @@ function workerEngine(
           response.type === 'error' ? response.message : 'unexpected worker reply',
         );
       }
-      return response.state;
+      // Contract 6: the worker sent the topology once with `ready`; every
+      // snapshot shares this copy of it.
+      return topology ? attachTopology(response.state, topology) : response.state;
     },
     dispose() {
       worker.postMessage({ type: 'dispose' } satisfies WorkerRequest);
@@ -294,6 +300,7 @@ function workerEngine(
       if (!ready) {
         if (response.type === 'ready') {
           ready = true;
+          topology = response.topology ?? null;
           cleanup();
           resolve(engine);
         } else if (response.type === 'error') {

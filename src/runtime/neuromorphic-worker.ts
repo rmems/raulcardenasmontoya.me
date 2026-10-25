@@ -1,15 +1,22 @@
 import {
+  cloneTopology,
+  detachTopology,
   initNeuromorphicAdapter,
+  NEUROMORPHIC_CONTRACT_VERSION_V6,
+  TOPOLOGY_ARRAY_FIELDS,
   type NeuromorphicAdapter,
   type NeuromorphicAdapterOptions,
   type NeuromorphicState,
+  type NeuromorphicTopology,
 } from './neuromorphic-adapter';
 
 /**
  * Dedicated simulation worker. Mirrors the adapter's init/input/step/dispose
  * contract: every request carries a tagged id, and each step replies with a
  * fresh snapshot whose typed-array buffers are transferred (never shared) to
- * the main thread.
+ * the main thread. On contract 6 the topology travels once, with `ready`, and
+ * each step's snapshot crosses detached (empty topology arrays, digest kept);
+ * the main thread re-attaches its copy.
  */
 
 export interface WorkerInitRequest {
@@ -43,7 +50,7 @@ export type WorkerRequest =
   | WorkerDisposeRequest;
 
 export type WorkerResponse =
-  | { id: number; type: 'ready' }
+  | { id: number; type: 'ready'; topology?: NeuromorphicTopology }
   | { id: number; type: 'ack' }
   | { id: number; type: 'state'; state: NeuromorphicState }
   | { id: number; type: 'error'; message: string };
@@ -57,6 +64,16 @@ const ctx = self as unknown as {
 let adapter: NeuromorphicAdapter | null = null;
 
 function postState(id: number, state: NeuromorphicState): void {
+  if (state.contractVersion === NEUROMORPHIC_CONTRACT_VERSION_V6) {
+    // The topology went once with `ready`; a step carries only what changes.
+    const detached = detachTopology(state);
+    ctx.postMessage({ id, type: 'state', state: detached }, [
+      detached.membranePotentials.buffer,
+      detached.spikeNeurons.buffer,
+      detached.encoderFeatures.buffer,
+    ]);
+    return;
+  }
   const transfer = [
     state.membranePotentials,
     state.spikeNeurons,
@@ -99,7 +116,16 @@ ctx.onmessage = (event) => {
             request.seed,
             request.options,
           );
-          ctx.postMessage({ id: request.id, type: 'ready' });
+          if (request.options?.contractVersion === NEUROMORPHIC_CONTRACT_VERSION_V6) {
+            // A copy, so transferring its buffers leaves the adapter's own intact.
+            const topology = cloneTopology(adapter.topology());
+            ctx.postMessage(
+              { id: request.id, type: 'ready', topology },
+              TOPOLOGY_ARRAY_FIELDS.map((field) => topology[field].buffer),
+            );
+          } else {
+            ctx.postMessage({ id: request.id, type: 'ready' });
+          }
         } catch (error) {
           postError(request.id, error);
         }
