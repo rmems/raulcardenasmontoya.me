@@ -12,7 +12,7 @@ try {
   writeFileSync(temporary, `${JSON.stringify(snapshot, null, 2)}
 `);
   renameSync(temporary, target);
-  console.log(`wrote ${snapshot.datasets.length} datasets and ${snapshot.models.length} models as of ${snapshot.asOf}`);
+  console.log(`wrote ${snapshot.datasets.length} datasets, ${snapshot.models.length} models and ${snapshot.collections.length} collections as of ${snapshot.asOf}`);
 } catch (error) {
   console.error(`Could not refresh the Hugging Face snapshot (the committed one is unchanged): ${error}`);
   process.exitCode = 1;
