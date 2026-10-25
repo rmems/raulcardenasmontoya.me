@@ -26,7 +26,6 @@ const layout = layoutNirDiagram(projection);
         <g>
           <rect x={node.x} y={node.y} width={node.width} height={node.height} rx="6" />
           <text class="lab-preview-node-name" x={node.x + 14} y={node.y + 23}>{node.name}</text>
-          <text class="lab-preview-node-summary" x={node.x + 14} y={node.y + 42}>{node.operator}</text>
         </g>
       ))}
     </g>

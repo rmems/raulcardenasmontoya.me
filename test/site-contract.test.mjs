@@ -104,7 +104,9 @@ test('the fonts are self-hosted Latin subsets with their licences, preloaded whe
 test('small labels stay at or above 0.72rem, apart from the phone navigation', () => {
   for (const file of readdirSync(new URL('../src/styles', import.meta.url))) {
     const styles = read(`src/styles/${file}`);
-    const small = [...styles.matchAll(/font-size: (0\.[0-6]\d*|0\.7)rem/g)].map((match) => match[0]);
+    const small = [...styles.matchAll(/font-size: (0\.\d+)rem/g)]
+      .filter((match) => Number(match[1]) < 0.72)
+      .map((match) => match[0]);
     assert.deepEqual(small, file === 'global.css' ? ['font-size: 0.68rem'] : [], `${file}: ${small.join(', ')}`);
   }
   assert.match(read('src/styles/global.css'), /\.primary-nav a, \.header-profile \{ font-size: 0\.68rem; \}/);
