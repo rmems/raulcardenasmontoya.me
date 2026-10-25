@@ -14,10 +14,22 @@ function seams({ wasmFail = false } = {}) {
   const wasmEvents = [];
   const rendererEvents = [];
   let sessionId = 0;
+  let gate = null;
+  let open = null;
   return {
     inits,
     wasmEvents,
     rendererEvents,
+    // Hold every WASM init until release(), so a test can act mid-switch.
+    hold() {
+      gate = new Promise((resolve) => {
+        open = resolve;
+      });
+    },
+    release() {
+      open?.();
+      gate = null;
+    },
     seams: {
       renderer: {
         async create() {
@@ -35,6 +47,7 @@ function seams({ wasmFail = false } = {}) {
       wasm: {
         async init(options) {
           inits.push({ useWorker: options.useWorker, encoderMode: options.encoderMode });
+          if (gate) await gate;
           if (wasmFail) {
             throw Object.assign(new Error('wasm failed'), { code: 'wasm-init-failed' });
           }
@@ -105,6 +118,82 @@ test('a paused view gets an idle session that Play resumes; same or unknown mode
   await demo.setEncoderMode('population');
   assert.equal(fixture.inits.length, 2, 'no restart for the same or an unknown mode');
   assert.equal(demo.getSnapshot().encoderMode, 'rate');
+  demo.dispose();
+});
+
+test('a choice made while the first initialization is in flight is applied once it completes', async () => {
+  const fixture = seams();
+  const demo = runtime.createDemoRuntime({ capabilities: capable, seams: fixture.seams, inViewport: true });
+  fixture.hold();
+  const starting = demo.startIfAllowed();
+  assert.equal(demo.getSnapshot().mode, 'initializing');
+  const choice = demo.setEncoderMode('rate');
+  assert.equal(demo.getSnapshot().encoderMode, 'rate');
+  fixture.release();
+  await Promise.all([starting, choice]);
+  assert.deepEqual(
+    fixture.inits.map((init) => init.encoderMode),
+    ['temporal', 'rate'],
+    'the first session ran the mode it was started with and was then replaced',
+  );
+  assert.deepEqual(fixture.wasmEvents, ['resume:1', 'dispose:1', 'resume:2']);
+  assert.equal(demo.getSnapshot().mode, 'live');
+  assert.equal(demo.getSnapshot().encoderMode, 'rate');
+  demo.dispose();
+});
+
+test('leaving the viewport during a switch pauses the renderer instead of failing closed; returning resumes both', async () => {
+  const fixture = seams();
+  const demo = runtime.createDemoRuntime({ capabilities: capable, seams: fixture.seams, inViewport: true });
+  await demo.startIfAllowed();
+  const marker = fixture.rendererEvents.length;
+  fixture.hold();
+  const pending = demo.setEncoderMode('rate');
+  await demo.setInViewport(false);
+  assert.equal(demo.getSnapshot().mode, 'initializing', 'the switch is still in flight');
+  assert.deepEqual(fixture.rendererEvents.slice(marker), ['pause']);
+  await demo.setInViewport(true);
+  fixture.release();
+  await pending;
+  assert.equal(demo.getSnapshot().mode, 'live');
+  assert.equal(demo.getSnapshot().reason, 'ok');
+  assert.deepEqual(fixture.wasmEvents, ['resume:1', 'dispose:1', 'resume:2']);
+  assert.deepEqual(fixture.rendererEvents.slice(marker), ['pause', 'resume']);
+  demo.dispose();
+});
+
+test('a view hidden through a switch leaves the replacement idle until it is shown again', async () => {
+  const fixture = seams();
+  const demo = runtime.createDemoRuntime({ capabilities: capable, seams: fixture.seams, inViewport: true });
+  await demo.startIfAllowed();
+  fixture.hold();
+  const pending = demo.setEncoderMode('delta');
+  await demo.setDocumentHidden(true);
+  fixture.release();
+  await pending;
+  assert.notEqual(demo.getSnapshot().mode, 'fallback');
+  assert.deepEqual(fixture.wasmEvents, ['resume:1', 'dispose:1'], 'nothing runs while the document is hidden');
+  await demo.setDocumentHidden(false);
+  assert.equal(demo.getSnapshot().mode, 'live');
+  assert.deepEqual(fixture.wasmEvents, ['resume:1', 'dispose:1', 'resume:2']);
+  demo.dispose();
+});
+
+test('pausing during a switch keeps the replacement idle for Play', async () => {
+  const fixture = seams();
+  const demo = runtime.createDemoRuntime({ capabilities: capable, seams: fixture.seams, inViewport: true });
+  await demo.startIfAllowed();
+  fixture.hold();
+  const pending = demo.setEncoderMode('rate');
+  await demo.play();
+  assert.equal(demo.getSnapshot().mode, 'initializing');
+  fixture.release();
+  await pending;
+  assert.equal(demo.getSnapshot().mode, 'awaiting-play');
+  assert.deepEqual(fixture.wasmEvents, ['resume:1', 'dispose:1'], 'the new session waits for Play');
+  await demo.play();
+  assert.equal(demo.getSnapshot().mode, 'live');
+  assert.deepEqual(fixture.wasmEvents, ['resume:1', 'dispose:1', 'resume:2']);
   demo.dispose();
 });
 
