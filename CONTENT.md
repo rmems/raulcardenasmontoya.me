@@ -28,6 +28,10 @@ The canonical domain is `raulcardenasmontoya.me` (registrar and DNS at Namecheap
 
 DNS and any `shipoftheseus.dev` redirect live outside this repository (Namecheap and Cloudflare).
 
+## Notes
+
+Notes live in `src/content/notes/`; `draft` defaults to true, and `draft: false` publishes a note and puts Notes in the nav. Keep each note to what the architecture docs, the tests or the measurements in this repository show; a claim that needs a number that was not measured here does not belong in a note. The three notes published on 2026-10-25 are trimmed from `docs/architecture/browser-runtime.md` and `crates/neuromorphic-adapter/README.md`.
+
 ## Nav visibility
 
 Evidence and Notes appear in the primary nav only when their collection has a published entry (a native-evidence artifact, or a note with `draft: false`). This is decided at build time in `src/components/SiteHeader.astro`. The pages still build while empty, so direct links and the sitemap keep working. `/projects/` redirects to `/work/`.
