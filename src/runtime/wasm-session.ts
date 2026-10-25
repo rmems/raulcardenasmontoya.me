@@ -83,13 +83,6 @@ interface DriverOptions {
   config?: readonly number[];
 }
 
-/**
- * Fixed-cadence driver: each tick feeds one telemetry packet (pointer, or the
- * deterministic scripted path when idle), advances exactly one logical step,
- * then publishes the snapshot. Every packet is recorded so the session can be
- * replayed from `init`. rAF only controls presentation; the tick owns
- * simulation time.
- */
 /** Surface an observer error without failing the caller (browser `reportError`). */
 function reportObserverError(error: unknown): void {
   const report = (globalThis as { reportError?: (error: unknown) => void }).reportError;
@@ -100,6 +93,13 @@ function reportObserverError(error: unknown): void {
   }
 }
 
+/**
+ * Fixed-cadence driver: each tick feeds one telemetry packet (pointer, or the
+ * deterministic scripted path when idle), advances exactly one logical step,
+ * then publishes the snapshot. Every packet is recorded so the session can be
+ * replayed from `init`. rAF only controls presentation; the tick owns
+ * simulation time.
+ */
 function createDriver(
   engine: Engine,
   channel: SimulationChannel,

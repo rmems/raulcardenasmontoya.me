@@ -363,6 +363,7 @@ export class DemoRuntime {
   private rendererCameraMotionEnabled = false;
   private encoderMode: EncoderModeName = DEFAULT_ENCODER_MODE;
   private encoderSwitch: Promise<void> | null = null;
+  private restartingWasm = false;
   private readonly snapshotListeners = new Set<() => void>();
 
   constructor(options: CreateDemoRuntimeOptions) {
@@ -417,6 +418,11 @@ export class DemoRuntime {
 
     this.encoderMode = mode;
     this.emitSnapshotChange();
+    if (this.initPromise !== null) {
+      // The first initialization is in flight and read the previous mode;
+      // once it has a session, restart that session with this one.
+      await this.initPromise.catch(() => undefined);
+    }
     if (!this.canRestartWasm()) {
       // No running session: the next initialization reads `encoderMode`.
       return;
@@ -454,11 +460,11 @@ export class DemoRuntime {
   }
 
   private async restartWasm(seam: WasmSeam, previous: WasmSession): Promise<void> {
-    const resumeAfter = this.mode === 'live' && !this.clockPaused;
     const generation = this.generation;
     this.wasmSession = null;
     previous.dispose();
     this.initializing = true;
+    this.restartingWasm = true;
     this.emitSnapshotChange();
 
     let attempt: SessionAttempt<WasmSession>;
@@ -470,6 +476,7 @@ export class DemoRuntime {
     }
 
     this.initializing = false;
+    this.restartingWasm = false;
     if (this.disposed || generation !== this.generation || this.initializationClosed()) {
       attempt.session?.dispose();
       return;
@@ -481,12 +488,22 @@ export class DemoRuntime {
     }
 
     this.wasmSession = attempt.session;
-    // Sessions start idle. A running view resumes the new one at once; a
-    // paused or awaiting view leaves it idle for promoteToLive.
-    if (resumeAfter && this.mode === 'live' && !this.documentHidden && this.inViewport) {
-      attempt.session.resume();
-      this.clockPaused = false;
+    // Sessions start idle. Reconcile with what the view did while the
+    // replacement initialised (pauseClock and promoteToLive both found no WASM
+    // session): a live or played view that is on screen starts it now; a
+    // hidden, user-paused or reduced-motion view leaves it idle for
+    // promoteToLive.
+    const wantsLive =
+      this.mode === 'live' || (this.mode === 'awaiting-play' && !this.userPaused && !this.prefersReducedMotion);
+    if (!wantsLive || this.documentHidden || !this.inViewport) {
+      return;
     }
+    if (this.mode !== 'live' || this.clockPaused) {
+      // The renderer was paused meanwhile: resume both through the one path.
+      this.promoteToLive();
+      return;
+    }
+    attempt.session.resume();
   }
 
   async startIfAllowed(): Promise<void> {
@@ -1334,13 +1351,15 @@ export class DemoRuntime {
       return;
     }
 
-    if (this.rendererSession === null || this.wasmSession === null) {
+    if (this.rendererSession === null || (this.wasmSession === null && !this.restartingWasm)) {
       this.failGraphics('renderer-error');
       return;
     }
 
     this.rendererSession.pause();
-    this.wasmSession.pause();
+    // During an encoder switch there is no WASM session to pause yet; the
+    // replacement starts idle and restartWasm reconciles when it arrives.
+    this.wasmSession?.pause();
     this.clockPaused = true;
     if (origin === 'user') {
       this.userPaused = true;
@@ -1358,6 +1377,7 @@ export class DemoRuntime {
     this.wasmSession = null;
     this.initCompleted = false;
     this.initializing = false;
+    this.restartingWasm = false;
     this.clockPaused = false;
   }
 }

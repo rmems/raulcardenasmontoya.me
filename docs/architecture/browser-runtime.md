@@ -144,7 +144,11 @@ deterministic for identical ordered input. The per-tick order is fixed:
   `[5, mode]` on the same worker or main-thread path. The renderer keeps its
   geometry (same topology digest), the spike-event buffer restarts on the step
   reset, and each session records its own trace with its own config. Quick
-  changes coalesce: the latest mode wins.
+  changes coalesce: the latest mode wins. A choice made while the first
+  initialization is in flight is applied as soon as that session exists, and
+  a view that is paused, hidden or scrolled away during the restart is
+  reconciled when the replacement arrives (renderer paused, replacement idle
+  until `promoteToLive`), never failed closed.
 
 ### Interactive telemetry through `kinetic-signals` (GitHub #8 / Linear RM-1644)
 
