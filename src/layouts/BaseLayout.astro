@@ -13,6 +13,8 @@ const personJsonLd = {
   name: site.fullName,
   jobTitle: site.title,
   url: new URL('/', Astro.site).href,
+  // The Person's image is the profile photo, the same one the social card carries.
+  image: new URL('/assets/raul-cardenas-montoya-512.jpg', Astro.site).href,
   description: site.description,
   sameAs: Object.values(site.social),
   ...(site.email ? { email: site.email } : {}),
@@ -43,6 +45,8 @@ const socialImage = new URL('/assets/social-card.png', Astro.site);
     <meta name="twitter:title" content={pageTitle} />
     <meta name="twitter:description" content={metaDescription} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="canonical" href={canonicalUrl} />
     <title>{pageTitle}</title>
     <script type="application/ld+json" set:html={JSON.stringify(personJsonLd)} />

@@ -1,1 +1,8 @@
-<span class="monogram" aria-hidden="true">RCM</span>
+---
+// The header mark, rendered from the single brand source so it matches the
+// favicon and the social card. The colours are the site tokens, so it follows
+// the viewer's colour scheme without a second asset.
+import { MARK_VIEWBOX, markShapes } from '../brand/mark-source.mjs';
+const shapes = markShapes({ tile: 'var(--ink)', trace: 'var(--paper)', spike: 'var(--spike)', threshold: false });
+---
+<svg class="monogram" viewBox={MARK_VIEWBOX} aria-hidden="true" focusable="false" set:html={shapes} />

@@ -1,7 +1,9 @@
 // Regenerates public/assets/social-card.png (1200x630) from the shared profile photo
-// on the site's light palette. Run: node scripts/build-social-card.mjs
+// and the brand mark (src/brand/mark-source.mjs) on the site's light palette.
+// Run: node scripts/build-social-card.mjs
 import { readFile, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
+import { renderRasterSource } from '../src/brand/mark-source.mjs';
 const require_from = () => new URL('../node_modules/astro/package.json', import.meta.url);
 
 const require = createRequire(require_from());
@@ -31,11 +33,16 @@ const ring = `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg"
     <text x="532" y="430" font-size="34" fill="#4f46e5">AI/ML systems engineer</text>
     <text x="532" y="490" font-size="26" fill="#5b6474">raulcardenasmontoya.me</text>
   </g>
-  <circle cx="${px + D - 40}" cy="${py + 40}" r="18" fill="#f43f5e" stroke="#f7f8fa" stroke-width="6"/>
 </svg>`;
 
+// The mark sits on the photo's top-right edge, where the red dot used to be.
+const M = 84;
+const mark = await sharp(Buffer.from(renderRasterSource(M)), { density: 288 }).resize(M, M).png().toBuffer();
+const markLeft = px + D - 40 - M / 2;
+const markTop = py + 40 - M / 2;
+
 const png = await sharp(backdrop)
-  .composite([{ input: Buffer.from(ring) }, { input: photo, left: px, top: py }])
+  .composite([{ input: Buffer.from(ring) }, { input: photo, left: px, top: py }, { input: mark, left: markLeft, top: markTop }])
   .png({ compressionLevel: 9, palette: true, quality: 90 })
   .toBuffer();
 await writeFile(outPath, png);

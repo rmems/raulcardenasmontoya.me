@@ -162,32 +162,12 @@ code {
   text-decoration: none;
 }
 
+/* The LIF-trace mark from src/brand/mark-source.mjs; its colours are the tokens above. */
 .monogram {
-  position: relative;
-  display: inline-grid;
-  place-items: center;
+  display: block;
+  flex: none;
   width: 30px;
   height: 30px;
-  border-radius: 7px;
-  color: var(--surface);
-  background: var(--ink);
-  font-family: var(--sans);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  line-height: 1;
-}
-
-.monogram::after {
-  position: absolute;
-  top: -3px;
-  right: -3px;
-  width: 8px;
-  height: 8px;
-  border: 2px solid var(--paper);
-  border-radius: 50%;
-  background: var(--spike);
-  content: '';
 }
 
 .primary-nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.4rem clamp(0.9rem, 2.5vw, 1.8rem); }
