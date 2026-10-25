@@ -69,12 +69,16 @@ test('the committed snapshot is dated and lists no card-only or excluded dataset
 test('datasets are grouped once each, newest collection first, with the rest ungrouped', () => {
   const datasets = [{ id: 'rmems/a' }, { id: 'rmems/b' }, { id: 'rmems/c' }];
   const collections = [
-    { slug: 'rmems/new-1', title: 'New', lastUpdated: '2026-10-20', items: [{ type: 'dataset', id: 'rmems/a' }, { type: 'model', id: 'rmems/M' }, { type: 'dataset', id: 'rmems/excluded' }] },
+    { slug: 'rmems/new-1', title: 'New', lastUpdated: '2026-10-20', items: [{ type: 'dataset', id: 'rmems/a' }, { type: 'model', id: 'rmems/M' }, { type: 'dataset', id: 'rmems/excluded' }, { type: 'dataset', id: 'rmems/a' }] },
     { slug: 'rmems/old-2', title: 'Old', lastUpdated: '2026-09-01', items: [{ type: 'dataset', id: 'rmems/a' }, { type: 'dataset', id: 'rmems/b' }] },
     { slug: 'rmems/empty-3', title: 'Empty', lastUpdated: '2026-08-01', items: [] },
   ];
   const grouped = groupByCollection(datasets, collections);
-  assert.deepEqual(grouped.collections.map((collection) => [collection.title, collection.datasets.map((d) => d.id)]), [['New', ['rmems/a']], ['Old', ['rmems/b']]]);
+  assert.deepEqual(
+    grouped.collections.map((collection) => [collection.title, collection.datasets.map((d) => d.id)]),
+    [['New', ['rmems/a']], ['Old', ['rmems/b']]],
+    'a dataset repeated inside a collection is listed once, never as an undefined member',
+  );
   assert.deepEqual(grouped.ungrouped.map((d) => d.id), ['rmems/c']);
   assert.equal(collectionUrl(collections[0]), 'https://huggingface.co/collections/rmems/new-1');
   assert.deepEqual(groupByCollection(datasets).ungrouped.length, 3, 'an old snapshot without collections lists everything ungrouped');

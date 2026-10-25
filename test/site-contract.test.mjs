@@ -83,12 +83,22 @@ test('every count on the site comes from a dated snapshot, never from the copy',
   assert.match(counts, /loadHfArtifacts\(\)/);
   assert.match(counts, /upstreamPrs\.length/);
   for (const page of ['src/pages/index.astro', 'src/pages/about.astro', 'src/pages/resume.astro', 'src/pages/work.astro']) {
-    const source = read(page);
-    assert.match(source, /loadSiteCounts\(\)/, `${page} reads the shared counts`);
-    assert.doesNotMatch(source, /\b\d+ (?:published |merged )?(?:Rust crates|Hugging Face datasets|datasets|crates|pull requests)\b/, `${page} types a count by hand`);
+    assert.match(read(page), /loadSiteCounts\(\)/, `${page} reads the shared counts`);
   }
-  // Project briefs take counts through tokens; the hero shows each one with its date.
-  assert.doesNotMatch(read('src/data/projects.ts'), /\b\d+ (?:public )?(?:datasets|crates)\b/);
+  // No template, component, layout, data file or note types a count in digits.
+  const typedCount = /\b\d+ (?:published |merged |public )?(?:Rust crates|Hugging Face datasets|research artifacts|datasets|crates|pull requests)\b/;
+  for (const dir of ['src/pages', 'src/components', 'src/layouts', 'src/data', 'src/content']) {
+    for (const file of readdirSync(new URL(`../${dir}`, import.meta.url), { recursive: true })) {
+      if (!/\.(astro|ts|md)$/.test(String(file))) continue;
+      assert.doesNotMatch(read(`${dir}/${file}`), typedCount, `${dir}/${file} types a count by hand`);
+    }
+  }
+  // Project briefs take counts through tokens, in words too; unknown tokens stay as written.
+  assert.doesNotMatch(
+    read('src/data/projects.ts'),
+    /\b(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve) (?:public )?(?:datasets|crates|research artifacts)\b/i,
+  );
+  assert.match(counts, /Object\.hasOwn\(counts, key\)/);
   const home = read('src/pages/index.astro');
   assert.match(home, /<ul class="hero-stats" aria-label="Proof points">/);
   assert.match(home, /counts\.cratesAsOf/);

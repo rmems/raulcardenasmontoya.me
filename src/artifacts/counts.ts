@@ -41,7 +41,7 @@ const number = new Intl.NumberFormat('en-US');
 /** Fill `{{name}}` tokens in copy from the counts; unknown tokens are left as written. */
 export function fillCounts(text: string, counts: SiteCounts): string {
   return text.replace(/\{\{(\w+)\}\}/g, (token, key: string) => {
-    if (!(key in counts)) return token;
+    if (!Object.hasOwn(counts, key)) return token;
     const value = counts[key as keyof SiteCounts];
     return typeof value === 'number' ? number.format(value) : value;
   });

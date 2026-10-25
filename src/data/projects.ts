@@ -154,7 +154,7 @@ export const projects: Project[] = [
     {
       featured: false,
       shipped:
-        'Three public research artifacts in the Grok-1 dissection collection on Hugging Face: the structural parse inventory, the ternary quantization experiment reports, and the GOZ1 packs.',
+        'Public research artifacts in the Grok-1 dissection collection on Hugging Face: the structural parse inventory, the ternary quantization experiment reports, and the GOZ1 packs.',
     },
   ),
 ];

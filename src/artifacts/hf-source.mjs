@@ -117,13 +117,14 @@ export function groupByCollection(datasets, collections = []) {
   const remaining = new Map(datasets.map((dataset) => [dataset.id, dataset]));
   const grouped = [];
   for (const collection of collections) {
-    const members = collection.items
-      .filter((item) => item.type === 'dataset' && remaining.has(item.id))
-      .map((item) => {
-        const dataset = remaining.get(item.id);
-        remaining.delete(item.id);
-        return dataset;
-      });
+    const members = [];
+    for (const item of collection.items) {
+      // One pass: a dataset repeated inside a collection is taken once.
+      const dataset = item.type === 'dataset' ? remaining.get(item.id) : undefined;
+      if (dataset === undefined) continue;
+      remaining.delete(item.id);
+      members.push(dataset);
+    }
     if (members.length > 0) grouped.push({ slug: collection.slug, title: collection.title, lastUpdated: collection.lastUpdated, datasets: members });
   }
   return { collections: grouped, ungrouped: [...remaining.values()] };
