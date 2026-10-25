@@ -281,6 +281,14 @@ test('the homepage hero hosts the live demo static-first and traces it to its cr
   assert.match(telemetry, /data-demo-viewport/);
   assert.match(enhance, /querySelectorAll\('\[data-demo-viewport\]'\)/);
 
+  // The encoder switch: radios in the caption, bound to the runtime, no labs code.
+  assert.match(island, /<fieldset class="hero-mesh-encoder" data-demo-encoder disabled>/);
+  assert.match(island, /ENCODER_MODE_NAMES\.map\(\(mode\) =>/);
+  assert.match(island, /checked=\{mode === DEFAULT_ENCODER_MODE\}/);
+  assert.match(enhance, /boundRuntime\.setEncoderMode\(target\.value\)/);
+  assert.match(enhance, /encoder\?\.removeEventListener\('change', onEncoderChange\)/);
+  assert.match(styles, /\.live-hero:is\(\[data-mode='live'\], \[data-mode='awaiting-play'\], \[data-mode='initializing'\]\) \.hero-mesh-encoder \{/);
+
   // Reduced motion keeps an explicit Play, and a hidden Play stays hidden
   // (`.button` sets a display that would otherwise override `hidden`).
   // The homepage never loads the labs package.

@@ -1,3 +1,4 @@
+import { ENCODER_MODE_NAMES, type EncoderModeName } from './neuromorphic-adapter';
 import {
   applyDemoView,
   createDemoRuntime,
@@ -23,13 +24,21 @@ function requiredElement<T extends Element>(root: HTMLElement, selector: string)
 }
 
 function viewElements(root: HTMLElement): DemoViewElements {
+  const fieldset = typeof root.querySelector === 'function' ? root.querySelector<HTMLFieldSetElement>('[data-demo-encoder]') : null;
   return {
     root: { dataset: root.dataset as Record<string, string> },
     status: requiredElement<HTMLElement>(root, '[data-demo-status]'),
     play: requiredElement<HTMLButtonElement>(root, '[data-demo-play]'),
     surface: requiredElement<HTMLElement>(root, '[data-demo-surface]'),
     origin: requiredElement<HTMLElement>(root, '[data-demo-origin]'),
+    encoder: fieldset
+      ? { fieldset, inputs: fieldset.querySelectorAll<HTMLInputElement>('input[name="encoder-mode"]') }
+      : undefined,
   };
+}
+
+function isEncoderModeName(value: string): value is EncoderModeName {
+  return (ENCODER_MODE_NAMES as readonly string[]).includes(value);
 }
 
 /** Elements whose visibility gates the island (`[data-demo-viewport]`), else the root. */
@@ -77,6 +86,18 @@ export function bindDemoIsland(root: HTMLElement, runtime?: DemoRuntime): BoundI
     void pending.then(paint);
   };
 
+  // The encoder radios: a change restarts the WASM session with the same seed
+  // and the chosen `axon-encoder` mode; the runtime coalesces quick changes.
+  const encoder = elements.encoder?.fieldset as HTMLFieldSetElement | undefined;
+  const onEncoderChange = (event: Event) => {
+    const target = event.target;
+    if (target instanceof HTMLInputElement && target.name === 'encoder-mode' && isEncoderModeName(target.value)) {
+      const pending = boundRuntime.setEncoderMode(target.value);
+      paint();
+      void pending.then(paint);
+    }
+  };
+
   const onVisibility = () => {
     void boundRuntime.setDocumentHidden(document.hidden).then(paint);
   };
@@ -117,6 +138,7 @@ export function bindDemoIsland(root: HTMLElement, runtime?: DemoRuntime): BoundI
     disposed = true;
     unsubscribeSnapshot();
     play.removeEventListener('click', onPlay);
+    encoder?.removeEventListener('change', onEncoderChange);
     document.removeEventListener('visibilitychange', onVisibility);
     document.removeEventListener('astro:before-swap', dispose);
     window.removeEventListener('pagehide', onPageHide);
@@ -132,6 +154,7 @@ export function bindDemoIsland(root: HTMLElement, runtime?: DemoRuntime): BoundI
   };
 
   play.addEventListener('click', onPlay);
+  encoder?.addEventListener('change', onEncoderChange);
   document.addEventListener('visibilitychange', onVisibility);
   document.addEventListener('astro:before-swap', dispose);
   window.addEventListener('pagehide', onPageHide);

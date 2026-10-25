@@ -1,4 +1,5 @@
 import { executionOriginData, executionOriginLabel, type ExecutionOrigin } from '../native-evidence/view';
+import { DEFAULT_ENCODER_MODE, ENCODER_MODE_NAMES, type EncoderModeName } from './neuromorphic-adapter';
 
 export const STATIC_DEMO_STATUS =
   'The static diagram explains the neuromorphic demo. The live visualization is an optional enhancement.';
@@ -75,6 +76,8 @@ export interface WasmInitOptions {
   useWorker: boolean;
   signal: AbortSignal;
   onWorkerFailure: (phase: WorkerFailurePhase) => void;
+  /** The `axon-encoder` mode for this session; the seam defaults it when absent. */
+  encoderMode?: EncoderModeName;
 }
 
 export interface WasmSeam {
@@ -97,6 +100,10 @@ export interface DemoSnapshot {
   cameraMotionEnabled: boolean;
   freezeFrame: boolean;
   hasGraphicsSurface: boolean;
+  /** The selected `axon-encoder` mode (the next session's, while one is starting). */
+  encoderMode: EncoderModeName;
+  /** Whether a mode change can be applied now. */
+  encoderSwitchEnabled: boolean;
 }
 
 export interface DemoViewElements {
@@ -110,6 +117,11 @@ export interface DemoViewElements {
     hidden: boolean;
     disabled: boolean;
     textContent: string | null;
+  };
+  /** The encoder-mode radios, when the island renders them. */
+  encoder?: {
+    fieldset: { disabled: boolean };
+    inputs: ArrayLike<{ value: string; checked: boolean }>;
   };
   surface?: {
     hidden: boolean;
@@ -303,6 +315,14 @@ export function applyDemoView(snapshot: DemoSnapshot, elements: DemoViewElements
   elements.play.hidden = !snapshot.playVisible;
   elements.play.disabled = !snapshot.playEnabled;
   elements.play.textContent = snapshot.playLabel;
+  elements.root.dataset.encoderMode = snapshot.encoderMode;
+  if (elements.encoder) {
+    elements.encoder.fieldset.disabled = !snapshot.encoderSwitchEnabled;
+    for (let index = 0; index < elements.encoder.inputs.length; index += 1) {
+      const input = elements.encoder.inputs[index];
+      input.checked = input.value === snapshot.encoderMode;
+    }
+  }
   if (elements.surface) {
     elements.surface.hidden = !snapshot.hasGraphicsSurface;
   }
@@ -341,6 +361,8 @@ export class DemoRuntime {
   private partialGraphicsDisposed = false;
   private initAbort: AbortController | null = null;
   private rendererCameraMotionEnabled = false;
+  private encoderMode: EncoderModeName = DEFAULT_ENCODER_MODE;
+  private encoderSwitch: Promise<void> | null = null;
   private readonly snapshotListeners = new Set<() => void>();
 
   constructor(options: CreateDemoRuntimeOptions) {
@@ -369,9 +391,102 @@ export class DemoRuntime {
       cameraMotionEnabled,
       freezeFrame: this.mode === 'frozen',
       hasGraphicsSurface: this.rendererSession !== null && this.mode !== 'fallback',
+      encoderMode: this.encoderMode,
+      encoderSwitchEnabled: playVisible && !this.initializing && this.encoderSwitch === null,
     };
     snapshot.status = statusMessage(snapshot);
     return snapshot;
+  }
+
+  getEncoderMode(): EncoderModeName {
+    return this.encoderMode;
+  }
+
+  /**
+   * Select the `axon-encoder` mode. Before a session exists, the next init
+   * uses it. While a WASM session exists, that session is disposed and a new
+   * one starts with the same seed and `[5, mode]` on the same worker or
+   * main-thread path. The renderer keeps its geometry (same topology digest)
+   * and the spike-event buffer restarts on the step reset. Calls made while a
+   * switch is in flight are coalesced: the latest mode wins.
+   */
+  async setEncoderMode(mode: EncoderModeName): Promise<void> {
+    if (this.disposed || !ENCODER_MODE_NAMES.includes(mode) || mode === this.encoderMode) {
+      return;
+    }
+
+    this.encoderMode = mode;
+    this.emitSnapshotChange();
+    if (!this.canRestartWasm()) {
+      // No running session: the next initialization reads `encoderMode`.
+      return;
+    }
+
+    if (this.encoderSwitch === null) {
+      this.encoderSwitch = this.switchEncoder().finally(() => {
+        this.encoderSwitch = null;
+        if (!this.disposed) {
+          this.emitSnapshotChange();
+        }
+      });
+    }
+    await this.encoderSwitch;
+  }
+
+  private canRestartWasm(): boolean {
+    return Boolean(this.seams.wasm) && this.wasmSession !== null && this.initCompleted && !this.initializationClosed();
+  }
+
+  private async switchEncoder(): Promise<void> {
+    while (!this.disposed) {
+      const mode = this.encoderMode;
+      const seam = this.seams.wasm;
+      const previous = this.wasmSession;
+      if (!seam || previous === null || !this.initCompleted || this.initializationClosed()) {
+        return;
+      }
+
+      await this.restartWasm(seam, previous);
+      if (this.encoderMode === mode) {
+        return;
+      }
+    }
+  }
+
+  private async restartWasm(seam: WasmSeam, previous: WasmSession): Promise<void> {
+    const resumeAfter = this.mode === 'live' && !this.clockPaused;
+    const generation = this.generation;
+    this.wasmSession = null;
+    previous.dispose();
+    this.initializing = true;
+    this.emitSnapshotChange();
+
+    let attempt: SessionAttempt<WasmSession>;
+    try {
+      const session = await seam.init(this.wasmInitOptions(this.capabilities.worker && !this.workerRetryUsed));
+      attempt = this.acceptWasmSession(session);
+    } catch (error) {
+      attempt = { session: null, error: reasonFromError(error, 'wasm-init-failed') };
+    }
+
+    this.initializing = false;
+    if (this.disposed || generation !== this.generation || this.initializationClosed()) {
+      attempt.session?.dispose();
+      return;
+    }
+
+    if (attempt.error !== null || attempt.session === null) {
+      this.failClosed(attempt.error ?? 'wasm-init-failed');
+      return;
+    }
+
+    this.wasmSession = attempt.session;
+    // Sessions start idle. A running view resumes the new one at once; a
+    // paused or awaiting view leaves it idle for promoteToLive.
+    if (resumeAfter && this.mode === 'live' && !this.documentHidden && this.inViewport) {
+      attempt.session.resume();
+      this.clockPaused = false;
+    }
   }
 
   async startIfAllowed(): Promise<void> {
@@ -1071,6 +1186,7 @@ export class DemoRuntime {
       useWorker,
       signal: this.initSignal(),
       onWorkerFailure: (phase) => this.handleWorkerFailure(phase),
+      encoderMode: this.encoderMode,
     };
   }
 
