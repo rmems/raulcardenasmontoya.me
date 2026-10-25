@@ -2,6 +2,7 @@
 // test/brand.test.mjs so the committed PNGs are byte-compared with a fresh
 // render of the same source. sharp is installed transitively by astro; a
 // pinned sharp version keeps the PNG encoding deterministic.
+import { Buffer } from 'node:buffer';
 import { createRequire } from 'node:module';
 import { renderRasterSource } from './mark-source.mjs';
 
