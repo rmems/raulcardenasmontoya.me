@@ -11,11 +11,17 @@ export class WasmAdapter {
      * default v1 encoder mode, or `[4, mode]` to select it explicitly
      * (`0 = delta`, `1 = temporal`, `2 = rate`). `[5]` and `[5, mode]` select
      * the same encoder modes behind `kinetic-signals` telemetry extraction.
+     * `[6]` and `[6, mode]` are contract 5 with the topology sent once
+     * through [`WasmAdapter::topology`] instead of in every snapshot.
      */
     static init(seed: bigint, config: Uint8Array): WasmAdapter;
     input(sequence: bigint, samples: Float32Array): void;
     state(): WasmState;
     step(): WasmState;
+    /**
+     * The topology every snapshot belongs to; contract 6 reads it once.
+     */
+    topology(): WasmTopology;
 }
 
 /**
@@ -199,6 +205,29 @@ export class WasmState {
 }
 
 /**
+ * The topology a contract-6 session sends once (`WasmAdapter.topology()`).
+ * Getters mirror the `topology_*` fields of [`WasmState`].
+ */
+export class WasmTopology {
+    private constructor();
+    free(): void;
+    [Symbol.dispose](): void;
+    readonly topology_delays: Uint16Array;
+    readonly topology_digest: string;
+    readonly topology_edge_delays: Uint16Array;
+    readonly topology_edge_sources: Uint32Array;
+    readonly topology_edge_targets: Uint32Array;
+    readonly topology_edge_weights: Float32Array;
+    readonly topology_node_ids: Uint32Array;
+    readonly topology_outgoing_edge_offsets: Uint32Array;
+    readonly topology_polarities: Uint8Array;
+    readonly topology_rows: Uint32Array;
+    readonly topology_targets: Uint32Array;
+    readonly topology_weight_bits: Uint32Array;
+    readonly topology_weights: Float32Array;
+}
+
+/**
  * Verify, decode, and validate one recorded envelope. Throws a
  * `ProtocolFixtureError` whose `code` is a [`ProtocolErrorCode`] string.
  */
@@ -214,44 +243,28 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
+    readonly __wbg_wasmadapter_free: (a: number, b: number) => void;
     readonly __wbg_wasmnirinspection_free: (a: number, b: number) => void;
+    readonly __wbg_wasmplasticitylab_free: (a: number, b: number) => void;
+    readonly __wbg_wasmplasticityprobe_free: (a: number, b: number) => void;
+    readonly __wbg_wasmplasticitystep_free: (a: number, b: number) => void;
+    readonly __wbg_wasmprotocolinspection_free: (a: number, b: number) => void;
+    readonly __wbg_wasmstate_free: (a: number, b: number) => void;
+    readonly __wbg_wasmtopology_free: (a: number, b: number) => void;
+    readonly inspectProtocolFixture: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number];
+    readonly protocolFixtureByteLimit: () => number;
+    readonly wasmadapter_dispose: (a: number) => void;
+    readonly wasmadapter_init: (a: bigint, b: number, c: number) => [number, number, number];
+    readonly wasmadapter_input: (a: number, b: bigint, c: number, d: number) => [number, number];
+    readonly wasmadapter_state: (a: number) => [number, number, number];
+    readonly wasmadapter_step: (a: number) => [number, number, number];
+    readonly wasmadapter_topology: (a: number) => [number, number, number];
     readonly wasmnirinspection_edge_count: (a: number) => number;
     readonly wasmnirinspection_inspection_json: (a: number) => [number, number];
     readonly wasmnirinspection_nir_rs_version: (a: number) => [number, number];
     readonly wasmnirinspection_node_count: (a: number) => number;
     readonly wasmnirinspection_node_json: (a: number, b: number, c: number) => [number, number, number, number];
     readonly wasmnirinspection_parse: (a: number, b: number) => [number, number, number];
-    readonly __wbg_wasmprotocolinspection_free: (a: number, b: number) => void;
-    readonly inspectProtocolFixture: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number];
-    readonly protocolFixtureByteLimit: () => number;
-    readonly wasmprotocolinspection_batch_id: (a: number) => bigint;
-    readonly wasmprotocolinspection_byte_length: (a: number) => number;
-    readonly wasmprotocolinspection_canonical_difference: (a: number) => [number, number];
-    readonly wasmprotocolinspection_canonical_dropped_fields: (a: number) => any;
-    readonly wasmprotocolinspection_canonical_json: (a: number) => [number, number];
-    readonly wasmprotocolinspection_canonical_matches_input: (a: number) => number;
-    readonly wasmprotocolinspection_metadata_custom: (a: number) => any;
-    readonly wasmprotocolinspection_metadata_present: (a: number) => number;
-    readonly wasmprotocolinspection_metadata_processing_latency_ns: (a: number) => [number, bigint];
-    readonly wasmprotocolinspection_metadata_source: (a: number) => [number, number];
-    readonly wasmprotocolinspection_session_id: (a: number) => [number, number];
-    readonly wasmprotocolinspection_sha256: (a: number) => [number, number];
-    readonly wasmprotocolinspection_spike_channels: (a: number) => any;
-    readonly wasmprotocolinspection_spike_strengths: (a: number) => any;
-    readonly wasmprotocolinspection_spike_times: (a: number) => any;
-    readonly wasmprotocolinspection_stimulus_valid_mask: (a: number) => any;
-    readonly wasmprotocolinspection_stimulus_values: (a: number) => any;
-    readonly wasmprotocolinspection_timestamp: (a: number) => [number, bigint];
-    readonly wasmprotocolinspection_trace_channel_ids: (a: number) => any;
-    readonly wasmprotocolinspection_trace_last_spike_times: (a: number) => any;
-    readonly wasmprotocolinspection_trace_values: (a: number) => any;
-    readonly wasmprotocolinspection_variant: (a: number) => [number, number];
-    readonly wasmprotocolinspection_wire_current: (a: number) => number;
-    readonly wasmprotocolinspection_wire_version: (a: number) => number;
-    readonly wasmprotocolinspection_wire_min_supported: (a: number) => number;
-    readonly __wbg_wasmplasticitylab_free: (a: number, b: number) => void;
-    readonly __wbg_wasmplasticityprobe_free: (a: number, b: number) => void;
-    readonly __wbg_wasmplasticitystep_free: (a: number, b: number) => void;
     readonly wasmplasticitylab_channel_count: (a: number) => number;
     readonly wasmplasticitylab_completed_steps: (a: number) => bigint;
     readonly wasmplasticitylab_create: (a: bigint) => number;
@@ -283,15 +296,30 @@ export interface InitOutput {
     readonly wasmplasticitystep_stress: (a: number) => number;
     readonly wasmplasticitystep_thresholds: (a: number) => any;
     readonly wasmplasticitystep_weight_changes: (a: number) => any;
-    readonly __wbg_wasmadapter_free: (a: number, b: number) => void;
-    readonly __wbg_wasmstate_free: (a: number, b: number) => void;
-    readonly wasmadapter_dispose: (a: number) => void;
-    readonly wasmadapter_init: (a: bigint, b: number, c: number) => [number, number, number];
-    readonly wasmadapter_input: (a: number, b: bigint, c: number, d: number) => [number, number];
-    readonly wasmadapter_state: (a: number) => [number, number, number];
-    readonly wasmadapter_step: (a: number) => [number, number, number];
+    readonly wasmprotocolinspection_batch_id: (a: number) => bigint;
+    readonly wasmprotocolinspection_byte_length: (a: number) => number;
+    readonly wasmprotocolinspection_canonical_difference: (a: number) => [number, number];
+    readonly wasmprotocolinspection_canonical_dropped_fields: (a: number) => any;
+    readonly wasmprotocolinspection_canonical_json: (a: number) => [number, number];
+    readonly wasmprotocolinspection_canonical_matches_input: (a: number) => number;
+    readonly wasmprotocolinspection_metadata_custom: (a: number) => any;
+    readonly wasmprotocolinspection_metadata_present: (a: number) => number;
+    readonly wasmprotocolinspection_metadata_processing_latency_ns: (a: number) => [number, bigint];
+    readonly wasmprotocolinspection_metadata_source: (a: number) => [number, number];
+    readonly wasmprotocolinspection_session_id: (a: number) => [number, number];
+    readonly wasmprotocolinspection_sha256: (a: number) => [number, number];
+    readonly wasmprotocolinspection_spike_channels: (a: number) => any;
+    readonly wasmprotocolinspection_spike_strengths: (a: number) => any;
+    readonly wasmprotocolinspection_spike_times: (a: number) => any;
+    readonly wasmprotocolinspection_stimulus_valid_mask: (a: number) => any;
+    readonly wasmprotocolinspection_stimulus_values: (a: number) => any;
+    readonly wasmprotocolinspection_timestamp: (a: number) => [number, bigint];
+    readonly wasmprotocolinspection_trace_channel_ids: (a: number) => any;
+    readonly wasmprotocolinspection_trace_last_spike_times: (a: number) => any;
+    readonly wasmprotocolinspection_trace_values: (a: number) => any;
+    readonly wasmprotocolinspection_variant: (a: number) => [number, number];
+    readonly wasmprotocolinspection_wire_version: (a: number) => number;
     readonly wasmstate_completed_step: (a: number) => bigint;
-    readonly wasmstate_contract_version: (a: number) => number;
     readonly wasmstate_encoded_spike_channels: (a: number) => number;
     readonly wasmstate_encoded_spike_count: (a: number) => number;
     readonly wasmstate_encoded_spike_total: (a: number) => bigint;
@@ -299,7 +327,6 @@ export interface InitOutput {
     readonly wasmstate_encoder_mode: (a: number) => number;
     readonly wasmstate_encoder_name: (a: number) => [number, number];
     readonly wasmstate_error_status: (a: number) => [number, number];
-    readonly wasmstate_last_sequence: (a: number) => bigint;
     readonly wasmstate_membrane_potentials: (a: number) => any;
     readonly wasmstate_protocol_wire_version: (a: number) => number;
     readonly wasmstate_seed: (a: number) => bigint;
@@ -317,6 +344,23 @@ export interface InitOutput {
     readonly wasmstate_topology_targets: (a: number) => any;
     readonly wasmstate_topology_weight_bits: (a: number) => any;
     readonly wasmstate_topology_weights: (a: number) => any;
+    readonly wasmtopology_topology_delays: (a: number) => any;
+    readonly wasmtopology_topology_digest: (a: number) => [number, number];
+    readonly wasmtopology_topology_edge_delays: (a: number) => any;
+    readonly wasmtopology_topology_edge_sources: (a: number) => any;
+    readonly wasmtopology_topology_edge_targets: (a: number) => any;
+    readonly wasmtopology_topology_edge_weights: (a: number) => any;
+    readonly wasmtopology_topology_node_ids: (a: number) => any;
+    readonly wasmtopology_topology_outgoing_edge_offsets: (a: number) => any;
+    readonly wasmtopology_topology_polarities: (a: number) => any;
+    readonly wasmtopology_topology_rows: (a: number) => any;
+    readonly wasmtopology_topology_targets: (a: number) => any;
+    readonly wasmtopology_topology_weight_bits: (a: number) => any;
+    readonly wasmtopology_topology_weights: (a: number) => any;
+    readonly wasmstate_contract_version: (a: number) => number;
+    readonly wasmstate_last_sequence: (a: number) => bigint;
+    readonly wasmprotocolinspection_wire_current: (a: number) => number;
+    readonly wasmprotocolinspection_wire_min_supported: (a: number) => number;
     readonly __wbindgen_exn_store: (a: number) => void;
     readonly __externref_table_alloc: () => number;
     readonly __wbindgen_externrefs: WebAssembly.Table;

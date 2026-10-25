@@ -170,7 +170,7 @@ export function simulateHidden(hidden) {
   return document.visibilityState;
 }
 
-export async function boundaryBench({ benchUrl, bridgeUrl, spikesUrl, stimulusUrl, workerSource, ticks, repeats }) {
+export async function boundaryBench({ benchUrl, bridgeUrl, spikesUrl, stimulusUrl, workerSource, ticks, repeats, contract }) {
   const generated = await import('/wasm/neuromorphic-adapter/neuromorphic_adapter.js');
   const wasmExports = await generated.default();
   const bench = await import(benchUrl);
@@ -195,7 +195,7 @@ export async function boundaryBench({ benchUrl, bridgeUrl, spikesUrl, stimulusUr
         createWorker: () => new Worker(workerUrl, { type: 'module', name: 'neuromorphic-simulation-bench' }),
         moduleUrl: new URL('/wasm/neuromorphic-adapter/neuromorphic_adapter.js', location.href).href,
       },
-      { ticks, repeats },
+      { ticks, repeats, contract },
     );
   } finally {
     URL.revokeObjectURL(workerUrl);

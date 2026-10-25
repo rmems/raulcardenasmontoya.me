@@ -198,6 +198,46 @@
   visibility: visible;
 }
 
+/* axon-encoder mode: three radios, shown once a session can start and enabled
+   while a change can be applied. Switching keeps the seed and the topology;
+   only the encoding of the same input changes. */
+.hero-mesh-encoder {
+  display: none;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.live-hero:is([data-mode='live'], [data-mode='awaiting-play'], [data-mode='initializing']) .hero-mesh-encoder {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.hero-mesh-encoder legend {
+  padding: 0;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.hero-mesh-encoder-options { display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; }
+
+.hero-mesh-encoder label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.hero-mesh-encoder input { margin: 0; accent-color: var(--accent); }
+.hero-mesh-encoder[disabled] label { color: var(--muted); cursor: default; }
+
 /* Room for the longest status message, so status changes do not reflow. */
 .hero-mesh .demo-status {
   min-height: 4.5em;

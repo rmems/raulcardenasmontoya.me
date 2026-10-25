@@ -7,6 +7,14 @@ export const NEUROMORPHIC_CONTRACT_VERSION_V4 = 4;
  * clamped encoder-input features to every snapshot.
  */
 export const NEUROMORPHIC_CONTRACT_VERSION_V5 = 5;
+/**
+ * Contract 6 is contract 5 with the topology projection sent once: the
+ * adapter's `topology()` returns it at init, every per-step snapshot leaves
+ * the twelve topology arrays empty (the digest stays), and this bridge
+ * validates the projection once and attaches it to every snapshot it hands
+ * out, so consumers see the same `NeuromorphicState` as before.
+ */
+export const NEUROMORPHIC_CONTRACT_VERSION_V6 = 6;
 export const TELEMETRY_PACKET_LENGTH = 3;
 export const ENCODER_FEATURE_COUNT = 16;
 export const CORPUS_IPC_WIRE_VERSION = 1;
@@ -137,6 +145,47 @@ export interface NeuromorphicState {
   encoderFeatures: Float32Array;
 }
 
+/** The twelve typed-array fields of a topology, for detaching and re-attaching across a worker. */
+export const TOPOLOGY_ARRAY_FIELDS = [
+  'topologyRows',
+  'topologyTargets',
+  'topologyWeights',
+  'topologyDelays',
+  'topologyNodeIds',
+  'topologyEdgeSources',
+  'topologyEdgeTargets',
+  'topologyEdgeWeights',
+  'topologyEdgeDelays',
+  'topologyPolarities',
+  'topologyWeightBits',
+  'topologyOutgoingEdgeOffsets',
+] as const;
+export type TopologyArrayField = (typeof TOPOLOGY_ARRAY_FIELDS)[number];
+
+/** The topology every snapshot of a session belongs to, as JS-owned copies. Contract 6 sends it once. */
+export type NeuromorphicTopology = Pick<NeuromorphicState, TopologyArrayField | 'topologyDigest'>;
+
+interface RawTopologyFields {
+  topology_rows: Uint32Array;
+  topology_targets: Uint32Array;
+  topology_weights: Float32Array;
+  topology_delays: Uint16Array;
+  topology_node_ids: Uint32Array;
+  topology_edge_sources: Uint32Array;
+  topology_edge_targets: Uint32Array;
+  topology_edge_weights: Float32Array;
+  topology_edge_delays: Uint16Array;
+  topology_polarities: Uint8Array;
+  topology_weight_bits: Uint32Array;
+  topology_outgoing_edge_offsets: Uint32Array;
+  topology_digest: string;
+}
+
+interface RawWasmTopology extends RawTopologyFields {
+  /** wasm-bindgen handle release; absent on plain test doubles. */
+  free?: () => void;
+}
+
 interface RawWasmState {
   contract_version: number;
   seed: bigint;
@@ -172,7 +221,8 @@ interface RawWasmState {
 export type NeuromorphicContractVersion =
   | typeof NEUROMORPHIC_CONTRACT_VERSION
   | typeof NEUROMORPHIC_CONTRACT_VERSION_V4
-  | typeof NEUROMORPHIC_CONTRACT_VERSION_V5;
+  | typeof NEUROMORPHIC_CONTRACT_VERSION_V5
+  | typeof NEUROMORPHIC_CONTRACT_VERSION_V6;
 
 export interface NeuromorphicAdapterOptions {
   contractVersion?: NeuromorphicContractVersion;
@@ -183,6 +233,8 @@ interface RawWasmAdapter {
   input(sequence: bigint, samples: Float32Array): void;
   step(): RawWasmState;
   state(): RawWasmState;
+  /** Contract 6: the projection, read once at init. */
+  topology?(): RawWasmTopology;
   dispose(): void;
 }
 
@@ -197,6 +249,12 @@ export interface NeuromorphicAdapter {
   input(sequence: bigint, samples: Float32Array): void;
   step(): NeuromorphicState;
   state(): NeuromorphicState;
+  /**
+   * The topology every snapshot of this adapter belongs to. On contract 6 it
+   * is the projection validated once at init, the same arrays every snapshot
+   * carries; on earlier contracts it is read from a fresh snapshot.
+   */
+  topology(): NeuromorphicTopology;
   dispose(): void;
 }
 
@@ -211,7 +269,10 @@ const ENCODER_MODE_VALUES = new Set<number>(Object.values(ENCODER_MODES));
 const ENCODER_DIAGNOSTIC_CONTRACTS = new Set<number>([
   NEUROMORPHIC_CONTRACT_VERSION_V4,
   NEUROMORPHIC_CONTRACT_VERSION_V5,
+  NEUROMORPHIC_CONTRACT_VERSION_V6,
 ]);
+/** Contracts whose snapshots carry the clamped `kinetic-signals` feature vector. */
+const FEATURE_CONTRACTS = new Set<number>([NEUROMORPHIC_CONTRACT_VERSION_V5, NEUROMORPHIC_CONTRACT_VERSION_V6]);
 
 function isValidEncoderFeatures(raw: RawWasmState): boolean {
   const features = raw.encoder_features;
@@ -285,7 +346,35 @@ function readRawState(raw: RawWasmState): RawWasmState {
   };
 }
 
-function snapshot(handle: RawWasmState): NeuromorphicState {
+/** Read a contract-6 topology handle's fields exactly once and release it. */
+function readRawTopology(handle: RawWasmTopology): RawTopologyFields {
+  if (!handle || typeof handle !== 'object') {
+    throw new AdapterUnavailableError('The Rust/WASM runtime returned an invalid topology.');
+  }
+  try {
+    return {
+      topology_rows: handle.topology_rows,
+      topology_targets: handle.topology_targets,
+      topology_weights: handle.topology_weights,
+      topology_delays: handle.topology_delays,
+      topology_node_ids: handle.topology_node_ids,
+      topology_edge_sources: handle.topology_edge_sources,
+      topology_edge_targets: handle.topology_edge_targets,
+      topology_edge_weights: handle.topology_edge_weights,
+      topology_edge_delays: handle.topology_edge_delays,
+      topology_polarities: handle.topology_polarities,
+      topology_weight_bits: handle.topology_weight_bits,
+      topology_outgoing_edge_offsets: handle.topology_outgoing_edge_offsets,
+      topology_digest: handle.topology_digest,
+    };
+  } finally {
+    if (typeof handle.free === 'function') {
+      handle.free();
+    }
+  }
+}
+
+function snapshot(handle: RawWasmState, shared: NeuromorphicTopology | null): NeuromorphicState {
   if (!handle || typeof handle !== 'object') {
     throw new AdapterUnavailableError('The Rust/WASM runtime returned an invalid contract state.');
   }
@@ -299,78 +388,99 @@ function snapshot(handle: RawWasmState): NeuromorphicState {
       handle.free();
     }
   }
-  return materialize(fields);
+  return materialize(fields, shared);
 }
 
-function materialize(raw: RawWasmState): NeuromorphicState {
-  if (
-    !raw ||
-    typeof raw !== 'object' ||
-    (raw.contract_version !== NEUROMORPHIC_CONTRACT_VERSION &&
-      !ENCODER_DIAGNOSTIC_CONTRACTS.has(raw.contract_version)) ||
-    typeof raw.seed !== 'bigint' ||
-    typeof raw.completed_step !== 'bigint' ||
-    typeof raw.last_sequence !== 'bigint' ||
-    !isU64(raw.seed) ||
-    !isU64(raw.completed_step) ||
-    !isU64(raw.last_sequence) ||
-    !(raw.membrane_potentials instanceof Float32Array) ||
-    !(raw.spike_neurons instanceof Uint32Array) ||
-    !(raw.topology_rows instanceof Uint32Array) ||
-    !(raw.topology_targets instanceof Uint32Array) ||
-    !(raw.topology_weights instanceof Float32Array) ||
-    !(raw.topology_delays instanceof Uint16Array) ||
-    !(raw.topology_node_ids instanceof Uint32Array) ||
-    !(raw.topology_edge_sources instanceof Uint32Array) ||
-    !(raw.topology_edge_targets instanceof Uint32Array) ||
-    !(raw.topology_edge_weights instanceof Float32Array) ||
-    !(raw.topology_edge_delays instanceof Uint16Array) ||
-    !(raw.topology_polarities instanceof Uint8Array) ||
-    !(raw.topology_weight_bits instanceof Uint32Array) ||
-    !(raw.topology_outgoing_edge_offsets instanceof Uint32Array) ||
-    raw.topology_rows.length < 2 ||
-    raw.topology_rows[0] !== 0 ||
-    raw.topology_rows.at(-1) !== raw.topology_targets.length ||
-    raw.topology_targets.length !== raw.topology_weights.length ||
-    raw.topology_targets.length !== raw.topology_delays.length ||
-    raw.topology_edge_sources.length !== raw.topology_targets.length ||
-    raw.topology_edge_sources.length !== raw.topology_edge_targets.length ||
-    raw.topology_edge_sources.length !== raw.topology_edge_weights.length ||
-    raw.topology_edge_sources.length !== raw.topology_edge_delays.length ||
-    raw.topology_edge_sources.length !== raw.topology_polarities.length ||
-    raw.topology_edge_sources.length !== raw.topology_weight_bits.length ||
-    raw.topology_node_ids.length !== raw.topology_rows.length - 1 ||
-    raw.topology_outgoing_edge_offsets.length !== raw.topology_node_ids.length + 1 ||
-    raw.topology_outgoing_edge_offsets[0] !== 0 ||
-    raw.topology_outgoing_edge_offsets.at(-1) !== raw.topology_edge_sources.length ||
-    raw.membrane_potentials.length !== raw.topology_rows.length - 1 ||
-    typeof raw.topology_digest !== 'string' ||
-    raw.topology_digest !== BROWSER_TOPOLOGY_DIGEST ||
-    !hasExpectedTopologyProjection(raw) ||
-    raw.protocol_wire_version !== CORPUS_IPC_WIRE_VERSION ||
-    typeof raw.error_status !== 'string' ||
-    !RUNTIME_ERROR_STATUSES.has(raw.error_status) ||
-    !allFinite(raw.membrane_potentials) ||
-    !allFinite(raw.topology_weights) ||
-    !allFinite(raw.topology_edge_weights) ||
-    !isMonotonicTopologyRows(raw.topology_rows) ||
-    !hasValidTopologyTargets(raw.topology_targets, raw.topology_rows.length - 1) ||
-    !hasValidTopologyTargets(raw.topology_edge_sources, raw.topology_node_ids.length) ||
-    !hasValidTopologyTargets(raw.topology_edge_targets, raw.topology_node_ids.length) ||
-    !hasValidTopologyTargets(raw.topology_node_ids, raw.topology_node_ids.length) ||
-    !hasValidTopologyTargets(raw.topology_outgoing_edge_offsets, raw.topology_edge_sources.length + 1) ||
-    !raw.topology_polarities.every((polarity) => polarity === 0 || polarity === 1) ||
-    !isMonotonicTopologyRows(raw.topology_outgoing_edge_offsets) ||
-    !hasCanonicalOutgoingEdges(raw.topology_node_ids, raw.topology_edge_sources, raw.topology_outgoing_edge_offsets) ||
-    !hasCanonicalEdgeOrder(
+const invalidState = () => new AdapterUnavailableError('The Rust/WASM runtime returned an invalid contract state.');
+
+/** Contract 6 per-step states carry every topology array empty, of the right type. */
+function hasEmptyTopologyArrays(raw: RawWasmState): boolean {
+  return (
+    raw.topology_rows instanceof Uint32Array &&
+    raw.topology_targets instanceof Uint32Array &&
+    raw.topology_weights instanceof Float32Array &&
+    raw.topology_delays instanceof Uint16Array &&
+    raw.topology_node_ids instanceof Uint32Array &&
+    raw.topology_edge_sources instanceof Uint32Array &&
+    raw.topology_edge_targets instanceof Uint32Array &&
+    raw.topology_edge_weights instanceof Float32Array &&
+    raw.topology_edge_delays instanceof Uint16Array &&
+    raw.topology_polarities instanceof Uint8Array &&
+    raw.topology_weight_bits instanceof Uint32Array &&
+    raw.topology_outgoing_edge_offsets instanceof Uint32Array &&
+    raw.topology_rows.length === 0 &&
+    raw.topology_targets.length === 0 &&
+    raw.topology_weights.length === 0 &&
+    raw.topology_delays.length === 0 &&
+    raw.topology_node_ids.length === 0 &&
+    raw.topology_edge_sources.length === 0 &&
+    raw.topology_edge_targets.length === 0 &&
+    raw.topology_edge_weights.length === 0 &&
+    raw.topology_edge_delays.length === 0 &&
+    raw.topology_polarities.length === 0 &&
+    raw.topology_weight_bits.length === 0 &&
+    raw.topology_outgoing_edge_offsets.length === 0
+  );
+}
+
+/**
+ * Every structural, identity and ordering check of a topology: the routed CSR
+ * arrays, the canonical projection, the audited digest and contents, and
+ * their agreement. Runs on every snapshot of contracts 3 to 5 and once, at
+ * init, on contract 6.
+ */
+function hasValidTopology(raw: RawTopologyFields): boolean {
+  return (
+    raw.topology_rows instanceof Uint32Array &&
+    raw.topology_targets instanceof Uint32Array &&
+    raw.topology_weights instanceof Float32Array &&
+    raw.topology_delays instanceof Uint16Array &&
+    raw.topology_node_ids instanceof Uint32Array &&
+    raw.topology_edge_sources instanceof Uint32Array &&
+    raw.topology_edge_targets instanceof Uint32Array &&
+    raw.topology_edge_weights instanceof Float32Array &&
+    raw.topology_edge_delays instanceof Uint16Array &&
+    raw.topology_polarities instanceof Uint8Array &&
+    raw.topology_weight_bits instanceof Uint32Array &&
+    raw.topology_outgoing_edge_offsets instanceof Uint32Array &&
+    raw.topology_rows.length >= 2 &&
+    raw.topology_rows[0] === 0 &&
+    raw.topology_rows.at(-1) === raw.topology_targets.length &&
+    raw.topology_targets.length === raw.topology_weights.length &&
+    raw.topology_targets.length === raw.topology_delays.length &&
+    raw.topology_edge_sources.length === raw.topology_targets.length &&
+    raw.topology_edge_sources.length === raw.topology_edge_targets.length &&
+    raw.topology_edge_sources.length === raw.topology_edge_weights.length &&
+    raw.topology_edge_sources.length === raw.topology_edge_delays.length &&
+    raw.topology_edge_sources.length === raw.topology_polarities.length &&
+    raw.topology_edge_sources.length === raw.topology_weight_bits.length &&
+    raw.topology_node_ids.length === raw.topology_rows.length - 1 &&
+    raw.topology_outgoing_edge_offsets.length === raw.topology_node_ids.length + 1 &&
+    raw.topology_outgoing_edge_offsets[0] === 0 &&
+    raw.topology_outgoing_edge_offsets.at(-1) === raw.topology_edge_sources.length &&
+    typeof raw.topology_digest === 'string' &&
+    raw.topology_digest === BROWSER_TOPOLOGY_DIGEST &&
+    hasExpectedTopologyProjection(raw) &&
+    allFinite(raw.topology_weights) &&
+    allFinite(raw.topology_edge_weights) &&
+    isMonotonicTopologyRows(raw.topology_rows) &&
+    hasValidTopologyTargets(raw.topology_targets, raw.topology_rows.length - 1) &&
+    hasValidTopologyTargets(raw.topology_edge_sources, raw.topology_node_ids.length) &&
+    hasValidTopologyTargets(raw.topology_edge_targets, raw.topology_node_ids.length) &&
+    hasValidTopologyTargets(raw.topology_node_ids, raw.topology_node_ids.length) &&
+    hasValidTopologyTargets(raw.topology_outgoing_edge_offsets, raw.topology_edge_sources.length + 1) &&
+    raw.topology_polarities.every((polarity) => polarity === 0 || polarity === 1) &&
+    isMonotonicTopologyRows(raw.topology_outgoing_edge_offsets) &&
+    hasCanonicalOutgoingEdges(raw.topology_node_ids, raw.topology_edge_sources, raw.topology_outgoing_edge_offsets) &&
+    hasCanonicalEdgeOrder(
       raw.topology_edge_sources,
       raw.topology_edge_targets,
       raw.topology_edge_delays,
       raw.topology_polarities,
       raw.topology_weight_bits,
-    ) ||
-    !hasMatchingWeightBits(raw.topology_edge_weights, raw.topology_weight_bits) ||
-    !hasVerifiedRoutedTopology(
+    ) &&
+    hasMatchingWeightBits(raw.topology_edge_weights, raw.topology_weight_bits) &&
+    hasVerifiedRoutedTopology(
       raw.topology_rows,
       raw.topology_targets,
       raw.topology_weights,
@@ -379,22 +489,13 @@ function materialize(raw: RawWasmState): NeuromorphicState {
       raw.topology_edge_targets,
       raw.topology_edge_weights,
       raw.topology_edge_delays,
-    ) ||
-    !hasValidSpikeNeurons(raw.spike_neurons, raw.membrane_potentials.length) ||
-    (ENCODER_DIAGNOSTIC_CONTRACTS.has(raw.contract_version) && !isValidEncoderDiagnostics(raw)) ||
-    (raw.contract_version === NEUROMORPHIC_CONTRACT_VERSION_V5 && !isValidEncoderFeatures(raw))
-  ) {
-    throw new AdapterUnavailableError('The Rust/WASM runtime returned an invalid contract state.');
-  }
+    )
+  );
+}
 
-  const hasDiagnostics = ENCODER_DIAGNOSTIC_CONTRACTS.has(raw.contract_version);
+/** JS-owned copies of a validated topology. */
+function copyTopology(raw: RawTopologyFields): NeuromorphicTopology {
   return {
-    contractVersion: raw.contract_version,
-    seed: raw.seed,
-    completedStep: raw.completed_step,
-    lastSequence: raw.last_sequence,
-    membranePotentials: new Float32Array(raw.membrane_potentials),
-    spikeNeurons: new Uint32Array(raw.spike_neurons),
     topologyRows: new Uint32Array(raw.topology_rows),
     topologyTargets: new Uint32Array(raw.topology_targets),
     topologyWeights: new Float32Array(raw.topology_weights),
@@ -408,6 +509,153 @@ function materialize(raw: RawWasmState): NeuromorphicState {
     topologyWeightBits: new Uint32Array(raw.topology_weight_bits),
     topologyOutgoingEdgeOffsets: new Uint32Array(raw.topology_outgoing_edge_offsets),
     topologyDigest: raw.topology_digest,
+  };
+}
+
+/** The topology fields of a snapshot, as they are (no copy). */
+export function topologyOf(state: NeuromorphicState): NeuromorphicTopology {
+  return {
+    topologyRows: state.topologyRows,
+    topologyTargets: state.topologyTargets,
+    topologyWeights: state.topologyWeights,
+    topologyDelays: state.topologyDelays,
+    topologyNodeIds: state.topologyNodeIds,
+    topologyEdgeSources: state.topologyEdgeSources,
+    topologyEdgeTargets: state.topologyEdgeTargets,
+    topologyEdgeWeights: state.topologyEdgeWeights,
+    topologyEdgeDelays: state.topologyEdgeDelays,
+    topologyPolarities: state.topologyPolarities,
+    topologyWeightBits: state.topologyWeightBits,
+    topologyOutgoingEdgeOffsets: state.topologyOutgoingEdgeOffsets,
+    topologyDigest: state.topologyDigest,
+  };
+}
+
+/** Fresh copies of a topology, for transferring across a worker without detaching the original. */
+export function cloneTopology(topology: NeuromorphicTopology): NeuromorphicTopology {
+  return {
+    topologyRows: topology.topologyRows.slice(),
+    topologyTargets: topology.topologyTargets.slice(),
+    topologyWeights: topology.topologyWeights.slice(),
+    topologyDelays: topology.topologyDelays.slice(),
+    topologyNodeIds: topology.topologyNodeIds.slice(),
+    topologyEdgeSources: topology.topologyEdgeSources.slice(),
+    topologyEdgeTargets: topology.topologyEdgeTargets.slice(),
+    topologyEdgeWeights: topology.topologyEdgeWeights.slice(),
+    topologyEdgeDelays: topology.topologyEdgeDelays.slice(),
+    topologyPolarities: topology.topologyPolarities.slice(),
+    topologyWeightBits: topology.topologyWeightBits.slice(),
+    topologyOutgoingEdgeOffsets: topology.topologyOutgoingEdgeOffsets.slice(),
+    topologyDigest: topology.topologyDigest,
+  };
+}
+
+/**
+ * A contract-6 snapshot as it crosses a worker boundary: the topology went
+ * once with the worker's `ready`, so each step carries empty topology arrays
+ * and keeps the digest. The receiving side re-attaches with
+ * {@link attachTopology}.
+ */
+export function detachTopology(state: NeuromorphicState): NeuromorphicState {
+  return {
+    ...state,
+    topologyRows: new Uint32Array(0),
+    topologyTargets: new Uint32Array(0),
+    topologyWeights: new Float32Array(0),
+    topologyDelays: new Uint16Array(0),
+    topologyNodeIds: new Uint32Array(0),
+    topologyEdgeSources: new Uint32Array(0),
+    topologyEdgeTargets: new Uint32Array(0),
+    topologyEdgeWeights: new Float32Array(0),
+    topologyEdgeDelays: new Uint16Array(0),
+    topologyPolarities: new Uint8Array(0),
+    topologyWeightBits: new Uint32Array(0),
+    topologyOutgoingEdgeOffsets: new Uint32Array(0),
+  };
+}
+
+/** Re-attach a session's topology to a detached snapshot; every snapshot then shares the same arrays. */
+export function attachTopology(state: NeuromorphicState, topology: NeuromorphicTopology): NeuromorphicState {
+  if (state.topologyDigest !== topology.topologyDigest) {
+    throw new AdapterUnavailableError('The Rust/WASM snapshot does not belong to the session topology.');
+  }
+  return {
+    ...state,
+    topologyRows: topology.topologyRows,
+    topologyTargets: topology.topologyTargets,
+    topologyWeights: topology.topologyWeights,
+    topologyDelays: topology.topologyDelays,
+    topologyNodeIds: topology.topologyNodeIds,
+    topologyEdgeSources: topology.topologyEdgeSources,
+    topologyEdgeTargets: topology.topologyEdgeTargets,
+    topologyEdgeWeights: topology.topologyEdgeWeights,
+    topologyEdgeDelays: topology.topologyEdgeDelays,
+    topologyPolarities: topology.topologyPolarities,
+    topologyWeightBits: topology.topologyWeightBits,
+    topologyOutgoingEdgeOffsets: topology.topologyOutgoingEdgeOffsets,
+  };
+}
+
+/**
+ * Validate one exported state and materialize it as JS-owned data. `shared`
+ * is the contract-6 topology validated at init; on earlier contracts it is
+ * `null` and the snapshot's own topology is validated here.
+ */
+function materialize(raw: RawWasmState, shared: NeuromorphicTopology | null): NeuromorphicState {
+  if (!raw || typeof raw !== 'object') {
+    throw invalidState();
+  }
+  const onceSent = raw.contract_version === NEUROMORPHIC_CONTRACT_VERSION_V6;
+  if (
+    (raw.contract_version !== NEUROMORPHIC_CONTRACT_VERSION &&
+      !ENCODER_DIAGNOSTIC_CONTRACTS.has(raw.contract_version)) ||
+    onceSent !== (shared !== null) ||
+    typeof raw.seed !== 'bigint' ||
+    typeof raw.completed_step !== 'bigint' ||
+    typeof raw.last_sequence !== 'bigint' ||
+    !isU64(raw.seed) ||
+    !isU64(raw.completed_step) ||
+    !isU64(raw.last_sequence) ||
+    !(raw.membrane_potentials instanceof Float32Array) ||
+    !(raw.spike_neurons instanceof Uint32Array) ||
+    typeof raw.topology_digest !== 'string' ||
+    raw.protocol_wire_version !== CORPUS_IPC_WIRE_VERSION ||
+    typeof raw.error_status !== 'string' ||
+    !RUNTIME_ERROR_STATUSES.has(raw.error_status) ||
+    !allFinite(raw.membrane_potentials) ||
+    (ENCODER_DIAGNOSTIC_CONTRACTS.has(raw.contract_version) && !isValidEncoderDiagnostics(raw)) ||
+    (FEATURE_CONTRACTS.has(raw.contract_version) && !isValidEncoderFeatures(raw))
+  ) {
+    throw invalidState();
+  }
+
+  let topology: NeuromorphicTopology;
+  if (shared !== null) {
+    if (!hasEmptyTopologyArrays(raw) || raw.topology_digest !== shared.topologyDigest) {
+      throw invalidState();
+    }
+    topology = shared;
+  } else {
+    if (!hasValidTopology(raw)) {
+      throw invalidState();
+    }
+    topology = copyTopology(raw);
+  }
+
+  const nodeCount = topology.topologyNodeIds.length;
+  if (raw.membrane_potentials.length !== nodeCount || !hasValidSpikeNeurons(raw.spike_neurons, nodeCount)) {
+    throw invalidState();
+  }
+
+  const hasDiagnostics = ENCODER_DIAGNOSTIC_CONTRACTS.has(raw.contract_version);
+  return {
+    contractVersion: raw.contract_version,
+    seed: raw.seed,
+    completedStep: raw.completed_step,
+    lastSequence: raw.last_sequence,
+    membranePotentials: new Float32Array(raw.membrane_potentials),
+    spikeNeurons: new Uint32Array(raw.spike_neurons),
+    ...topology,
     protocolWireVersion: raw.protocol_wire_version,
     errorStatus: raw.error_status,
     encoderMode: hasDiagnostics ? raw.encoder_mode : ENCODER_MODES.delta,
@@ -416,7 +664,7 @@ function materialize(raw: RawWasmState): NeuromorphicState {
     encodedSpikeChannels: hasDiagnostics ? raw.encoded_spike_channels : 0,
     encodedSpikeTotal: hasDiagnostics ? raw.encoded_spike_total : 0n,
     encoderFeatures:
-      raw.contract_version === NEUROMORPHIC_CONTRACT_VERSION_V5 && raw.encoder_features
+      FEATURE_CONTRACTS.has(raw.contract_version) && raw.encoder_features
         ? new Float32Array(raw.encoder_features)
         : new Float32Array(0),
   };
@@ -466,7 +714,7 @@ function hasMatchingWeightBits(weights: Float32Array, bits: Uint32Array): boolea
   return weightBits.every((weight, index) => weight === bits[index]);
 }
 
-function hasExpectedTopologyProjection(raw: RawWasmState): boolean {
+function hasExpectedTopologyProjection(raw: RawTopologyFields): boolean {
   return (
     hasMatchingTypedArray(raw.topology_node_ids, BROWSER_TOPOLOGY_NODE_IDS) &&
     hasMatchingTypedArray(raw.topology_edge_sources, BROWSER_TOPOLOGY_EDGE_SOURCES) &&
@@ -666,6 +914,26 @@ export async function initNeuromorphicAdapter(
   const runtime = wasm.WasmAdapter.init(seed, config);
   let disposed = false;
 
+  // Contract 6: the projection crosses the boundary once, is validated once,
+  // and is attached to every snapshot. Earlier contracts repeat and
+  // re-validate it per step.
+  let shared: NeuromorphicTopology | null = null;
+  if (contract === NEUROMORPHIC_CONTRACT_VERSION_V6) {
+    try {
+      if (typeof runtime.topology !== 'function') {
+        throw new AdapterUnavailableError('The Rust/WASM runtime does not export its topology.');
+      }
+      const fields = readRawTopology(runtime.topology());
+      if (!hasValidTopology(fields)) {
+        throw new AdapterUnavailableError('The Rust/WASM runtime returned an invalid topology.');
+      }
+      shared = copyTopology(fields);
+    } catch (error) {
+      runtime.dispose();
+      throw error;
+    }
+  }
+
   const ensureActive = (): void => {
     if (disposed) {
       throw new AdapterUnavailableError('The Rust/WASM runtime has already been disposed.');
@@ -682,11 +950,15 @@ export async function initNeuromorphicAdapter(
     },
     step() {
       ensureActive();
-      return snapshot(runtime.step());
+      return snapshot(runtime.step(), shared);
     },
     state() {
       ensureActive();
-      return snapshot(runtime.state());
+      return snapshot(runtime.state(), shared);
+    },
+    topology() {
+      ensureActive();
+      return shared ?? topologyOf(snapshot(runtime.state(), null));
     },
     dispose() {
       if (!disposed) {

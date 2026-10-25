@@ -1,4 +1,6 @@
-use neuromorphic_adapter::BrowserRuntime;
+use neuromorphic_adapter::{
+    BrowserRuntime, CONTRACT_VERSION_V5, CONTRACT_VERSION_V6, encoder::EncoderMode,
+};
 
 #[test]
 fn a_seeded_runtime_preserves_topology_provenance_and_advances_deterministically() {
@@ -282,4 +284,106 @@ fn a_rebuilt_adapter_replays_the_same_trace_after_dispose() {
     let mut rebuilt =
         neuromorphic_adapter::WasmAdapter::init(9, &[3]).expect("re-init is accepted");
     assert_eq!(first, run(&mut rebuilt));
+}
+
+#[test]
+fn contract_6_is_contract_5_with_the_topology_sent_once() {
+    let mut five = BrowserRuntime::with_mode(9, EncoderMode::DEFAULT, CONTRACT_VERSION_V5)
+        .expect("fixed topology is valid");
+    let mut six = BrowserRuntime::with_mode(9, EncoderMode::DEFAULT, CONTRACT_VERSION_V6)
+        .expect("fixed topology is valid");
+    let topology = six.topology();
+    let repeated = five.state();
+    assert_eq!(
+        topology,
+        five.topology(),
+        "both contracts export one topology"
+    );
+    assert_eq!(topology.topology_digest, repeated.topology_digest);
+    assert_eq!(topology.topology_rows, repeated.topology_rows);
+    assert_eq!(topology.topology_targets, repeated.topology_targets);
+    assert_eq!(topology.topology_weights, repeated.topology_weights);
+    assert_eq!(topology.topology_delays, repeated.topology_delays);
+    assert_eq!(topology.topology_node_ids, repeated.topology_node_ids);
+    assert_eq!(
+        topology.topology_edge_sources,
+        repeated.topology_edge_sources
+    );
+    assert_eq!(
+        topology.topology_edge_targets,
+        repeated.topology_edge_targets
+    );
+    assert_eq!(
+        topology.topology_edge_weights,
+        repeated.topology_edge_weights
+    );
+    assert_eq!(topology.topology_edge_delays, repeated.topology_edge_delays);
+    assert_eq!(topology.topology_polarities, repeated.topology_polarities);
+    assert_eq!(topology.topology_weight_bits, repeated.topology_weight_bits);
+    assert_eq!(
+        topology.topology_outgoing_edge_offsets,
+        repeated.topology_outgoing_edge_offsets
+    );
+    assert_eq!(topology.topology_edge_sources.len(), 64);
+
+    for step in 1..=24u64 {
+        let packet = [
+            0.5 + step as f32 * 0.017,
+            0.4 - step as f32 * 0.011,
+            0.6 + (step % 3) as f32 * 0.1,
+        ];
+        five.input(step, &packet).expect("input is accepted");
+        six.input(step, &packet).expect("input is accepted");
+        let a = five.step().expect("contract 5 advances");
+        let b = six.step().expect("contract 6 advances");
+        assert_eq!(b.contract_version, CONTRACT_VERSION_V6);
+        assert_eq!(a.completed_step, b.completed_step);
+        assert_eq!(a.last_sequence, b.last_sequence);
+        assert_eq!(a.membrane_potentials, b.membrane_potentials);
+        assert_eq!(a.spike_neurons, b.spike_neurons);
+        assert_eq!(a.encoder_features, b.encoder_features);
+        assert_eq!(a.encoded_spike_count, b.encoded_spike_count);
+        assert_eq!(a.encoded_spike_total, b.encoded_spike_total);
+        assert_eq!(a.error_status, b.error_status);
+        assert_eq!(
+            b.topology_digest, a.topology_digest,
+            "the digest still travels"
+        );
+        assert!(b.topology_rows.is_empty());
+        assert!(b.topology_targets.is_empty());
+        assert!(b.topology_weights.is_empty());
+        assert!(b.topology_delays.is_empty());
+        assert!(b.topology_node_ids.is_empty());
+        assert!(b.topology_edge_sources.is_empty());
+        assert!(b.topology_edge_targets.is_empty());
+        assert!(b.topology_edge_weights.is_empty());
+        assert!(b.topology_edge_delays.is_empty());
+        assert!(b.topology_polarities.is_empty());
+        assert!(b.topology_weight_bits.is_empty());
+        assert!(b.topology_outgoing_edge_offsets.is_empty());
+        assert_eq!(
+            six.topology(),
+            topology,
+            "the projection never changes between steps"
+        );
+    }
+    assert_eq!(six.topology().topology_edge_weights.len(), 64);
+}
+
+#[test]
+fn contract_6_accepts_every_encoder_mode_and_only_known_contracts() {
+    // Contract 6 accepts every encoder mode, like 4 and 5; the delta-only rule
+    // is contract 3's alone, and unknown contract numbers are rejected.
+    for mode in [EncoderMode::Delta, EncoderMode::Temporal, EncoderMode::Rate] {
+        let runtime =
+            BrowserRuntime::with_mode(3, mode, CONTRACT_VERSION_V6).expect("mode accepted");
+        let state = runtime.state();
+        assert_eq!(state.contract_version, CONTRACT_VERSION_V6);
+        assert_eq!(state.encoder_mode, mode as u8);
+        // Contract 6 keeps contract 5's feature vector (zeros before any input).
+        assert_eq!(state.encoder_features.len(), 16);
+        assert!(state.topology_node_ids.is_empty());
+    }
+    assert!(BrowserRuntime::with_mode(3, EncoderMode::Temporal, 3).is_err());
+    assert!(BrowserRuntime::with_mode(3, EncoderMode::Temporal, 7).is_err());
 }

@@ -21,10 +21,11 @@ and `target/` are generated locally and intentionally not committed.
 ## Boundary guarantees
 
 - `WasmAdapter.init(seed, config)` accepts only versioned configs: `[3]`
-  (delta-only V3), `[4]` / `[4, mode]` (selectable `axon-encoder` modes) and
-  `[5]` / `[5, mode]` (kinetic-signals telemetry, below). It rejects unknown
-  configuration rather than ignoring it. V3 was introduced because seeding LIF
-  weights changed deterministic simulation state relative to V2.
+  (delta-only V3), `[4]` / `[4, mode]` (selectable `axon-encoder` modes),
+  `[5]` / `[5, mode]` (kinetic-signals telemetry, below) and `[6]` /
+  `[6, mode]` (contract 5 with the topology sent once, below). It rejects
+  unknown configuration rather than ignoring it. V3 was introduced because
+  seeding LIF weights changed deterministic simulation state relative to V2.
 - `input(sequence, Float32Array)` requires finite samples and a strictly
   increasing `bigint` sequence.
 - Contract 5 (`[5]` / `[5, mode]`) treats each input as one `[x, y,
@@ -34,6 +35,14 @@ and `target/` are generated locally and intentionally not committed.
   `docs/architecture/browser-runtime.md`.
 - `step()` uses a caller-seeded `neuromod::StdRng` and returns copied typed
   arrays plus topology and `corpus-ipc` wire-version provenance.
+- Contract 6 (`[6]` / `[6, mode]`) is contract 5 whose per-step state carries
+  no topology arrays: `WasmAdapter.topology()` returns the projection once
+  (`WasmTopology`, the same `topology_*` getters), `state()` leaves the twelve
+  topology arrays empty and keeps `topology_digest`, and input, encoding,
+  dynamics and the exported neuron state are byte-identical to contract 5
+  (`tests/trace_fixture.rs` replays the contract-5 golden under contract 6).
+  The live demo uses it: the projection is 91% of a contract-5 snapshot's
+  bytes and never changes.
 - `dispose()` makes all later runtime operations fail closed.
 
 ## Engine

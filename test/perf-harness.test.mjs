@@ -63,7 +63,27 @@ test('the boundary benchmark runs against the committed WASM package and shipped
     for (const key of ['rawInput', 'rawTick', 'rawState', 'getters', 'bridgeState', 'bridgeTick', 'spikeIngest']) {
       assert.ok(Number.isFinite(row[key].medianUs), `${key} is reported`);
     }
-    assert.ok(row.snapshotBytes > 2000, 'the contract-5 snapshot carries the full topology projection');
+    assert.equal(row.contract, 6, 'the bench measures the live contract by default');
+    assert.ok(row.snapshotBytes >= 128 && row.snapshotBytes <= 192, `a contract-6 snapshot carries no topology arrays (${row.snapshotBytes} bytes)`);
+  }
+  const repeated = await runBoundaryBench(
+    {
+      WasmAdapter: generated.WasmAdapter,
+      initBridge: (options) =>
+        adapterModule.initNeuromorphicAdapter(
+          async () => ({ default: async () => {}, WasmAdapter: generated.WasmAdapter }),
+          stimulus.DEMO_SEED,
+          options,
+        ),
+      createSpikeEventBuffer: spikes.createSpikeEventBuffer,
+      scriptedTelemetry: stimulus.scriptedTelemetry,
+      DEMO_SEED: stimulus.DEMO_SEED,
+    },
+    { ticks: 20, repeats: 1, modes: ['temporal'], contract: 5 },
+  );
+  for (const row of repeated.results) {
+    assert.equal(row.contract, 5);
+    assert.ok(row.snapshotBytes > 2000, 'a contract-5 snapshot repeats the full topology projection');
   }
   assert.equal(
     report.memory.withFree.linearMemoryAfterBytes,
@@ -78,6 +98,10 @@ test('the browser harness only runs fixture topologies through the renderer, nev
   assert.doesNotMatch(tasks, /provenance: 'live-wasm'/);
   const harness = readSource('../scripts/perf/measure-browser.mjs');
   assert.match(harness, /neuromorphic-perf/);
+  // `--contract 5` reaches the page task and the bench, so the Chrome rows can compare contracts.
+  assert.match(harness, /contract: Number\(option\('contract', 6\)\)/);
+  assert.match(tasks, /boundaryBench\(\{[^}]*\bcontract\b[^}]*\}\)/);
+  assert.match(tasks, /\{ ticks, repeats, contract \}/);
   assert.match(readSource('../src/runtime/perf-probe.ts'), /PERF_PROBE_QUERY = 'neuromorphic-perf'/);
 });
 

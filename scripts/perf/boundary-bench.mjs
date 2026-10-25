@@ -1,4 +1,5 @@
-// WASM ↔ JavaScript boundary microbenchmarks for the live contract-5 path
+// WASM ↔ JavaScript boundary microbenchmarks for the live contract path
+// (contract 6 by default; `options.contract` selects 5 to compare)
 // (GitHub #10 / RM-1646). Self-contained (no imports) so the same code runs in
 // Node (`measure-node.mjs`) and is injected into Chrome by
 // `measure-browser.mjs`. Every number is a batch mean: `performance.now()` is
@@ -91,6 +92,8 @@ export async function runBoundaryBench(deps, options = {}) {
   const repeats = options.repeats ?? 7;
   const workerTimeoutMs = options.workerTimeoutMs ?? DEFAULT_WORKER_TIMEOUT_MS;
   const modes = options.modes ?? ['delta', 'temporal', 'rate'];
+  // Contract 6 sends the topology once; 5 repeats it in every snapshot.
+  const contract = options.contract ?? 6;
   const sources = {
     scripted: scriptedTelemetry,
     'pointer-active': pointerActivePacket,
@@ -99,10 +102,10 @@ export async function runBoundaryBench(deps, options = {}) {
 
   for (const [sourceName, packetFor] of Object.entries(sources)) {
     for (const mode of modes) {
-      const config = new Uint8Array([5, ENCODER_MODE_IDS[mode]]);
+      const config = new Uint8Array([contract, ENCODER_MODE_IDS[mode]]);
       // Enough packets for the warm-up (200) and warm-state (64) runs too.
       const packets = Array.from({ length: Math.max(ticks, 256) }, (_, index) => packetFor(BigInt(index + 1)));
-      const row = { source: sourceName, mode, ticks, repeats };
+      const row = { source: sourceName, mode, contract, ticks, repeats };
 
       // 1. Raw `input` only: packet copy-in + kinetic-signals + axon-encoder.
       row.rawInput = await batch(now, repeats, ticks, (count) => {
@@ -134,6 +137,9 @@ export async function runBoundaryBench(deps, options = {}) {
         for (let index = 0; index < count; index += 1) warm.state().free();
       });
       const held = warm.state();
+      // Typed-array bytes one snapshot carries across the WASM boundary (on
+      // contract 6 the topology arrays are empty: it crossed once at init).
+      row.snapshotBytes = snapshotBytes(readAllGetters(held));
       row.getters = await batch(now, repeats, ticks, (count) => {
         let sink = 0;
         for (let index = 0; index < count; index += 1) sink += readAllGetters(held).length;
@@ -144,7 +150,7 @@ export async function runBoundaryBench(deps, options = {}) {
 
       // 4. The shipped bridge: `state()` = Rust clone + getters + validation
       //    + JS-owned copies; and the full main-thread tick (`input` + `step`).
-      const bridgeWarm = await initBridge({ contractVersion: 5, encoderMode: mode });
+      const bridgeWarm = await initBridge({ contractVersion: contract, encoderMode: mode });
       for (let index = 0; index < 64; index += 1) {
         bridgeWarm.input(BigInt(index + 1), packets[index]);
         bridgeWarm.step();
@@ -152,13 +158,11 @@ export async function runBoundaryBench(deps, options = {}) {
       row.bridgeState = await batch(now, repeats, ticks, (count) => {
         for (let index = 0; index < count; index += 1) bridgeWarm.state();
       });
-      const snapshot = bridgeWarm.state();
-      row.snapshotBytes = snapshotBytes(snapshot);
       bridgeWarm.dispose();
 
       const recorded = [];
       row.bridgeTick = await batch(now, repeats, ticks, async (count) => {
-        const adapter = await initBridge({ contractVersion: 5, encoderMode: mode });
+        const adapter = await initBridge({ contractVersion: contract, encoderMode: mode });
         recorded.length = 0;
         for (let index = 0; index < count; index += 1) {
           adapter.input(BigInt(index + 1), packets[index]);
@@ -183,7 +187,7 @@ export async function runBoundaryBench(deps, options = {}) {
       // 6. Worker round trip: the shipped worker module, request/response per
       //    tick with the snapshot buffers transferred back.
       if (createWorker) {
-        row.workerTick = await workerBatch(createWorker, moduleUrl, DEMO_SEED, mode, packets, now, repeats, ticks, workerTimeoutMs);
+        row.workerTick = await workerBatch(createWorker, moduleUrl, DEMO_SEED, contract, mode, packets, now, repeats, ticks, workerTimeoutMs);
       }
       results.push(row);
     }
@@ -195,7 +199,7 @@ export async function runBoundaryBench(deps, options = {}) {
   const memory = {};
   if (wasmMemory) {
     for (const freeEach of [false, true]) {
-      const adapter = WasmAdapter.init(DEMO_SEED, new Uint8Array([5, 1]));
+      const adapter = WasmAdapter.init(DEMO_SEED, new Uint8Array([contract, 1]));
       const before = wasmMemory.buffer.byteLength;
       for (let index = 0; index < 5000; index += 1) {
         adapter.input(BigInt(index + 1), scriptedTelemetry(BigInt(index + 1)));
@@ -273,7 +277,7 @@ export function createWorkerRequester(worker, options = {}) {
   };
 }
 
-async function workerBatch(createWorker, moduleUrl, seed, mode, packets, now, repeats, ticks, timeoutMs) {
+async function workerBatch(createWorker, moduleUrl, seed, contract, mode, packets, now, repeats, ticks, timeoutMs) {
   const perOp = [];
   for (let repeat = 0; repeat <= repeats; repeat += 1) {
     const worker = createWorker();
@@ -285,7 +289,7 @@ async function workerBatch(createWorker, moduleUrl, seed, mode, packets, now, re
         type: 'init',
         seed,
         moduleUrl,
-        options: { contractVersion: 5, encoderMode: mode },
+        options: { contractVersion: contract, encoderMode: mode },
       });
       if (ready.type !== 'ready') throw new Error(`worker init failed: ${ready.message}`);
       const count = repeat === 0 ? Math.min(ticks, 200) : ticks;

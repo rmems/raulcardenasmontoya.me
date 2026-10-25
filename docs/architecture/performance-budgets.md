@@ -196,6 +196,14 @@ in events.
 and the shipped bridge. Cells are the median of 7 runs × 2000 ticks, in µs per
 tick. A contract-5 snapshot carries 2,184 to 2,248 bytes of typed arrays, of
 which 2,056 bytes (91%) is the static topology projection, re-sent every step.
+Contract 6 (#95, `browser-runtime.md`) sends that projection once at init and
+leaves the twelve topology arrays empty in every snapshot, so a per-step
+snapshot carries 128 to 192 bytes of typed arrays (measured over 400 steps
+against the committed package: potentials, spikes and features) and the
+projection crosses once as 2,056 bytes plus the digest; the worker transfers
+three buffers per step instead of fifteen; the live demo uses it. The bench
+below measured contract 5; its `contract` option now defaults to the live
+contract.
 
 | stage | what it times |
 | --- | --- |
@@ -560,6 +568,42 @@ width. The same held with reduced motion, without WebGL
 (`--disable-webgl --disable-3d-apis`), and with the WASM package blocked
 (404).
 
+### 11. Browser package release profile (#95)
+
+Until 2026-10-25 the crate had no `[profile.release]`, so the browser packages
+were built with cargo's release defaults: `opt-level = 3`, no LTO, 16 codegen
+units. Every row below is the `wasm-bindgen --target web` output
+`neuromorphic_adapter_bg.wasm` on this host (rustc 1.99.0, wasm-bindgen
+0.2.126), compressed with Node's zlib (gzip level 9, brotli quality 11), for
+the homepage (`default`) package and the labs package. The committed packages
+before this change measured 187,612 and 982,555 bytes raw; the small
+difference from the baseline row is host variation in the `.wasm`, which is
+why `test:wasm-web-pkg` compares only the generated `.js` and `.d.ts`.
+
+| `[profile.release]` | default raw | gzip | brotli | labs raw | gzip | brotli |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| none (cargo's release defaults) | 189,874 | 68,253 | 56,757 | 983,095 | 265,992 | 199,897 |
+| `opt-level = 3`, `lto = "fat"`, `codegen-units = 1` | 181,184 | 65,775 | 54,848 | 854,909 | 252,835 | 193,202 |
+| the same plus `panic = "abort"` | 181,106 | 65,773 | 54,887 | 854,476 | 252,807 | 193,150 |
+| **`opt-level = 2`, `lto = "fat"`, `codegen-units = 1` (chosen)** | **177,775** | **64,522** | **53,989** | **844,220** | **248,638** | **189,680** |
+| `opt-level = "s"`, `lto = "fat"`, `codegen-units = 1` | 223,467 | 68,549 | 58,138 | 1,035,501 | 233,753 | 179,024 |
+| the same plus `panic = "abort"` | 222,455 | 68,423 | 57,856 | 1,033,810 | 233,635 | 178,692 |
+| `opt-level = "z"`, `lto = "fat"`, `codegen-units = 1` | 259,167 | 70,424 | 59,608 | 1,193,312 | 241,522 | 182,646 |
+
+The size-oriented levels made the homepage package larger in every measure,
+and `panic = "abort"` changes nothing measurable: `wasm32-unknown-unknown`
+already aborts on panic. Fat LTO with one codegen unit shrinks both packages
+at `opt-level = 3`, and `opt-level = 2` shrinks them further in every measure,
+so that is the crate's release profile: the homepage package every visitor
+downloads loses 3.7 KB gzipped (5.5%) and the labs package 17 KB (6.5%).
+`opt-level = "s"` would take another 15 KB off the labs package but add 4 KB
+to the homepage package, so it is not used; a per-package profile is possible
+later if the labs package needs it. The simulation runs far inside its budgets
+at any of these levels (sections 1 and 3), and `cargo test` uses the dev
+profile, so nothing else moves. The generated `.d.ts` files change only in
+the order of four `bigint` getters, which follows the linker's function
+order.
+
 ## Simulation versus rendering
 
 - **At the shipped size (16 / 64), neither is a bottleneck.** The largest
@@ -740,10 +784,11 @@ harness (`test/perf-harness.test.mjs`). Coverage excludes `scripts/perf/**` and
 
 ## Follow-ups this data suggests
 
-- A future contract version could send the static topology projection once,
-  not in every snapshot. It is 91% of each snapshot's bytes today, and that
-  share grows with topology size. This would change the contract, so it needs a
-  new contract version (see `browser-runtime.md`).
+- ~~A future contract version could send the static topology projection once,
+  not in every snapshot.~~ Done as contract 6 (#95): the projection crosses the
+  WASM boundary and the worker boundary once, every snapshot shares it, and a
+  per-step snapshot carries 128 to 192 bytes instead of 2,184 to 2,248, with
+  identical spikes step for step (`tests/trace_fixture.rs`).
 - Before shipping more than ~256 neurons, the spike-event ring capacity
   (sized for 64 edges × 5 steps) and main-thread ingestion need their own
   budget; quality cannot reduce either.

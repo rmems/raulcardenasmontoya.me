@@ -25,6 +25,8 @@ export class WasmAdapter {
      * default v1 encoder mode, or `[4, mode]` to select it explicitly
      * (`0 = delta`, `1 = temporal`, `2 = rate`). `[5]` and `[5, mode]` select
      * the same encoder modes behind `kinetic-signals` telemetry extraction.
+     * `[6]` and `[6, mode]` are contract 5 with the topology sent once
+     * through [`WasmAdapter::topology`] instead of in every snapshot.
      * @param {bigint} seed
      * @param {Uint8Array} config
      * @returns {WasmAdapter}
@@ -69,6 +71,17 @@ export class WasmAdapter {
             throw takeFromExternrefTable0(ret[1]);
         }
         return WasmState.__wrap(ret[0]);
+    }
+    /**
+     * The topology every snapshot belongs to; contract 6 reads it once.
+     * @returns {WasmTopology}
+     */
+    topology() {
+        const ret = wasm.wasmadapter_topology(this.__wbg_ptr);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return WasmTopology.__wrap(ret[0]);
     }
 }
 if (Symbol.dispose) WasmAdapter.prototype[Symbol.dispose] = WasmAdapter.prototype.free;
@@ -305,6 +318,129 @@ export class WasmState {
     }
 }
 if (Symbol.dispose) WasmState.prototype[Symbol.dispose] = WasmState.prototype.free;
+
+/**
+ * The topology a contract-6 session sends once (`WasmAdapter.topology()`).
+ * Getters mirror the `topology_*` fields of [`WasmState`].
+ */
+export class WasmTopology {
+    static __wrap(ptr) {
+        const obj = Object.create(WasmTopology.prototype);
+        obj.__wbg_ptr = ptr;
+        WasmTopologyFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        WasmTopologyFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_wasmtopology_free(ptr, 0);
+    }
+    /**
+     * @returns {Uint16Array}
+     */
+    get topology_delays() {
+        const ret = wasm.wasmtopology_topology_delays(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @returns {string}
+     */
+    get topology_digest() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const ret = wasm.wasmtopology_topology_digest(this.__wbg_ptr);
+            deferred1_0 = ret[0];
+            deferred1_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
+     * @returns {Uint16Array}
+     */
+    get topology_edge_delays() {
+        const ret = wasm.wasmtopology_topology_edge_delays(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @returns {Uint32Array}
+     */
+    get topology_edge_sources() {
+        const ret = wasm.wasmtopology_topology_edge_sources(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @returns {Uint32Array}
+     */
+    get topology_edge_targets() {
+        const ret = wasm.wasmtopology_topology_edge_targets(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @returns {Float32Array}
+     */
+    get topology_edge_weights() {
+        const ret = wasm.wasmtopology_topology_edge_weights(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @returns {Uint32Array}
+     */
+    get topology_node_ids() {
+        const ret = wasm.wasmtopology_topology_node_ids(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @returns {Uint32Array}
+     */
+    get topology_outgoing_edge_offsets() {
+        const ret = wasm.wasmtopology_topology_outgoing_edge_offsets(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @returns {Uint8Array}
+     */
+    get topology_polarities() {
+        const ret = wasm.wasmtopology_topology_polarities(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @returns {Uint32Array}
+     */
+    get topology_rows() {
+        const ret = wasm.wasmtopology_topology_rows(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @returns {Uint32Array}
+     */
+    get topology_targets() {
+        const ret = wasm.wasmtopology_topology_targets(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @returns {Uint32Array}
+     */
+    get topology_weight_bits() {
+        const ret = wasm.wasmtopology_topology_weight_bits(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @returns {Float32Array}
+     */
+    get topology_weights() {
+        const ret = wasm.wasmtopology_topology_weights(this.__wbg_ptr);
+        return ret;
+    }
+}
+if (Symbol.dispose) WasmTopology.prototype[Symbol.dispose] = WasmTopology.prototype.free;
 function __wbg_get_imports() {
     const import0 = {
         __proto__: null,
@@ -354,6 +490,9 @@ const WasmAdapterFinalization = (typeof FinalizationRegistry === 'undefined')
 const WasmStateFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_wasmstate_free(ptr, 1));
+const WasmTopologyFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_wasmtopology_free(ptr, 1));
 
 function getArrayF32FromWasm0(ptr, len) {
     ptr = ptr >>> 0;
