@@ -1,7 +1,7 @@
 ---
 title: 'Done is a claim: what an agent swarm taught me about verification'
 description: 'On September 15, 2026 I ran a layered swarm of coding agents. The output was real, but the lesson was that a Done status is a claim, not proof.'
-draft: false
+draft: true
 published: 2026-10-25
 ---
 
