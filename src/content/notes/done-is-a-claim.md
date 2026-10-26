@@ -7,7 +7,13 @@ published: 2026-10-25
 
 On September 15, 2026, I had a lot of Cursor Ultra usage left, and the reset was coming. Leaving it on the table felt like a waste, so I decided to use as much of it as I could in one day.
 
+![Cursor Spending page with usage limits resetting in 5 hours](/assets/notes/done-is-a-claim/cursor-spending-5-hours-before-reset.png)
+
+![Cursor Spending page at the usage reset](/assets/notes/done-is-a-claim/cursor-spending-at-reset.png)
+
 By my own count, I ran somewhere between 500 and 600 agents that day. I had agents planning work, agents doing research, agents doing the work, and agents checking on other agents. For a while it felt amazing. Every time I looked, more things had moved to Done.
+
+![Cursor profile card showing agent and token stats](/assets/notes/done-is-a-claim/cursor-profile-card.png)
 
 The agents weren't the problem, and neither was the quota. I was.
 
