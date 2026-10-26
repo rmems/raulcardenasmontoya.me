@@ -97,6 +97,37 @@ test('the static drawing uses the renderer layout and camera framing', () => {
   });
 });
 
+test('afterglow fades exponentially to a floor: 0.8 s spike flash, 0.3 s landing glow', () => {
+  assert.equal(layout.SPIKE_FLASH_SECONDS, 0.8);
+  assert.equal(layout.LANDING_GLOW_SECONDS, 0.3);
+  assert.equal(layout.AFTERGLOW_FLOOR, 0.02);
+  assert.ok(layout.LANDING_GLOW_MIX > 0 && layout.LANDING_GLOW_MIX < 1, 'a landing glow never reads as a full spike flash');
+
+  const flash = layout.SPIKE_FLASH_SECONDS;
+  assert.equal(layout.afterglowDecay(1, 0, flash), 1);
+  const half = layout.afterglowDecay(1, flash / 2, flash);
+  assert.ok(Math.abs(half - Math.sqrt(layout.AFTERGLOW_FLOOR)) < 1e-9, 'exponential: half the time is the square root of the floor');
+  assert.ok(layout.afterglowDecay(1, flash * 0.99, flash) > 0, 'still glowing just before the stated duration');
+  // At exactly `flash` the curve sits on the floor (to rounding); just past it, it is gone.
+  assert.ok(Math.abs(layout.afterglowDecay(1, flash, flash)) <= layout.AFTERGLOW_FLOOR + 1e-12);
+  assert.equal(layout.afterglowDecay(1, flash * 1.001, flash), 0, 'gone past the stated duration');
+  assert.equal(layout.afterglowDecay(layout.afterglowDecay(1, 0.3, flash), 0.51, flash), 0, 'frame by frame reaches the same end');
+  // Chaining frames matches one long step (a property of the exponential).
+  const chained = layout.afterglowDecay(layout.afterglowDecay(1, 0.1, flash), 0.2, flash);
+  assert.ok(Math.abs(chained - layout.afterglowDecay(1, 0.3, flash)) < 1e-12);
+  assert.equal(layout.afterglowDecay(0, 0.1, flash), 0);
+  assert.equal(layout.afterglowDecay(1, -1, flash), 1, 'time never runs backwards into a brighter glow');
+  assert.equal(layout.afterglowDecay(1, 0.1, 0), 0);
+  assert.equal(layout.afterglowDecay(Number.NaN, 0.1, flash), 0);
+
+  assert.equal(layout.landingGlow(-0.01), 0, 'nothing before the pulse lands');
+  assert.equal(layout.landingGlow(0), 1, 'brightest at arrival');
+  assert.ok(layout.landingGlow(0.1) > layout.landingGlow(0.2));
+  assert.ok(layout.landingGlow(layout.LANDING_GLOW_SECONDS) <= layout.AFTERGLOW_FLOOR + 1e-12);
+  assert.equal(layout.landingGlow(layout.LANDING_GLOW_SECONDS * 1.001), 0);
+  assert.equal(layout.landingGlow(Number.NaN), 0);
+});
+
 test('static edge colours match three.js colour mixing in the live renderer', () => {
   const topology = adapterModule.auditedBrowserTopology();
   const mesh = layout.staticMeshGeometry(topology);

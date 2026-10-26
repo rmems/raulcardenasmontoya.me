@@ -25,6 +25,20 @@ import type { SimulationChannel } from './simulation-channel';
  * (50 ms). An event emitted at `completed_step = N` on an edge with delay `d`
  * therefore arrives at step `N + d`, `d × 50 ms` later at the live cadence.
  *
+ * **Display clock.** The renderer draws each pulse's travel at
+ * {@link PULSE_DISPLAY_SPEED} (a quarter) of simulation speed, anchored at the
+ * event's real emission: one step of travel is shown over
+ * {@link PULSE_DISPLAY_STEP_MS} (200 ms), so a 1-step edge is crossed in
+ * 200 ms and a 4-step edge in 800 ms, and the tail lands
+ * `PULSE_TAIL_STEPS × 200 ms` later. Only the drawing is slowed; the
+ * simulation, its snapshots, and this buffer's step arithmetic keep the 50 ms
+ * cadence. Because every pulse starts on time and the longest live edge takes
+ * 4 steps, the drawn arrival trails the simulated one by at most
+ * `(4 − 1) × 4 = 12` steps (600 ms), and the whole pulse is gone 900 ms after
+ * the simulated arrival. Nothing is skipped and nothing queues up, so the lag
+ * cannot grow. (A replay clock that paced *emissions* at 1/4 speed would have
+ * to drop three quarters of the simulation or drift without bound.)
+ *
  * **Bounds.** A buffer holds at most `capacity` events in a fixed ring. The
  * oldest events are evicted first, every event retires `retainSteps` after it
  * arrives, and `clear()` (pause) and `dispose()` empty it. Ingestion happens
@@ -41,17 +55,52 @@ export const LIVE_SPIKE_EVENT_PROVENANCE: SpikeEventProvenance = 'live-wasm';
 export const SPIKE_EVENT_STEP_MS = DEMO_TICK_MS;
 
 /**
- * Default ring capacity. The live topology has 64 edges with delays of 1 to
- * 4 steps, so even if every neuron spikes on every step at most
- * `64 × (4 + 1) = 320` events are live at once (with the default retention).
+ * Display steps per simulation step for pulse travel: the renderer shows one
+ * step of travel over `SPIKE_EVENT_STEP_MS / PULSE_DISPLAY_SPEED` of wall
+ * time. Presentation only (see "Display clock" above).
  */
-export const DEFAULT_SPIKE_EVENT_CAPACITY = 512;
+export const PULSE_DISPLAY_SPEED = 0.25;
 
-/** Steps an event stays buffered after its arrival step (lets its tail land). */
-export const DEFAULT_SPIKE_EVENT_RETAIN_STEPS = 1;
+/** Wall-clock time over which one step of pulse travel is drawn (200 ms). */
+export const PULSE_DISPLAY_STEP_MS = SPIKE_EVENT_STEP_MS / PULSE_DISPLAY_SPEED;
 
-/** Length of a drawn pulse, in steps of travel time. */
-export const PULSE_TAIL_STEPS = 0.6;
+/**
+ * Longest synaptic delay in the live topology, in steps. A test checks the
+ * audited topology against it; the retention and capacity defaults below are
+ * derived from it.
+ */
+export const LIVE_MAX_DELAY_STEPS = 4;
+
+/** Length of a drawn pulse behind its head, in steps of travel time. */
+export const PULSE_TAIL_STEPS = 1.5;
+
+/**
+ * Steps an event stays buffered after its arrival step. The drawn pulse on a
+ * `d`-step edge is visible until `(d + PULSE_TAIL_STEPS) / PULSE_DISPLAY_SPEED`
+ * simulation steps after emission, which is `(d + 1.5) × 4 − d` steps after
+ * arrival; the longest live edge needs the most: `(4 + 1.5) × 4 − 4 = 18`.
+ */
+export const DEFAULT_SPIKE_EVENT_RETAIN_STEPS = Math.ceil(
+  (LIVE_MAX_DELAY_STEPS + PULSE_TAIL_STEPS) / PULSE_DISPLAY_SPEED - LIVE_MAX_DELAY_STEPS,
+);
+
+/**
+ * Default ring capacity. Even if every neuron spikes on every step, at most
+ * `64 × (4 + 18 + 1) = 1,472` events are buffered at once with the defaults
+ * above, so the ring never evicts a live event.
+ */
+export const DEFAULT_SPIKE_EVENT_CAPACITY = 2048;
+
+/**
+ * Wall-clock time a pulse on a `delaySteps` edge stays on screen, from
+ * emission until its tail lands, at the display clock.
+ */
+export function pulseDisplayDurationMs(
+  delaySteps: number,
+  tailSteps: number = PULSE_TAIL_STEPS,
+): number {
+  return (delaySteps + tailSteps) * PULSE_DISPLAY_STEP_MS;
+}
 
 /** Snapshot fields the mapping reads. A full `NeuromorphicState` satisfies it. */
 export type SpikeSnapshot = Pick<
@@ -308,8 +357,10 @@ export function propagationSpanInto(
  * `elapsedSteps` after emission. The head moves at `1 / delaySteps` edge per
  * step, so it reaches the target exactly at the arrival step; the tail trails
  * by `tailSteps`. Returns `null` before emission and after the tail lands. A
- * zero-delay edge shows the whole edge for `tailSteps`. Allocates its result;
- * frame loops use {@link propagationSpanInto}.
+ * zero-delay edge shows the whole edge for `tailSteps`. `elapsedSteps` is in
+ * steps of *travel*: the renderer passes simulation steps since emission
+ * scaled by {@link PULSE_DISPLAY_SPEED}, so one step of travel takes 200 ms
+ * on screen. Allocates its result; frame loops use {@link propagationSpanInto}.
  */
 export function propagationSpan(
   delaySteps: number,

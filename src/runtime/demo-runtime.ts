@@ -311,6 +311,8 @@ export function demoExecutionOrigin(
 export function applyDemoView(snapshot: DemoSnapshot, elements: DemoViewElements): void {
   elements.root.dataset.mode = snapshot.mode;
   elements.root.dataset.reason = snapshot.reason;
+  // Lets the caption say whether pulses travel (motion on) or stay off.
+  elements.root.dataset.motion = snapshot.cameraMotionEnabled ? 'on' : 'off';
   elements.status.textContent = snapshot.status;
   elements.play.hidden = !snapshot.playVisible;
   elements.play.disabled = !snapshot.playEnabled;

@@ -378,6 +378,14 @@ test('the homepage hero hosts the live demo static-first and traces it to its cr
 
   // Provenance: runtime-bound origin label, static crate links, evidence kept apart.
   assert.match(island, /simulating in this browser/);
+  // The caption states the replay rate from the renderer's own constants, and
+  // uses neutral wording whenever motion is off (including pauses).
+  assert.match(island, /const simulationHz = 1000 \/ DEMO_TICK_MS;/);
+  assert.match(island, /const pulseSpeedLabel = `1\/\$\{Math\.round\(1 \/ PULSE_DISPLAY_SPEED\)\}`;/);
+  assert.match(island, /<span data-when="live">[^<]*simulating in this browser at \{simulationHz\} Hz · pulses shown at \{pulseSpeedLabel\} speed<\/span>/);
+  assert.match(island, /<span data-when="live-still">[^<]*simulating in this browser at \{simulationHz\} Hz · pulses off<\/span>/);
+  assert.match(styles, /\.live-hero\[data-mode='live'\]:not\(\[data-motion='off'\]\) \.hero-mesh-mode > \[data-when='live'\]/);
+  assert.match(styles, /\.live-hero\[data-mode='live'\]\[data-motion='off'\] \.hero-mesh-mode > \[data-when='live-still'\]/);
   assert.match(island, /liveCrateLayers\.map/);
   assert.match(island, /href=\{crateLayerHref\(layer\)\}/);
   assert.match(island, /href="#live-telemetry"/);
