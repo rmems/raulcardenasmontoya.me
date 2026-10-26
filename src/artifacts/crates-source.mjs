@@ -64,7 +64,7 @@ export async function fetchCratesSnapshot({ fetchImpl = globalThis.fetch, now = 
   // Refuse a truncated list rather than silently drop crates.
   if (data.meta?.next_page) throw new Error(`${CRATES_API_URL} is paginated beyond the requested page size`);
   return {
-    asOf: now.toISOString().slice(0, 10),
+    asOf: new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago' }).format(now),
     source: CRATES_API_URL,
     userId: CRATES_USER_ID,
     crates: data.crates.map(normalizeCrate).sort((a, b) => a.name.localeCompare(b.name)),

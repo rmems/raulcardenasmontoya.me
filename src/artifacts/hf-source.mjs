@@ -101,7 +101,7 @@ export async function fetchHfSnapshot({ fetchImpl = globalThis.fetch, now = new 
   const byId = (a, b) => a.id.localeCompare(b.id);
   const newestFirst = (a, b) => b.lastUpdated.localeCompare(a.lastUpdated) || a.title.localeCompare(b.title);
   return {
-    asOf: now.toISOString().slice(0, 10),
+    asOf: new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago' }).format(now),
     source: `${base}/api/datasets?author=${HF_OWNER}`,
     datasets: datasets.sort(byId),
     models: models.sort(byId),
