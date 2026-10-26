@@ -1,6 +1,6 @@
 ---
 title: 'Done is a claim: the day I was the bottleneck'
-description: 'On September 15, 2026 I tried to use up my Cursor Ultra usage before the reset. The agents kept up. I was the one who couldn't.'
+description: 'On September 15, 2026 I tried to use up my Cursor Ultra usage before the reset. The agents kept up. I was the one who couldn''t.'
 draft: true
 published: 2026-10-25
 ---
