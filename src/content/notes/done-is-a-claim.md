@@ -13,7 +13,7 @@ Launching agents one at a time was too slow, and the constraint was me, so I lay
 
 ## How much, and how sure
 
-My retrospective counts about 176 issues delegated that day. A later read-only audit of 85 of them, across eight workstreams, checked PR diffs, commits and tests rather than tracker status, and found:
+Over 500 Linear issues were created that day, about 176 of them delegated to Cursor agents at launch. A later read-only audit of 85 of them, across eight workstreams, checked PR diffs, commits and tests rather than tracker status, and found:
 
 - 70 complete, 7 partial, 3 broken
 - 4 marked Done with no work behind them
