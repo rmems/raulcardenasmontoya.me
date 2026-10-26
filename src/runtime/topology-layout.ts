@@ -5,7 +5,8 @@
  * both read them here, so the static network and the first live frame line up:
  * same node positions, same camera framing, same edge colours.
  *
- * Nothing here depends on timing, device state, or the DOM.
+ * Nothing here depends on the clock, device state, or the DOM: the afterglow
+ * helpers are pure functions of the seconds the caller passes in.
  */
 
 export interface NodeLayout {
@@ -19,10 +20,44 @@ export const CAMERA_EXTENT = 1.35;
 export const NODE_SIZE_PX = 10;
 /** Opacity of the edge lines. */
 export const EDGE_OPACITY = 0.4;
-/** A spike flash decays to zero in about this many seconds. */
-export const SPIKE_FLASH_SECONDS = 0.3;
+/**
+ * Afterglow fades exponentially; a glow counts as gone once it falls below
+ * this fraction of its peak, which is what the `…_SECONDS` durations mean.
+ */
+export const AFTERGLOW_FLOOR = 0.02;
+/** A neuron's spike flash fades from full to {@link AFTERGLOW_FLOOR} over this long. */
+export const SPIKE_FLASH_SECONDS = 0.8;
+/** The glow a target neuron shows when a pulse lands fades over this long. */
+export const LANDING_GLOW_SECONDS = 0.3;
+/** How far a landing glow pulls the target toward `--spike` at its peak. */
+export const LANDING_GLOW_MIX = 0.6;
 /** How far a firing neuron pulls its outgoing edges toward `--spike`. */
 export const EDGE_FIRE_MIX = 0.85;
+
+/**
+ * Exponential afterglow: `level` after `deltaSeconds` more have passed, on a
+ * curve that reaches {@link AFTERGLOW_FLOOR} `fadeSeconds` after a peak of 1.
+ * Returns 0 once the glow is below the floor so callers can drop it.
+ */
+export function afterglowDecay(level: number, deltaSeconds: number, fadeSeconds: number): number {
+  if (!(level > 0) || !(fadeSeconds > 0)) {
+    return 0;
+  }
+  const next = level * Math.exp((-Math.max(0, deltaSeconds) * Math.log(1 / AFTERGLOW_FLOOR)) / fadeSeconds);
+  return next < AFTERGLOW_FLOOR ? 0 : next;
+}
+
+/**
+ * A landing glow's level `sinceArrivalSeconds` after a pulse reached its
+ * target: 1 at arrival, {@link AFTERGLOW_FLOOR} at {@link LANDING_GLOW_SECONDS},
+ * 0 beyond that and 0 before arrival.
+ */
+export function landingGlow(sinceArrivalSeconds: number): number {
+  if (!(sinceArrivalSeconds >= 0)) {
+    return 0;
+  }
+  return afterglowDecay(1, sinceArrivalSeconds, LANDING_GLOW_SECONDS);
+}
 
 /**
  * Deterministic topology layout: nodes on a ring with a small index-keyed

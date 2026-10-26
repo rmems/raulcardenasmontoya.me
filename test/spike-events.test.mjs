@@ -250,8 +250,8 @@ test('the buffer is fixed-capacity and evicts the oldest events first', () => {
   assert.equal(stats.evicted + stats.retired + buffer.size(), stats.emitted, 'every event is accounted for');
 });
 
-test('events retire one step after they arrive, by simulation step rather than frames', () => {
-  const buffer = fixtureBuffer();
+test('events retire `retainSteps` after they arrive, by simulation step rather than frames', () => {
+  const buffer = fixtureBuffer({ retainSteps: 1 });
   const topology = fixtureTopology();
   buffer.ingest({ ...topology, completedStep: 10n, spikeNeurons: new Uint32Array([0, 2]) });
   // Edges: 0→1 arrives 12, 0→2 arrives 10, 2→3 (×2) arrive 11.
@@ -272,7 +272,7 @@ test('events retire one step after they arrive, by simulation step rather than f
 test('many concurrent spikes keep every in-flight event intact across ring wraparound', () => {
   const topology = denseFixture(32, 6, 9);
   const capacity = 700;
-  const buffer = fixtureBuffer({ capacity });
+  const buffer = fixtureBuffer({ capacity, retainSteps: 1 });
   const everyNeuron = [...Array(32).keys()];
   const seen = new Set();
 
@@ -550,20 +550,100 @@ test('propagation timing follows synaptic-wiring delays at the 50 ms demo step',
   assert.equal(spikes.delayStepsToMs(2, 20), 40);
 
   const tail = spikes.PULSE_TAIL_STEPS;
+  const tailAt = (delay, elapsed) => Math.max(0, (elapsed - tail) / delay);
   assert.equal(spikes.propagationSpan(2, -0.01), null, 'nothing before emission');
   assert.deepEqual(spikes.propagationSpan(2, 0), { head: 0, tail: 0 });
-  assert.deepEqual(spikes.propagationSpan(2, 1), { head: 0.5, tail: (1 - tail) / 2 });
-  assert.deepEqual(spikes.propagationSpan(2, 2), { head: 1, tail: (2 - tail) / 2 }, 'head reaches the target on the arrival step');
+  assert.deepEqual(spikes.propagationSpan(2, 1), { head: 0.5, tail: tailAt(2, 1) });
+  assert.deepEqual(spikes.propagationSpan(2, 2), { head: 1, tail: tailAt(2, 2) }, 'head reaches the target on the arrival step');
   assert.equal(spikes.propagationSpan(2, 2 + tail), null, 'gone once the tail lands');
   assert.ok(spikes.propagationSpan(4, 2).head < spikes.propagationSpan(1, 0.6).head, 'longer delays travel slower');
 
   assert.deepEqual(spikes.propagationSpan(0, 0), { head: 1, tail: 0 }, 'zero delay spans the whole edge at once');
   assert.equal(spikes.propagationSpan(0, tail), null);
   assert.equal(spikes.propagationSpan(1, Number.NaN), null);
+});
 
-  // Retention always outlives the drawn pulse, so frames never lose a pulse
-  // the buffer has already retired.
-  assert.ok(spikes.DEFAULT_SPIKE_EVENT_RETAIN_STEPS >= tail);
+test('the display clock draws pulse travel at 1/4 of simulation speed, anchored at real emission', () => {
+  const speed = spikes.PULSE_DISPLAY_SPEED;
+  assert.equal(speed, 0.25);
+  assert.equal(spikes.PULSE_DISPLAY_STEP_MS, 200, 'one step of travel is shown over 200 ms');
+  assert.equal(spikes.PULSE_DISPLAY_STEP_MS, spikes.SPIKE_EVENT_STEP_MS / speed, 'derived from the unchanged 50 ms tick');
+  assert.equal(spikes.PULSE_TAIL_STEPS, 1.5);
+
+  // How long a pulse stays on screen, found by stepping the simulation clock
+  // and converting to travel steps exactly as the renderer's frame path does.
+  const visibleMs = (delay) => {
+    let lastVisible = -1;
+    for (let simElapsed = 0; simElapsed <= 40; simElapsed += 0.01) {
+      if (spikes.propagationSpan(delay, simElapsed * speed) !== null) {
+        lastVisible = simElapsed;
+      }
+    }
+    return lastVisible * spikes.SPIKE_EVENT_STEP_MS;
+  };
+  for (const delay of [1, 2, 3, 4]) {
+    const stated = spikes.pulseDisplayDurationMs(delay);
+    assert.ok(Math.abs(visibleMs(delay) - stated) < spikes.SPIKE_EVENT_STEP_MS * 0.02, `delay ${delay}: ${visibleMs(delay)} vs ${stated}`);
+    // The head reaches the target `delay` travel steps after emission: 200 ms per step.
+    assert.deepEqual(spikes.propagationSpan(delay, (delay * spikes.PULSE_DISPLAY_STEP_MS / spikes.SPIKE_EVENT_STEP_MS) * speed).head, 1);
+  }
+  // Acceptance: a 1-step edge is visible for at least 200 ms, a 4-step edge for at least 800 ms.
+  assert.ok(spikes.pulseDisplayDurationMs(1) >= 200);
+  assert.ok(spikes.pulseDisplayDurationMs(4) >= 800);
+  assert.equal(spikes.pulseDisplayDurationMs(1), 500);
+  assert.equal(spikes.pulseDisplayDurationMs(4), 1100);
+
+  // Bounded lag: every pulse starts on time, so the drawn arrival trails the
+  // simulated one by (1/speed − 1) × delay steps, and the whole pulse is gone
+  // well under a second after the simulated arrival on the longest live edge.
+  const maxDelay = spikes.LIVE_MAX_DELAY_STEPS;
+  const arrivalLagMs = (1 / speed - 1) * maxDelay * spikes.SPIKE_EVENT_STEP_MS;
+  const fullyGoneLagMs = spikes.pulseDisplayDurationMs(maxDelay) - maxDelay * spikes.SPIKE_EVENT_STEP_MS;
+  assert.equal(arrivalLagMs, 600);
+  assert.equal(fullyGoneLagMs, 900);
+  assert.ok(fullyGoneLagMs < 1000);
+});
+
+test('retention and capacity defaults cover the slowed pulses of the audited topology', () => {
+  const speed = spikes.PULSE_DISPLAY_SPEED;
+  const retain = spikes.DEFAULT_SPIKE_EVENT_RETAIN_STEPS;
+  const maxDelay = spikes.LIVE_MAX_DELAY_STEPS;
+  assert.ok(Number.isInteger(retain) && retain > 0);
+  assert.equal(retain, 18);
+
+  // The live topology's delays never exceed the constant the defaults are derived from.
+  const topology = adapterModule.auditedBrowserTopology();
+  assert.equal(Math.max(...topology.edgeDelays), maxDelay);
+  assert.ok(topology.edgeDelays.every((delay) => delay >= 1 && delay <= maxDelay));
+  assert.equal(topology.edgeSources.length, 64);
+
+  // Retention outlives the drawn pulse on every live delay, so frames never
+  // lose a pulse the buffer has already retired; and it is not wastefully long.
+  for (let delay = 1; delay <= maxDelay; delay += 1) {
+    assert.equal(spikes.propagationSpan(delay, (delay + retain) * speed), null, `delay ${delay} is gone when it retires`);
+  }
+  assert.notEqual(spikes.propagationSpan(maxDelay, (maxDelay + retain - 1) * speed), null, 'one step less would cut the longest pulse short');
+
+  // Worst case, every neuron firing every step: every edge carries one event
+  // per step for (delay + retain + 1) steps, all within the ring.
+  const worstCase = topology.edgeSources.length * (maxDelay + retain + 1);
+  assert.equal(worstCase, 1472);
+  assert.ok(spikes.DEFAULT_SPIKE_EVENT_CAPACITY >= worstCase);
+  assert.equal(spikes.DEFAULT_SPIKE_EVENT_CAPACITY, 2048);
+  assert.equal(spikes.createSpikeEventBuffer({ provenance: 'fixture' }).capacity, 2048);
+
+  // The default buffer really keeps a long-edge event until its slowed tail has landed.
+  const buffer = fixtureBuffer();
+  const fixture = fixtureTopology();
+  buffer.ingest({ ...fixture, completedStep: 10n, spikeNeurons: new Uint32Array([0]) });
+  const longest = buffer.events().find((event) => event.delaySteps === 2);
+  assert.ok(longest, 'the fixture has a 2-step edge from neuron 0');
+  for (let step = 11n; step <= longest.arrivalStep + BigInt(retain) - 1n; step += 1n) {
+    buffer.ingest({ ...fixture, completedStep: step });
+    assert.ok(buffer.events().some((event) => event.edgeIndex === longest.edgeIndex), `still buffered at step ${step}`);
+  }
+  buffer.ingest({ ...fixture, completedStep: longest.arrivalStep + BigInt(retain) });
+  assert.ok(!buffer.events().some((event) => event.edgeIndex === longest.edgeIndex), 'retired exactly at arrival + retention');
 });
 
 test('the per-frame span helper writes into one caller-owned object and matches propagationSpan', () => {
@@ -589,6 +669,14 @@ test('the renderer frame path reuses its span and visitor instead of allocating 
   const framePath = source.slice(start, end);
   assert.match(framePath, /propagationSpanInto\(pulseSpan,/);
   assert.match(framePath, /spikeEvents\.forEach\(visitPulse\)/);
+  // The display clock slows travel only: simulation steps since emission are
+  // scaled by the display speed before the span is read, and landing glows
+  // are recomputed from the in-flight pulses into one preallocated array.
+  assert.match(framePath, /\(frameStep - Number\(event\.emittedStep\)\) \* PULSE_DISPLAY_SPEED/);
+  assert.match(framePath, /landingGlowLevels\.fill\(0\)/);
+  assert.match(framePath, /landingGlow\(\(\(travelled - event\.delaySteps\) \* PULSE_DISPLAY_STEP_MS\) \/ 1000\)/);
+  assert.match(framePath, /afterglowDecay\(flash, delta, SPIKE_FLASH_SECONDS\)/);
+  assert.ok(framePath.indexOf('drawPulses(time);') < framePath.indexOf('landingGlowLevels[node]'), 'pulses are visited before node colours read the glows');
   assert.doesNotMatch(framePath, /propagationSpan\(/, 'the allocating span helper stays out of frames');
   assert.doesNotMatch(framePath, /new [A-Z]|\.clone\(|forEach\(\(|\[\.\.\.|\.map\(/, 'no per-frame allocation');
 });

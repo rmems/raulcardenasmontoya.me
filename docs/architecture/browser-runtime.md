@@ -384,14 +384,40 @@ synaptic-wiring projection (same snapshot) ──┴→ mapSpikesThroughTopology
   on an edge with delay `d` arrives at step `N + d`, `d × 50 ms` later. The
   live topology's delays are 1 to 4 steps (50 to 200 ms). Frames interpolate
   within the current step as `(now − snapshot arrival) / 50 ms`, capped at
-  one step so a stalled simulation never runs ahead. The pulse head moves
-  `1/d` of the edge per step, and its 0.6-step tail lands after arrival.
+  one step so a stalled simulation never runs ahead.
+- **Display clock and bounded lag (GitHub #104 / Linear RM-2353).** At the
+  simulation's own pace a pulse crosses an edge in 50 to 200 ms, shorter than
+  an eye can follow, and the 20 Hz cadence is fixed (S1 in
+  `performance-budgets.md`), so the slowdown is presentation only. The
+  renderer draws each pulse's *travel* at `PULSE_DISPLAY_SPEED` = 1/4 of
+  simulation speed, anchored at the event's real emission: frames convert
+  simulation steps since emission into travel steps (`× 0.25`) before reading
+  the span, so one step of travel is shown over `PULSE_DISPLAY_STEP_MS` =
+  200 ms. The head moves `1/d` of the edge per travel step and the
+  `PULSE_TAIL_STEPS` = 1.5-step tail lands 300 ms after the head. A pulse on a
+  1-step edge is therefore on screen for 500 ms (head arrives at 200 ms) and
+  on a 4-step edge for 1,100 ms (head at 800 ms); `pulseDisplayDurationMs`
+  states these. The lag is bounded by construction: every pulse starts on
+  time, so its drawn arrival trails the simulated one by `(4 − 1) × d` steps,
+  at most 12 steps (600 ms) on the longest live edge, and the whole pulse is
+  gone 900 ms after the simulated arrival. Nothing is queued or skipped, so
+  the view cannot drift. (A clock that paced *emissions* at 1/4 speed would
+  have to drop three quarters of the simulation at every catch-up or fall
+  behind without bound; spikes, flashes and node state stay in real time.)
+  Only the drawing changed: the simulation tick, the snapshots, the spike
+  batches subscribers receive, and the telemetry panel's step and `d × 50 ms`
+  figures are untouched, and the hero caption says "pulses shown at 1/4
+  speed" next to the 20 Hz simulation rate (or "pulses off for reduced
+  motion").
 - **Buffering, separate from frames.** Snapshots are ingested when the WASM
   seam publishes them, through `feedSpikeEvents(channel, buffer)`. Frames only
-  read the buffer. The buffer is a fixed-capacity ring (default 512, above the
-  live topology's worst case of 64 edges × 5 retained steps = 320). The oldest
-  events are evicted first and counted, and events retire one step after they
-  arrive. A repeated step is ignored. A lower step or a new topology digest
+  read the buffer. The buffer is a fixed-capacity ring (default 2,048, above
+  the live topology's worst case of 64 edges × (4 + 18 + 1) retained steps =
+  1,472). The oldest events are evicted first and counted, and events retire
+  `DEFAULT_SPIKE_EVENT_RETAIN_STEPS` = 18 steps after they arrive, derived
+  from the display clock so the slowed pulse on the longest live edge
+  (`LIVE_MAX_DELAY_STEPS` = 4, checked against the audited topology) has
+  landed before its event retires. A repeated step is ignored. A lower step or a new topology digest
   (a fresh adapter, such as the main-thread retry) restarts the buffer.
   Ingestion is atomic: a snapshot that cannot be mapped changes nothing. The
   renderer clears the buffer on pause and freeze, and on dispose it also
@@ -418,9 +444,17 @@ synaptic-wiring projection (same snapshot) ──┴→ mapSpikesThroughTopology
   `propagationSpan`, `propagationSpanInto` (writes into a caller-owned object
   for frame loops), and `delayStepsToMs` are pure helpers.
 - **Rendering and reduced motion.** Each in-flight event is one tapered quad,
-  3 CSS px wide at the head and fading to clear at the tail, drawn in
-  `--signal` for excitatory synapses and `--ink` for inhibitory ones. Pulses
-  sit above the softer edge lines and under the nodes. Depth enforces this:
+  3 CSS px wide at the head and fading linearly to clear over its 1.5-step
+  tail, drawn in `--accent` for excitatory synapses and `--secondary` for
+  inhibitory ones. Pulses sit above the softer edge lines and under the nodes.
+  Afterglow is exponential (`afterglowDecay` in `topology-layout.ts`, gone
+  below `AFTERGLOW_FLOOR` = 2 %): a firing neuron flashes toward `--spike` and
+  brightens its outgoing edges for `SPIKE_FLASH_SECONDS` = 0.8 s, and when a
+  drawn pulse's head reaches its target the target shows a landing glow
+  (`LANDING_GLOW_SECONDS` = 0.3 s, peaking at `LANDING_GLOW_MIX` = 0.6 of a
+  flash) so arrivals read as events. Landing glows are recomputed each frame
+  from the in-flight pulses into one preallocated per-node array, so they
+  follow the pulse cap and are off whenever pulses are. Depth enforces this:
   nodes are opaque at z 0, pulses are depth-tested at z −0.005, and edges sit
   at z −0.01. Explicit render orders (edges 0, pulses 1, nodes 2) back it up.
   Pulse buffers are

@@ -19,16 +19,21 @@ import {
   CAMERA_EXTENT,
   EDGE_OPACITY,
   EDGE_FIRE_MIX,
+  LANDING_GLOW_MIX,
   SPIKE_FLASH_SECONDS,
   SITE_TOPOLOGY_PALETTE,
   NODE_SIZE_PX,
+  afterglowDecay,
   edgeStrength,
   edgeWeightExtent,
+  landingGlow,
   layoutTopology,
   type NodeLayout,
 } from './topology-layout';
 import {
   LIVE_SPIKE_EVENT_PROVENANCE,
+  PULSE_DISPLAY_SPEED,
+  PULSE_DISPLAY_STEP_MS,
   SPIKE_EVENT_STEP_MS,
   createSpikeEventBuffer,
   feedSpikeEvents,
@@ -154,9 +159,14 @@ export interface TopologyRendererSeam extends RendererSeam {
  *
  * Spike propagation: each `neuromod` spike is mapped through the snapshot's
  * `synaptic-wiring` edges by `spike-events.ts` (on publish, not per frame);
- * frames only read the buffer and draw each in-flight event as a short pulse
- * travelling source → target over its delay. With reduced motion, pulses and
- * camera drift stay off and only the static topology and node state render.
+ * frames only read the buffer and draw each in-flight event as a pulse
+ * travelling source → target over its delay. Travel is drawn on a display
+ * clock at `PULSE_DISPLAY_SPEED` (1/4) of simulation speed, anchored at each
+ * event's real emission, so pulses stay legible while the 20 Hz simulation is
+ * untouched (see "Display clock" in `spike-events.ts`). A firing neuron
+ * flashes and a pulse's target glows briefly as it lands, both with
+ * exponential afterglow. With reduced motion, pulses (and so landing glows)
+ * and camera drift stay off and only the static topology and node state render.
  */
 export function createTopologyRendererSeam(options: TopologyRendererSeamOptions): TopologyRendererSeam {
   let partial: (() => void) | null = null;
@@ -309,6 +319,8 @@ export function createTopologyRendererSeam(options: TopologyRendererSeamOptions)
       // Reused for per-frame node colors instead of cloning each frame.
       const nodeScratchColor = mutedColor.clone();
       const spikeFlash = new Map<number, number>();
+      // Per-node landing glow, recomputed from the in-flight pulses each frame.
+      let landingGlowLevels = new Float32Array(0);
       let latest: NeuromorphicState | null = options.channel.latest();
       let latestAt = 0;
       // Presentation-only smoothing: snapshots land every DEMO_TICK_MS (20 Hz)
@@ -344,6 +356,7 @@ export function createTopologyRendererSeam(options: TopologyRendererSeamOptions)
         spikeFlash.clear();
         shownActivation = new Float32Array(nodeCount);
         fromActivation = new Float32Array(nodeCount);
+        landingGlowLevels = new Float32Array(nodeCount);
 
         if (pointsObject) {
           world.remove(pointsObject);
@@ -476,12 +489,17 @@ export function createTopologyRendererSeam(options: TopologyRendererSeamOptions)
         }
         const source = nodePositions[event.sourceNeuron];
         const target = nodePositions[event.targetNeuron];
-        if (
-          !source ||
-          !target ||
-          !propagationSpanInto(pulseSpan, event.delaySteps, frameStep - Number(event.emittedStep))
-        ) {
+        // Display clock: simulation steps since emission, slowed to travel steps.
+        const travelled = (frameStep - Number(event.emittedStep)) * PULSE_DISPLAY_SPEED;
+        if (!source || !target || !propagationSpanInto(pulseSpan, event.delaySteps, travelled)) {
           return;
+        }
+        if (pulseSpan.head >= 1) {
+          // Landed: the target glows, brightest at arrival, until the tail is gone.
+          const glow = landingGlow(((travelled - event.delaySteps) * PULSE_DISPLAY_STEP_MS) / 1000);
+          if (glow > landingGlowLevels[event.targetNeuron]) {
+            landingGlowLevels[event.targetNeuron] = glow;
+          }
         }
         writePulse(
           drawn,
@@ -496,6 +514,7 @@ export function createTopologyRendererSeam(options: TopologyRendererSeamOptions)
 
       const drawPulses = (time: number) => {
         drawn = 0;
+        landingGlowLevels.fill(0);
         const latestStep = spikeEvents.latestStep();
         // Quality caps drawing only; every event stays buffered.
         pulseLimit = Math.min(pulseCapacity, settings.maxPulses);
@@ -551,6 +570,9 @@ export function createTopologyRendererSeam(options: TopologyRendererSeamOptions)
           rebuildTopology(latest);
         }
 
+        // Pulses first: landing glows feed the node colours below.
+        drawPulses(time);
+
         if (latest && nodeGeometry && nodeCount > 0) {
           const colors = nodeGeometry.getAttribute('color') as import('three').BufferAttribute;
           const ease = Math.min(1, Math.max(0, (performance.now() - latestAt) / SPIKE_EVENT_STEP_MS));
@@ -567,9 +589,16 @@ export function createTopologyRendererSeam(options: TopologyRendererSeamOptions)
               .copy(mutedColor)
               .lerp(excitatoryColor, Math.min(1, activation * 0.6))
               .lerp(spikeColor, flash)
+              .lerp(spikeColor, landingGlowLevels[node] * LANDING_GLOW_MIX)
               .toArray(colors.array as Float32Array, node * 3);
             if (flash > 0) {
-              spikeFlash.set(node, Math.max(0, flash - delta / SPIKE_FLASH_SECONDS));
+              // Exponential afterglow; the entry is dropped once it is below the floor.
+              const faded = afterglowDecay(flash, delta, SPIKE_FLASH_SECONDS);
+              if (faded > 0) {
+                spikeFlash.set(node, faded);
+              } else {
+                spikeFlash.delete(node);
+              }
             }
           }
           colors.needsUpdate = true;
@@ -589,7 +618,6 @@ export function createTopologyRendererSeam(options: TopologyRendererSeamOptions)
           edgeColors.needsUpdate = true;
         }
 
-        drawPulses(time);
         if (motionEnabled) {
           world.rotation.z += delta * 0.08;
         }

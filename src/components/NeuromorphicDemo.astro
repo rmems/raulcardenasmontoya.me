@@ -3,7 +3,9 @@ import DemoTelemetry from './DemoTelemetry.astro';
 import ExecutionOrigin from './ExecutionOrigin.astro';
 import { ADAPTER_SOURCE_URL, crateLayerHref, crateLayerPin, liveCrateLayers } from '../data/live-runtime';
 import { STATIC_DEMO_STATUS } from '../runtime/demo-runtime';
+import { DEMO_TICK_MS } from '../runtime/demo-stimulus';
 import { DEFAULT_ENCODER_MODE, ENCODER_MODE_NAMES, auditedBrowserTopology } from '../runtime/neuromorphic-adapter';
+import { PULSE_DISPLAY_SPEED } from '../runtime/spike-events';
 import { SITE_TOPOLOGY_PALETTE_DARK, staticMeshGeometry } from '../runtime/topology-layout';
 import '../styles/hero.css';
 
@@ -20,6 +22,9 @@ const meshDark = staticMeshGeometry(topology, SITE_TOPOLOGY_PALETTE_DARK);
 const nodeCount = mesh.nodes.length;
 const edgeCount = mesh.edges.length;
 const nodePath = mesh.nodes.map((node) => `M${node.x} ${node.y}h0`).join('');
+// The caption states the replay rate from the same constants the renderer uses.
+const simulationHz = 1000 / DEMO_TICK_MS;
+const pulseSpeedLabel = `1/${Math.round(1 / PULSE_DISPLAY_SPEED)}`;
 ---
 <div class="live-hero" data-neuromorphic-demo>
   <section class="hero hero-live" aria-labelledby="hero-title">
@@ -47,7 +52,8 @@ const nodePath = mesh.nodes.map((node) => `M${node.x} ${node.y}h0`).join('');
           <ExecutionOrigin origin="static-diagram" runtimeBound />
           <span class="hero-mesh-mode">
             <span data-when="idle">{nodeCount} neurons · {edgeCount} synapses</span>
-            <span data-when="live">{nodeCount} neurons · {edgeCount} synapses · simulating in this browser</span>
+            <span data-when="live">{nodeCount} neurons · {edgeCount} synapses · simulating in this browser at {simulationHz} Hz · pulses shown at {pulseSpeedLabel} speed</span>
+            <span data-when="live-still">{nodeCount} neurons · {edgeCount} synapses · simulating in this browser at {simulationHz} Hz · pulses off for reduced motion</span>
           </span>
         </div>
         <ol class="crate-trail" aria-label="Crate layers behind the live simulation, in pipeline order">

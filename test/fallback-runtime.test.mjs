@@ -385,6 +385,7 @@ test('applyDemoView exposes status, play affordance, and reason for assistive te
 
   assert.equal(elements.root.dataset.mode, 'awaiting-play');
   assert.equal(elements.root.dataset.reason, 'reduced-motion');
+  assert.equal(elements.root.dataset.motion, 'off', 'the caption can say pulses stay off');
   assert.equal(elements.play.hidden, false);
   assert.equal(elements.play.disabled, false);
   assert.equal(elements.play.textContent, 'Play animation');

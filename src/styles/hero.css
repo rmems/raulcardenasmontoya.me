@@ -194,7 +194,8 @@
 .hero-mesh-mode > span { grid-area: 1 / 1; visibility: hidden; }
 
 .live-hero:not([data-mode='live']) .hero-mesh-mode > [data-when='idle'],
-.live-hero[data-mode='live'] .hero-mesh-mode > [data-when='live'] {
+.live-hero[data-mode='live']:not([data-motion='off']) .hero-mesh-mode > [data-when='live'],
+.live-hero[data-mode='live'][data-motion='off'] .hero-mesh-mode > [data-when='live-still'] {
   visibility: visible;
 }
 

@@ -68,7 +68,7 @@ measured](#not-measured).
 | S4 | Worker tick round trip (input + step messages, transfer) | ≤ 1 ms p95 | 66.5–72.2 µs median (microbench); live `tick` p95 0.4–0.6 ms |
 | S5 | Tick overruns (a tick still running when the next is due) | 0 per minute | 0 in every live window (no `tick-overrun` count) |
 | S6 | Main-thread work per published step (renderer latch, spike ingestion, listeners, telemetry hook) | ≤ 0.25 ms p95 | `publish` p95 ≤ 0.1 ms (timer floor) |
-| S7 | Spike-event throughput | ≤ 64 events per step (every neuron × 4 synapses) = 1,280 per second, within the 512-event ring | ≤ 63.97 events per step; 0 evictions in every run |
+| S7 | Spike-event throughput | ≤ 64 events per step (every neuron × 4 synapses) = 1,280 per second, within the 2,048-event ring (worst case 64 × (4 + 18 + 1) = 1,472 buffered with the 18-step retention the 1/4-speed display clock needs) | ≤ 63.97 events per step; 0 evictions in every run. With the 18-step retention, the pointer-active window ended with 1,289 buffered of 2,048 and `evicted: 0` ([section 4](#4-live-page-in-chrome-real-worker-real-renderer)) |
 | S8 | Memory | WASM linear memory flat per step; every JS buffer fixed-size (see [audit](#buffer-audit)) | Flat (5000 steps: +0 bytes with the fix) |
 | S9 | Topology size | 16 / 64 ships. A new contract that grows it must keep S2 within budget on low-end devices: ≤ 256 neurons | 256 neurons: 0.48 ms native, 0.80–0.90 ms WASI per SNN step |
 
@@ -77,10 +77,10 @@ measured](#not-measured).
 | # | Budget | Target | Reference-desktop measurement |
 | --- | --- | --- | --- |
 | R1 | Frame pacing at full quality | p95 frame interval ≤ 18.2 ms (55 fps) | 6.1–6.2 ms p95 |
-| R2 | Main-thread draw time per frame, shipped topology, full quality | ≤ 2 ms p95 desktop; ≤ 8 ms mean low-end (the adaptive budget) | 0.2 ms p95 (0.1 ms timer); 0.08–0.12 ms mean |
+| R2 | Main-thread draw time per frame, shipped topology, full quality | ≤ 2 ms p95 desktop; ≤ 8 ms mean low-end (the adaptive budget) | 0.2 ms p95 (0.1 ms timer); 0.08–0.12 ms mean. With the 1/4-speed display clock (#104): 0.2–0.3 ms p95, 0.10–0.20 ms mean, with up to 908 pulses per frame ([section 4](#4-live-page-in-chrome-real-worker-real-renderer), [section 5](#5-render-stress-synthetic-topologies-through-the-shipped-renderer)) |
 | R3 | Degradation trigger | Step down after 2 consecutive 1 s windows with p90 interval > 22.2 ms (below 45 fps) or mean draw > 8 ms. Step up after 5 consecutive windows with p90 < 18.2 ms and draw < 4 ms; flapping doubles the wait, up to 40 | Exercised under a 20× CPU throttle (below) |
 | R4 | Pixel-ratio cap per level | 2 / 1.5 / 1 / 1 | Applied: DPR 3 display rendered at 2 / 1.5 / 1 / 1 |
-| R5 | Pulses drawn per frame per level | all buffered / 256 / 96 / 0 | 15,515 / 256 / 96 / 0 (1024-node stress, headed) |
+| R5 | Pulses drawn per frame per level | all buffered / 256 / 96 / 0 | 15,515 / 256 / 96 / 0 (1024-node stress, headed); 16,384 (the stress ring, saturated) / 256 / 96 / 0 after #104 |
 | R6 | Frame-rate cap per level | none / none / 30 fps / 20 fps | ~17% and ~11% of animation frames drawn at reduced / minimal |
 | R7 | Telemetry/DOM refresh ceiling per level | every step (20 Hz) / 10 / 2 / 1 Hz. It only lowers the live telemetry panel's own 4 Hz (1 Hz under reduced motion), so the panel refreshes at 4 / 4 / 2 / 1 Hz | Panel followed 4 → 2 → 1 → 2 → 4 Hz as quality stepped down under throttle and back up ([section 9](#9-telemetry-panel-under-quality-pressure)) |
 | R8 | Offscreen or hidden | 0 simulation ticks and 0 frames | 0 / 0 |
@@ -313,6 +313,18 @@ mean / p95 / max in ms, quantized at 0.1 ms.
   61 per step); the scripted path is quieter. The level only caps drawing.
 - Every window ended with at most 201 buffered events and `evicted: 0`. The
   ring holds 512.
+- **Re-measured after the 1/4-speed display clock (#104 / RM-2353).** Events
+  now retire 18 steps after arrival and the ring holds 2,048. A headless rerun
+  of the same windows (Chrome 155, display at 240 Hz, so frame intervals were
+  4.17 ms mean / 4.30 ms p95 throughout) ended with at most 1,289 buffered
+  events (pointer-active) and `evicted: 0` in every window; the scripted
+  windows ended with 0 to 257. Pulses per drawn frame rose as intended, since
+  each pulse now lives 4 to 5 times longer: 58 (scripted, full), 99 (scripted,
+  balanced), 24 (scripted, reduced) and 908 (pointer-active, full). Frame work
+  stayed at 0.10–0.12 ms mean / 0.20 ms p95 / 0.30–0.60 ms max for the
+  scripted windows and 0.20 / 0.30 / 0.40 ms for pointer-active at full, within
+  R2. Tick, publish and spike-ingest times did not move (`tick` 0.31–0.40 ms
+  mean, ingest ≤ 0.03 ms mean), and `usedJSHeapSize` ranged 5.8 to 9.8 MB.
 - `usedJSHeapSize` at the end of each window ranged from 4.7 to 10.0 MB, with no
   upward trend across windows.
 
@@ -365,8 +377,10 @@ the final tree measured mean frame work at 1024 nodes of 1.11 ms (full,
 15,534 pulses), 0.21 ms (balanced), 0.17 ms (reduced), and 0.11 ms (minimal),
 in line with the table. At 64 nodes, balanced drew 243 pulses per frame rather
 than 256. Some of the newest buffered events have short delays and have
-already landed; the buffer retires them one step after arrival, and the cap
-counts buffered events rather than visible ones to avoid a second pass.
+already landed; the buffer retires them a fixed number of steps after arrival
+(one at the time; 18 since the 1/4-speed display clock, see the re-measurement
+below), and the cap counts buffered events rather than visible ones to avoid a
+second pass.
 
 The frame interval did not move at any size or DPR, so on this machine the
 measured cost is main-thread draw time, and it tracks the pulses drawn: at
@@ -374,7 +388,69 @@ measured cost is main-thread draw time, and it tracks the pulses drawn: at
 Spike ingestion is main-thread work that quality cannot reduce. It scales with
 events per step and reaches 0.44 to 0.52 ms at 8,192 events.
 
-### 6. Adaptive quality under load
+#### Re-measured for the 1/4-speed display clock (#104 / RM-2353)
+
+Same harness, same cases and machine, Chrome 155.0.8059.40 with the display at
+240 Hz (every frame interval below is 4.17 ms mean / 4.30 ms p95, so the
+measured cost is again main-thread draw time). Each pulse now stays on screen
+4 to 5 times longer (`(d + 1.5) × 200 ms` instead of `(d + 0.6) × 50 ms`), so
+at the full level many more pulses are drawn per frame; the capped levels draw
+the same 256 / 96 / 0.
+
+| run | nodes | edges | events/step | level | DPR | pulses per drawn frame | drawn / skipped | frame work (mean / p95 / max) | frame interval (mean / p95) | spike ingest (mean / p95) |
+|---|---:|---:|---:|---|---:|---:|---|---|---|---|
+| headless | 16 | 64 | 16 | full | 1 | 239 | 961 / 0 | 0.15 / 0.30 / 0.70 | 4.17 / 4.30 | 0.030 / 0.10 |
+| headless | 16 | 64 | 16 | balanced | 1 | 217 | 961 / 0 | 0.16 / 0.30 / 0.40 | 4.17 / 4.30 | 0.026 / 0.10 |
+| headless | 16 | 64 | 16 | reduced | 1 | 96 | 120 / 830 | 0.18 / 0.30 / 0.40 | 4.21 / 4.30 | 0.022 / 0.10 |
+| headless | 16 | 64 | 16 | minimal | 1 | 0 | 80 / 866 | 0.13 / 0.20 / 0.30 | 4.23 / 4.30 | 0.025 / 0.10 |
+| headless | 64 | 512 | 128 | full | 1 | 1,972 | 960 / 0 | 0.42 / 0.70 / 0.80 | 4.17 / 4.20 | 0.060 / 0.10 |
+| headless | 64 | 512 | 128 | balanced | 1 | 256 | 961 / 0 | 0.17 / 0.30 / 0.40 | 4.17 / 4.30 | 0.064 / 0.20 |
+| headless | 64 | 512 | 128 | reduced | 1 | 96 | 120 / 817 | 0.18 / 0.30 / 0.40 | 4.27 / 4.30 | 0.068 / 0.10 |
+| headless | 64 | 512 | 128 | minimal | 1 | 0 | 80 / 857 | 0.12 / 0.20 / 0.30 | 4.27 / 4.30 | 0.059 / 0.10 |
+| headless | 256 | 4,096 | 1,024 | full | 1 | 14,145 | 960 / 0 | 1.66 / 2.10 / 2.50 | 4.17 / 4.30 | 0.275 / 0.40 |
+| headless | 256 | 4,096 | 1,024 | balanced | 1 | 256 | 960 / 0 | 0.33 / 0.50 / 0.60 | 4.17 / 4.30 | 0.245 / 0.30 |
+| headless | 256 | 4,096 | 1,024 | reduced | 1 | 96 | 119 / 786 | 0.29 / 0.40 / 0.50 | 4.42 / 8.20 | 0.184 / 0.30 |
+| headless | 256 | 4,096 | 1,024 | minimal | 1 | 0 | 79 / 826 | 0.21 / 0.30 / 0.40 | 4.42 / 8.20 | 0.166 / 0.30 |
+| headless | 1,024 | 32,768 | 8,192 | full | 1 | 16,384 | 961 / 0 | 2.05 / 2.60 / 3.50 | 4.17 / 4.30 | 0.546 / 0.70 |
+| headless | 1,024 | 32,768 | 8,192 | balanced | 1 | 256 | 960 / 0 | 0.80 / 1.10 / 1.30 | 4.17 / 4.30 | 0.496 / 0.60 |
+| headless | 1,024 | 32,768 | 8,192 | reduced | 1 | 96 | 119 / 788 | 0.79 / 1.00 / 1.50 | 4.41 / 8.20 | 0.515 / 0.80 |
+| headless | 1,024 | 32,768 | 8,192 | minimal | 1 | 0 | 80 / 842 | 0.69 / 1.00 / 1.20 | 4.35 / 4.30 | 0.524 / 0.70 |
+| headed | 16 | 64 | 16 | full | 2 | 239 | 961 / 0 | 0.11 / 0.20 / 0.40 | 4.17 / 4.30 | 0.028 / 0.10 |
+| headed | 16 | 64 | 16 | balanced | 1.5 | 217 | 960 / 0 | 0.13 / 0.20 / 0.40 | 4.17 / 4.30 | 0.026 / 0.10 |
+| headed | 16 | 64 | 16 | reduced | 1 | 96 | 120 / 840 | 0.19 / 0.30 / 0.30 | 4.17 / 4.30 | 0.016 / 0.10 |
+| headed | 16 | 64 | 16 | minimal | 1 | 0 | 80 / 880 | 0.17 / 0.20 / 0.30 | 4.17 / 4.30 | 0.025 / 0.10 |
+| headed | 64 | 512 | 128 | full | 2 | 1,973 | 960 / 0 | 0.37 / 0.60 / 1.10 | 4.17 / 4.30 | 0.039 / 0.10 |
+| headed | 64 | 512 | 128 | balanced | 1.5 | 256 | 961 / 0 | 0.14 / 0.30 / 0.30 | 4.17 / 4.30 | 0.069 / 0.10 |
+| headed | 64 | 512 | 128 | reduced | 1 | 96 | 120 / 840 | 0.17 / 0.30 / 0.50 | 4.17 / 4.30 | 0.064 / 0.20 |
+| headed | 64 | 512 | 128 | minimal | 1 | 0 | 80 / 880 | 0.16 / 0.20 / 0.30 | 4.17 / 4.30 | 0.061 / 0.10 |
+| headed | 256 | 4,096 | 1,024 | full | 2 | 14,154 | 960 / 0 | 1.37 / 1.80 / 2.20 | 4.17 / 4.30 | 0.171 / 0.30 |
+| headed | 256 | 4,096 | 1,024 | balanced | 1.5 | 256 | 960 / 0 | 0.26 / 0.40 / 0.70 | 4.17 / 4.30 | 0.170 / 0.30 |
+| headed | 256 | 4,096 | 1,024 | reduced | 1 | 96 | 120 / 840 | 0.27 / 0.40 / 0.50 | 4.17 / 4.30 | 0.156 / 0.20 |
+| headed | 256 | 4,096 | 1,024 | minimal | 1 | 0 | 80 / 881 | 0.25 / 0.30 / 0.40 | 4.17 / 4.30 | 0.128 / 0.20 |
+| headed | 1,024 | 32,768 | 8,192 | full | 2 | 16,384 | 960 / 0 | 1.77 / 2.30 / 3.00 | 4.17 / 4.30 | 0.467 / 0.60 |
+| headed | 1,024 | 32,768 | 8,192 | balanced | 1.5 | 256 | 960 / 0 | 0.73 / 1.00 / 1.30 | 4.17 / 4.30 | 0.412 / 0.50 |
+| headed | 1,024 | 32,768 | 8,192 | reduced | 1 | 96 | 120 / 841 | 0.75 / 1.10 / 1.10 | 4.17 / 4.30 | 0.477 / 0.70 |
+| headed | 1,024 | 32,768 | 8,192 | minimal | 1 | 0 | 80 / 881 | 0.63 / 0.80 / 0.80 | 4.17 / 4.30 | 0.472 / 0.70 |
+
+- **Shipped topology (16 nodes), every level, headless and headed:** 0.11 to
+  0.19 ms mean and 0.20 to 0.30 ms p95 frame work, with 239 pulses per frame at
+  full (47 before). R2's 2 ms p95 holds with an order of magnitude to spare,
+  and the frame cap (R6) and pulse caps (R5) behave as before: reduced and
+  minimal drew 120 / 80 of about 960 animation frames.
+- **64 nodes (the size RM-2355 proposes):** 0.37–0.42 ms mean, 0.60–0.70 ms
+  p95 at full with about 1,970 pulses per frame; the capped levels stay at
+  0.14–0.18 ms mean. Within R2.
+- **Synthetic 256- and 1,024-node cases at full** now exceed 2 ms p95
+  (2.1–2.6 ms; they were 0.5 and 1.4 ms) because the full level draws every
+  buffered event and the 16,384-event stress ring is saturated at 1,024 nodes
+  (the live ring is 2,048). These sizes are not shipped and R2 is defined for
+  the shipped topology; the adaptive controller would not step down for them
+  (its draw-time trigger is 8 ms mean), which is fine on this machine. A
+  contract that grows the topology past 64 neurons should re-check the full
+  level's pulse count against R2 (see S9).
+- **Spike ingestion** did not change in cost per event: 0.03 ms at 16 events
+  per step, 0.47–0.55 ms at 8,192. Retention affects only how long an event
+  stays in the ring, not the per-step mapping.
 
 This run used the 1024-node / 32,768-edge stress, with the controller left
 unpinned and Chrome's main thread throttled 20× (headless, same machine), for
@@ -701,8 +777,9 @@ its bound:
 | Telemetry | pointer telemetry, `latestFrame`, dev inspectors | latest packet or frame only; `recent(limit)` slices | bounded |
 | Probe (opt-in) | per-stage samples, counters, marks | `Float64Array(2048)` ring per stage; fixed names | bounded |
 | Adaptive quality | window samples, listeners | `Float64Array(512)`; one listener per subscriber | bounded |
-| Spike events | `SpikeEventBuffer` ring | 512 events, retired one step after arrival, cleared on pause and dispose | bounded |
-| Renderer | pulse vertex attributes | preallocated: 512 × 6 vertices × 7 floats ≈ 86 KB | bounded |
+| Spike events | `SpikeEventBuffer` ring | 2,048 events (was 512), retired 18 steps after arrival (the slowed pulse's lifetime on a 4-step edge; was 1), cleared on pause and dispose | bounded |
+| Renderer | pulse vertex attributes | preallocated: 2,048 × 6 vertices × 7 floats ≈ 344 KB (was 86 KB) | bounded |
+| Renderer | landing-glow levels | one `Float32Array(nodeCount)`, replaced on topology rebuild, zeroed per frame | bounded |
 | Renderer | node and edge geometry | were appended to `disposables` on every topology rebuild | **fixed:** only the current pair is held |
 | Renderer | `spikeFlash` map | keyed by neuron id; now cleared on rebuild | **fixed** (was bounded only by the largest topology seen) |
 | Renderer | device-pixel-ratio media-query listener | the old inline version added a listener on each DPR change without removing the previous one | **fixed:** `watchDevicePixelRatio` keeps exactly one (tested) |
