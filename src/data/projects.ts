@@ -95,7 +95,7 @@ export const projects: Project[] = [
     'In development',
     'Post-training research',
     ['Python', 'PyTorch', 'TRL', 'PEFT'],
-    'A post-training research platform for reproducible SFT, evaluation, checkpoints and experiment manifests. In the recorded run, SFT taught fence formatting: fence-normalized 10/16 before and after.',
+    'A post-training research platform for reproducible SFT, evaluation, checkpoints and experiment manifests. In the recorded run, the SFT gain was formatting, not capability: with outputs fence-normalized, base and SFT scored the same 10/16 on hidden cases (2 improved, 2 regressed, 12 tied).',
     [
       'What does a run need to record to be reproduced from its manifest?',
       'Which evaluation changes reflect formatting rather than capability?',
