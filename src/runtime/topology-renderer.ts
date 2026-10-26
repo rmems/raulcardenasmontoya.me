@@ -563,7 +563,8 @@ export function createTopologyRendererSeam(options: TopologyRendererSeamOptions)
       };
 
       const renderFrame = (time: number) => {
-        const delta = Math.min(0.1, (time - lastFrameTime) / 1000 || 0);
+        const elapsed = (time - lastFrameTime) / 1000 || 0;
+        const delta = Math.min(0.1, elapsed);
         lastFrameTime = time;
 
         if (latest && latest.topologyDigest !== builtDigest) {
@@ -593,7 +594,7 @@ export function createTopologyRendererSeam(options: TopologyRendererSeamOptions)
               .toArray(colors.array as Float32Array, node * 3);
             if (flash > 0) {
               // Exponential afterglow; the entry is dropped once it is below the floor.
-              const faded = afterglowDecay(flash, delta, SPIKE_FLASH_SECONDS);
+              const faded = afterglowDecay(flash, elapsed, SPIKE_FLASH_SECONDS);
               if (faded > 0) {
                 spikeFlash.set(node, faded);
               } else {

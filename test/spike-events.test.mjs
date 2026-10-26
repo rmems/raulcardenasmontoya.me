@@ -675,7 +675,7 @@ test('the renderer frame path reuses its span and visitor instead of allocating 
   assert.match(framePath, /\(frameStep - Number\(event\.emittedStep\)\) \* PULSE_DISPLAY_SPEED/);
   assert.match(framePath, /landingGlowLevels\.fill\(0\)/);
   assert.match(framePath, /landingGlow\(\(\(travelled - event\.delaySteps\) \* PULSE_DISPLAY_STEP_MS\) \/ 1000\)/);
-  assert.match(framePath, /afterglowDecay\(flash, delta, SPIKE_FLASH_SECONDS\)/);
+  assert.match(framePath, /afterglowDecay\(flash, elapsed, SPIKE_FLASH_SECONDS\)/);
   assert.ok(framePath.indexOf('drawPulses(time);') < framePath.indexOf('landingGlowLevels[node]'), 'pulses are visited before node colours read the glows');
   assert.doesNotMatch(framePath, /propagationSpan\(/, 'the allocating span helper stays out of frames');
   assert.doesNotMatch(framePath, /new [A-Z]|\.clone\(|forEach\(\(|\[\.\.\.|\.map\(/, 'no per-frame allocation');
