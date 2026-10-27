@@ -18,7 +18,7 @@ import '../../styles/labs.css';
         <li>
           <article class="lab-entry">
             <div class="lab-entry-copy">
-              <ExecutionOrigin origin={lab.origin === 'live-wasm' ? 'unavailable-wasm' : lab.origin} runtimeBound={lab.origin === 'live-wasm'} />
+              <ExecutionOrigin origin={lab.origin === 'live-wasm' ? 'unavailable-wasm' : lab.origin} />
               <h2><a href={lab.href}>{lab.title}</a></h2>
               <p>{lab.summary}</p>
               <ul class="technology-list" aria-label="Crates">
