@@ -863,4 +863,12 @@ button.button {
 .crate-head a:hover { text-decoration: underline; }
 .crate-version { margin-left: 0.4rem; color: var(--muted); font-family: var(--mono); font-size: 0.78rem; font-weight: 500; }
 .crate-description { max-width: 48rem; font-size: 0.95rem; line-height: 1.55; }
+.work-github h3 { margin: 2rem 0 0.6rem; }
+.repo-list li { display: grid; gap: 0.2rem; }
+.repo-list p { margin: 0; }
+.repo-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.2rem 0.8rem; font-weight: 650; }
+.repo-head a { text-decoration: none; }
+.repo-head a:hover { text-decoration: underline; }
+.repo-meta { color: var(--muted); font-family: var(--mono); font-size: 0.72rem; font-weight: 500; }
+.repo-description { max-width: 48rem; font-size: 0.95rem; line-height: 1.55; }
 .crate-links { display: flex; flex-wrap: wrap; gap: 0.3rem 1.2rem; font-family: var(--mono); font-size: 0.72rem; font-weight: 650; }

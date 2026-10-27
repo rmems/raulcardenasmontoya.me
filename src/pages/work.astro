@@ -1,9 +1,16 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { fillCounts, loadSiteCounts } from '../artifacts/counts';
+import { loadGithubIndex } from '../artifacts/github';
 import { projects } from '../data/projects';
 
-const counts = await loadSiteCounts();
+const [counts, github] = await Promise.all([loadSiteCounts(), loadGithubIndex()]);
+const githubSourceNote =
+  github.source === 'snapshot'
+    ? github.fallbackReason === 'skipped'
+      ? ' (from the committed snapshot; the live fetch was skipped for this build)'
+      : ' (from the committed snapshot; the GitHub API was unreachable at build time)'
+    : '';
 ---
 
 <BaseLayout preloadSerif title="Work" description="Selected AI/ML systems work, research infrastructure, and ongoing technical explorations.">
@@ -65,6 +72,26 @@ const counts = await loadSiteCounts();
       </article>
     ))}
   </div>
+
+  <section class="section work-github" id="also-on-github" aria-labelledby="work-github-title" data-github-source={github.source}>
+    <p class="eyebrow">GitHub · as of {github.asOf}</p>
+    <h2 id="work-github-title">Also on GitHub</h2>
+    <p class="artifacts-note">{github.repos.length} more public repositories across {github.owners.join(' and ')}, as of {github.asOf}{githubSourceNote}. Each line is the repository's own GitHub description, its main language and the month of its last push. Archived, private and forked repositories, profile repositories and the ones behind the briefs above are left out, and a few are held back until they have results.</p>
+    {github.groups.map((group) => (
+      <>
+        <h3 id={`github-${group.key}`}>{group.title}</h3>
+        <ul class="artifact-list repo-list" aria-labelledby={`github-${group.key}`}>
+          {group.repos.map((repo) => (
+            <li>
+              <p class="repo-head"><a href={repo.url} target="_blank" rel="noopener noreferrer">{repo.name}</a>{repo.language ? <span class="repo-meta">{repo.language}</span> : null}{repo.pushed ? <span class="repo-meta">pushed {repo.pushed}</span> : null}</p>
+              {repo.description ? <p class="repo-description">{repo.description}</p> : null}
+              {repo.note ? <span class="artifact-status">{repo.note}</span> : null}
+            </li>
+          ))}
+        </ul>
+      </>
+    ))}
+  </section>
 
   <section class="work-principle" aria-labelledby="work-principle-title">
     <p class="eyebrow">Working principle</p>

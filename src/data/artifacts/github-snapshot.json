@@ -1,0 +1,490 @@
+{
+  "asOf": "2026-10-27",
+  "source": "https://api.github.com/users/{owner}/repos",
+  "owners": [
+    "rmems",
+    "Limen-Neural"
+  ],
+  "repos": [
+    {
+      "fullName": "Limen-Neural/.github",
+      "url": "https://github.com/Limen-Neural/.github",
+      "description": "",
+      "language": null,
+      "pushedAt": "2026-10-26",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "Limen-Neural/axon-encoder",
+      "url": "https://github.com/Limen-Neural/axon-encoder",
+      "description": "A fast, clean SNN sensory preprocessing library using neuroscience-inspired encoding abstractions—not a biological sensory-neuron simulator.",
+      "language": "Rust",
+      "pushedAt": "2026-10-26",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "Limen-Neural/brainstem-daemon",
+      "url": "https://github.com/Limen-Neural/brainstem-daemon",
+      "description": "Spiking neural-network runtime written in Rust. Headless binary for SNN inference.",
+      "language": "Rust",
+      "pushedAt": "2026-10-27",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "Limen-Neural/corpus-ipc",
+      "url": "https://github.com/Limen-Neural/corpus-ipc",
+      "description": "Transport/schema substrate for distributed neuromorphic and SNN components.",
+      "language": "Rust",
+      "pushedAt": "2026-10-26",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "Limen-Neural/limbic-critic",
+      "url": "https://github.com/Limen-Neural/limbic-critic",
+      "description": "Neuromodulatory reward-shaping primitive for SNN plasticity systems: Environment → Critic → ModulatorVector (DA/5-HT/ACh/NE) for reward-modulated plasticity. Zero-dep, not an actor-critic or RL framework.",
+      "language": "Rust",
+      "pushedAt": "2026-10-26",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "Limen-Neural/myelin-accelerator",
+      "url": "https://github.com/Limen-Neural/myelin-accelerator",
+      "description": "Rust/CUDA acceleration primitives for spiking neural networks and neuromorphic workloads, optimized first for NVIDIA Blackwell GPUs.",
+      "language": "Rust",
+      "pushedAt": "2026-10-24",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "Limen-Neural/neuromod",
+      "url": "https://github.com/Limen-Neural/neuromod",
+      "description": "Rust SNN library for spiking neural network library featuring LIF, Izhikevich, Hebbian, Nagumo, Lapicque and Hodgkin-Huxley dynamics.",
+      "language": "Rust",
+      "pushedAt": "2026-10-26",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "Limen-Neural/nir-rs",
+      "url": "https://github.com/Limen-Neural/nir-rs",
+      "description": "Pure-Rust implementation of the Neuromorphic Intermediate Representation (NIR) — the standard interchange format for spiking neural networks.",
+      "language": "Rust",
+      "pushedAt": "2026-10-26",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "Limen-Neural/plasticity-lab",
+      "url": "https://github.com/Limen-Neural/plasticity-lab",
+      "description": "Dedicated to the Offline/Closed loop training",
+      "language": "Rust",
+      "pushedAt": "2026-10-26",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "Limen-Neural/synaptic-wiring",
+      "url": "https://github.com/Limen-Neural/synaptic-wiring",
+      "description": "An SNN based mesh for managing the wiring, topology, and temporal delays between neurons.",
+      "language": "Rust",
+      "pushedAt": "2026-10-27",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/.github",
+      "url": "https://github.com/rmems/.github",
+      "description": "",
+      "language": null,
+      "pushedAt": "2026-10-25",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/agoge-forger",
+      "url": "https://github.com/rmems/agoge-forger",
+      "description": "PyTorch fine-tuning, experimenting with public SWE against engineering trajectories and synthetic datasets",
+      "language": "Python",
+      "pushedAt": "2026-10-26",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/blackwell-kernel-lab",
+      "url": "https://github.com/rmems/blackwell-kernel-lab",
+      "description": "CUDA backend for rmems/agoge-forger: local LLM fine-tuning and training kernels on RTX 5080 (Blackwell sm_120, ~16 GB).",
+      "language": "Python",
+      "pushedAt": "2026-10-26",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/combine-for-AI",
+      "url": "https://github.com/rmems/combine-for-AI",
+      "description": "Neutral benchmark harness for evaluating quantization AI models across accuracy,throughput, latency, VRAM, and routing metrics.",
+      "language": "Python",
+      "pushedAt": "2026-10-26",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/corinth-canal",
+      "url": "https://github.com/rmems/corinth-canal",
+      "description": "Hybrid MoE/SNN quantization simulator",
+      "language": "Rust",
+      "pushedAt": "2026-10-26",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/cortex-tensor",
+      "url": "https://github.com/rmems/cortex-tensor",
+      "description": "Backend-neutral ANN stage execution and tensor interchange for heterogeneous ANN/SNN systems.",
+      "language": "Rust",
+      "pushedAt": "2026-10-26",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/DendriteTrader.jl",
+      "url": "https://github.com/rmems/DendriteTrader.jl",
+      "description": "SNN based trading",
+      "language": "Julia",
+      "pushedAt": "2026-10-22",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/Dioscuri-Cloud",
+      "url": "https://github.com/rmems/Dioscuri-Cloud",
+      "description": "Main purpose to create future cloud training portfolio artifact from agoge-forger LLM fine-tuning/training.",
+      "language": "HCL",
+      "pushedAt": "2026-10-26",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/engram-parser",
+      "url": "https://github.com/rmems/engram-parser",
+      "description": "Pure-Rust checkpoint parsing and tensor topology for ANN, SNN, and hybrid neural-network research. Supports GGUF and Safetensors with format-independent tensor discovery and raw-weight access.",
+      "language": "Rust",
+      "pushedAt": "2026-10-27",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/gaming-telemetry",
+      "url": "https://github.com/rmems/gaming-telemetry",
+      "description": "To record high demand output of DLSS and path tracing as telemetry data",
+      "language": "Rust",
+      "pushedAt": "2026-10-26",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/grok-ozempic",
+      "url": "https://github.com/rmems/grok-ozempic",
+      "description": "Turning Grok 1 into a hybrid SNN quantization, hence the name haha",
+      "language": "Python",
+      "pushedAt": "2026-10-26",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/hybrid-fusion",
+      "url": "https://github.com/rmems/hybrid-fusion",
+      "description": "Backend-agnostic pure-Rust orchestrator for hybrid Transformer ↔ SNN pipelines (trait contracts, MoE routing, no concrete math backends)",
+      "language": "Rust",
+      "pushedAt": "2026-10-27",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/kinetic-signals",
+      "url": "https://github.com/rmems/kinetic-signals",
+      "description": "Small, dependency-light temporal/stochastic feature primitives for online systems.",
+      "language": "Rust",
+      "pushedAt": "2026-10-24",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/Limen-Capital",
+      "url": "https://github.com/rmems/Limen-Capital",
+      "description": "Experimental SNN-HFT research stack: Julia neuromorphic brain + Rust execution muscle (NervousWire, reservoir ensemble, ghost trading). Not live capital. Workspace for the rest of my SNN based trading repos.",
+      "language": "Julia",
+      "pushedAt": "2026-10-26",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/LiquidCortex.jl",
+      "url": "https://github.com/rmems/LiquidCortex.jl",
+      "description": "GPU-accelerated sparse Liquid State Machine for neuromorphic inference — 65k-neuron/lobe CUDA LSM with OU-SDE dynamics and STDP learning",
+      "language": "Julia",
+      "pushedAt": "2026-10-26",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/magere-brug",
+      "url": "https://github.com/rmems/magere-brug",
+      "description": "Model quantization laboratory for a hyrbid MoE(Mixture of Experts)/SNN(Spiking Neural Network) experiments using low-bit and activity-aware techniques.",
+      "language": "Rust",
+      "pushedAt": "2026-10-26",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/metabolic-ledger",
+      "url": "https://github.com/rmems/metabolic-ledger",
+      "description": "Bio-inspired simulation ledger: ATP cellular energy metaphors, adaptive Kelly energy commitment, and metabolic cost tracking for multi-asset SNN portfolios.",
+      "language": "Rust",
+      "pushedAt": "2026-10-26",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/NeuroPulse.jl",
+      "url": "https://github.com/rmems/NeuroPulse.jl",
+      "description": "NERO: Neuromorphic Evaluation of Relevance and Orchestration — multi-lobe SNN relevance scoring with cross-lobe inhibition and softmax normalisation",
+      "language": "Julia",
+      "pushedAt": "2026-10-24",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/operation-prometheus",
+      "url": "https://github.com/rmems/operation-prometheus",
+      "description": "Engineering trajectory forge: public GitHub issue→review→patch→validation history as JSONL datasets for local coding agents and research.",
+      "language": "Python",
+      "pushedAt": "2026-10-25",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/raulcardenasmontoya.me",
+      "url": "https://github.com/rmems/raulcardenasmontoya.me",
+      "description": "Personal portfolio website for AI/ML engineering.",
+      "language": "JavaScript",
+      "pushedAt": "2026-10-27",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/rmems.github.io",
+      "url": "https://github.com/rmems/rmems.github.io",
+      "description": "",
+      "language": null,
+      "pushedAt": "2026-10-21",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/Ship-of-Theseus-Workstation",
+      "url": "https://github.com/rmems/Ship-of-Theseus-Workstation",
+      "description": "Documentation for the my 'Ship of Theseus' workstation.",
+      "language": "Python",
+      "pushedAt": "2026-10-26",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/silicon-bridge",
+      "url": "https://github.com/rmems/silicon-bridge",
+      "description": "SNN-to-FPGA deployment pipeline: Q8.8 fixed-point parameter export, .mem file generation for Vivado $readmemh, UART spike readback, and timing report parsing for neuromorphic hardware",
+      "language": "Rust",
+      "pushedAt": "2026-10-26",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/silicon-hdl",
+      "url": "https://github.com/rmems/silicon-hdl",
+      "description": "Neuromorphic/SNN FPGA primitives (SystemVerilog, Basys 3). Learning field for HDL—owner still early on the curve, heavily agent-assisted. Not production HFT silicon.",
+      "language": "SystemVerilog",
+      "pushedAt": "2026-10-26",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/spike-viz",
+      "url": "https://github.com/rmems/spike-viz",
+      "description": "PyTorch + CUDA toolkit for visualizing spiking neural network encodings and activity.",
+      "language": "Python",
+      "pushedAt": "2026-10-26",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/Spikenaut-SNN",
+      "url": "https://github.com/rmems/Spikenaut-SNN",
+      "description": "Cross-repo research program: hardware telemetry → temporal models → SNN distillation → FPGA supervision → resource-aware AI agents. Learned systems propose; deterministic systems protect.",
+      "language": "Python",
+      "pushedAt": "2026-10-24",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/spikenaut-telemetry-etl",
+      "url": "https://github.com/rmems/spikenaut-telemetry-etl",
+      "description": "Validated cleaning pipeline for Spikenaut SNN telemetry. Fail-loud gates between Theseus-Quarry collectors and the published HF dataset.",
+      "language": "Python",
+      "pushedAt": "2026-10-26",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/SpikeStream.jl",
+      "url": "https://github.com/rmems/SpikeStream.jl",
+      "description": "Online spike-event processing and feature extraction for spiking neural systems.",
+      "language": "Julia",
+      "pushedAt": "2026-10-22",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/Surrogate_Viz.jl",
+      "url": "https://github.com/rmems/Surrogate_Viz.jl",
+      "description": "Using SymbolicRegression.jl to create a new mathematical equation algorithm. Data that will be used is telemetry.csv from local hardware telemetry,",
+      "language": "Julia",
+      "pushedAt": "2026-10-26",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/SynapticDistill.jl",
+      "url": "https://github.com/rmems/SynapticDistill.jl",
+      "description": "Monte Carlo SNN training + FPGA distillation: E-prop with surrogate gradients, ensemble weight distillation to N channels, Q8.8 .mem export for Vivado $readmemh synthesis",
+      "language": "Julia",
+      "pushedAt": "2026-10-27",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/synthetic-factory",
+      "url": "https://github.com/rmems/synthetic-factory",
+      "description": "synthetic-data research and engineering: generation, deterministic curation, validation, provenance, and release tooling using local and openrouter distill models",
+      "language": "Python",
+      "pushedAt": "2026-10-26",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/TemporalFocus.jl",
+      "url": "https://github.com/rmems/TemporalFocus.jl",
+      "description": "The spike-coincidence attention kernel, core idea: Attention = spike-time correlation, not softmax.",
+      "language": "Julia",
+      "pushedAt": "2026-10-24",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/Theseus-Quarry",
+      "url": "https://github.com/rmems/Theseus-Quarry",
+      "description": "Whole purpose of this repo is to extract crypto mining telemetry data for Neuromorphic computing and research over creating artificial nervous systems for AI models",
+      "language": "Rust",
+      "pushedAt": "2026-10-26",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/usagepal",
+      "url": "https://github.com/rmems/usagepal",
+      "description": "Track all your AI coding subscriptions from your menu bar. Open-source fork of OpenUsage. macOS, Rust + Tauri.",
+      "language": "TypeScript",
+      "pushedAt": "2026-10-05",
+      "archived": false,
+      "private": false,
+      "fork": true
+    },
+    {
+      "fullName": "rmems/vahtisiru",
+      "url": "https://github.com/rmems/vahtisiru",
+      "description": "Typed hardware telemetry and deterministic GPU safety relay for neuromorphic/SNN systems, with corpus-ipc sensory publication and fail-closed supervision.",
+      "language": "Rust",
+      "pushedAt": "2026-10-26",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/writ",
+      "url": "https://github.com/rmems/writ",
+      "description": "Multi-agent platform where subagents can coordinate properly with each other without creating overlapping work",
+      "language": "Rust",
+      "pushedAt": "2026-10-26",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/xai-dissect",
+      "url": "https://github.com/rmems/xai-dissect",
+      "description": "Standalone Rust CLI specifically for inspecting raw JAX/Pickle shards Grok-1 open weights.",
+      "language": "Rust",
+      "pushedAt": "2026-10-26",
+      "archived": false,
+      "private": false,
+      "fork": false
+    },
+    {
+      "fullName": "rmems/XAIDissect_Viz.jl",
+      "url": "https://github.com/rmems/XAIDissect_Viz.jl",
+      "description": "This is an open-source Julia code for GPU-accelerated visualization of Grok-1 MoE routing and xai-dissect reports. It will use CUDA.jl for the NVIDIA Blackwell architecture 5000s series, but CUDA/NVIDIA components remain governed by their own upstream license and governing.",
+      "language": "Julia",
+      "pushedAt": "2026-10-24",
+      "archived": false,
+      "private": false,
+      "fork": false
+    }
+  ]
+}
