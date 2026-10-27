@@ -35,7 +35,7 @@ const pulseSpeedLabel = `1/${Math.round(1 / PULSE_DISPLAY_SPEED)}`;
         <div class="demo-surface" data-demo-surface role="img" aria-label="Live drawing of the same network, from Rust/WASM snapshots" hidden></div>
         <svg class="hero-mesh-static" viewBox={mesh.viewBox} role="img" aria-labelledby="hero-mesh-title hero-mesh-desc">
           <title id="hero-mesh-title">Static drawing of the live network</title>
-          <desc id="hero-mesh-desc">{`${nodeCount} neurons on a ring, joined by the ${edgeCount} synapses that synaptic-wiring defines. Excitatory synapses are drawn in the site's accent colour and inhibitory ones in teal; weaker synapses fade toward the rule colour. This is the network the Rust/WASM simulation runs, drawn at build time.`}</desc>
+          <desc id="hero-mesh-desc">{`${nodeCount} neurons on a ring, joined by the ${edgeCount} synapses that synaptic-wiring defines. Excitatory synapses are drawn in the site's accent color and inhibitory ones in teal; weaker synapses fade toward the rule color. This is the network the Rust/WASM simulation runs, drawn at build time.`}</desc>
           <g class="hero-mesh-edges hero-mesh-edges-light" stroke-opacity={mesh.edgeOpacity}>
             {mesh.edges.map((edge) => <line x1={edge.x1} y1={edge.y1} x2={edge.x2} y2={edge.y2} stroke={edge.stroke} />)}
           </g>

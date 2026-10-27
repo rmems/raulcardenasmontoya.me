@@ -9,7 +9,7 @@ The homepage hero is a live spiking neural network: Rust crates compiled to WebA
 
 ## What the build draws
 
-The browser bridge requires every live snapshot to carry one specific topology: the 16-neuron, 64-synapse graph that synaptic-wiring generates for the fixed seed, identified by its digest. The build takes that audited topology and lays it out with the same pure rules the renderer uses (`src/runtime/topology-layout.ts`): nodes on a ring with an index-keyed jitter, the camera framing expressed as an SVG `viewBox`, 10-pixel node markers, and edge colours mixed in linear colour space from the polarity colour toward the rule colour by weight, exactly as `THREE.Color.lerp` does. A test checks every edge colour against three.js and the geometry against the committed WASM package.
+The browser bridge requires every live snapshot to carry one specific topology: the 16-neuron, 64-synapse graph that synaptic-wiring generates for the fixed seed, identified by its digest. The build takes that audited topology and lays it out with the same pure rules the renderer uses (`src/runtime/topology-layout.ts`): nodes on a ring with an index-keyed jitter, the camera framing expressed as an SVG `viewBox`, 10-pixel node markers, and edge colors mixed in linear color space from the polarity color toward the rule color by weight, exactly as `THREE.Color.lerp` does. A test checks every edge color against three.js and the geometry against the committed WASM package.
 
 The result is plain inline SVG in the HTML. No WebAssembly runs at build time, and the drawing has no membrane state and no spikes. It is the network at rest.
 
