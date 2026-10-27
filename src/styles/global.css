@@ -774,6 +774,7 @@ button.button {
 .note-body h2 { margin: 2.4rem 0 0.9rem; font-family: var(--display); font-size: 1.55rem; font-weight: 650; letter-spacing: -0.025em; line-height: 1.15; }
 .note-body ol, .note-body ul { margin: 0 0 1.35rem; padding-left: 1.3rem; }
 .note-body li { margin-bottom: 0.5rem; }
+.note-body img { display: block; max-width: 100%; height: auto; margin: 0 0 1.35rem; }
 .note-body li::marker { color: var(--accent); font-family: var(--mono); font-size: 0.85em; }
 
 .contact-panel { margin-bottom: 5rem; border-top: 1px solid var(--ink); }
