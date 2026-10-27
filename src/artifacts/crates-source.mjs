@@ -25,13 +25,8 @@ export const CRATE_GROUPS = Object.freeze([
   Object.freeze({ key: 'hardware-io', title: 'Hardware and I/O', crates: Object.freeze(['silicon-bridge', 'myelin-accelerator']) }),
 ]);
 
-/** Per-crate status notes shown under the description. Keep each one tied to a public issue. */
-export const CRATE_STATUS_NOTES = Object.freeze({
-  'silicon-bridge': {
-    text: 'The Vivado timing gate reports synthesis_ok as a hard-coded value for now.',
-    href: 'https://github.com/rmems/silicon-bridge/issues/104',
-  },
-});
+/** Optional per-crate status notes shown under the description; keep each tied to a current public issue. */
+export const CRATE_STATUS_NOTES = Object.freeze({});
 
 /** Keep only what the page shows, so the snapshot stays small and reviewable. */
 export function normalizeCrate(crate) {
