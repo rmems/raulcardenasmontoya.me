@@ -21,7 +21,7 @@ Rust toolchains 1.97.1, 1.98.1 and 1.99.0 installed, no Chrome). Disk was nearly
 | `npm run coverage` / `test:coverage:rust` | not run (needs `cargo-llvm-cov`; CI uploads to Codecov and Qlty with secrets or OIDC) |
 | `npm run dev`, `npm run preview`, `npm run perf:*` | not run (long-running servers and benchmarks) |
 
-The only CI workflow is `.github/workflows/quality.yml` (`validate` and `coverage report and uploads`, run in parallel). The upload
+CI workflows: `.github/workflows/quality.yml` (`validate` and `coverage report and uploads`, run in parallel), `.github/workflows/deploy.yml` (GitHub Pages deploy from `main`) and `.github/workflows/claude.yml` (`@claude` mentions via the Claude GitHub App; it never builds the site). The upload
 steps need `CODECOV_TOKEN`, `QLTY_COVERAGE_TOKEN` or OIDC and are not local gates. Run `npm run validate` before pushing.
 
 ## Architecture map
