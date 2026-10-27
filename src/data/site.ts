@@ -27,6 +27,7 @@ export const navigation: NavItem[] = [
   { href: '/labs/', label: 'Labs' },
   { href: '/artifacts/', label: 'Artifacts' },
   { href: '/about/', label: 'About' },
+  { href: '/manifesto/', label: 'Manifesto' },
   { href: '/notes/', label: 'Notes', requires: 'notes' },
   ...(site.resumePath ? [{ href: site.resumePath, label: 'Résumé' }] : []),
   { href: '/contact/', label: 'Contact' },

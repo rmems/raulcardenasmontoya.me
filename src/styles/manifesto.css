@@ -1,0 +1,215 @@
+/* /manifesto/ — AI Manifesto editorial essay (GitHub #119). */
+
+.manifesto-hero {
+  max-width: 58rem;
+  margin: 0 auto;
+  padding: clamp(4.2rem, 8vw, 6.8rem) 0 clamp(2.8rem, 5vw, 4rem);
+}
+
+.manifesto-hero h1 {
+  max-width: 18ch;
+  margin: 0;
+  font-family: var(--display);
+  font-size: clamp(3rem, 6.4vw, 5.8rem);
+  font-weight: 650;
+  letter-spacing: -0.035em;
+  line-height: 0.92;
+}
+
+.manifesto-hero h1 em {
+  color: var(--accent);
+  font-family: var(--serif);
+  font-weight: 450;
+}
+
+.manifesto-lead {
+  max-width: 44rem;
+  margin: 2rem 0 0;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(1.22rem, 2.1vw, 1.52rem);
+  line-height: 1.55;
+}
+
+.manifesto-jump {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 1.35rem;
+  margin-top: 2.2rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--line-strong);
+}
+
+.manifesto-jump a {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.manifesto-jump a:hover {
+  color: var(--accent);
+}
+
+.manifesto-article {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding-bottom: clamp(4.5rem, 8vw, 7rem);
+}
+
+.manifesto-chapter {
+  padding: clamp(2.8rem, 5.5vw, 4.4rem) 0;
+  border-top: 1px solid var(--ink);
+  scroll-margin-top: 2rem;
+}
+
+.manifesto-chapter-header {
+  display: grid;
+  gap: 0.55rem;
+  margin-bottom: 1.8rem;
+}
+
+.manifesto-chapter-num {
+  margin: 0;
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.manifesto-chapter h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: clamp(2.1rem, 4.2vw, 3.3rem);
+  font-weight: 650;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+
+.manifesto-prose p {
+  margin: 0 0 1.45rem;
+  font-size: 1.08rem;
+  line-height: 1.74;
+}
+
+.manifesto-prose p:last-child {
+  margin-bottom: 0;
+}
+
+.manifesto-pullquote {
+  display: block;
+  margin: 1.8rem 0;
+  padding: 1.25rem 1.35rem;
+  border-left: 3px solid var(--accent);
+  background: var(--paper-deep);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(1.2rem, 2.2vw, 1.45rem);
+  line-height: 1.5;
+}
+
+.manifesto-principles {
+  display: grid;
+  gap: 1.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.manifesto-principle {
+  display: grid;
+  grid-template-columns: 2.6rem minmax(0, 1fr);
+  gap: 0.9rem;
+  align-items: baseline;
+  padding: 1.35rem 1.25rem;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+}
+
+.manifesto-principle-index {
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+}
+
+.manifesto-principle-body {
+  min-width: 0;
+}
+
+.manifesto-principle-body p {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.68;
+}
+
+.manifesto-principle-body strong {
+  font-family: var(--display);
+  font-size: 1.12rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+.manifesto-proof-link {
+  display: inline-block;
+  margin-top: 0.65rem;
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  font-weight: 650;
+  letter-spacing: 0.03em;
+  text-decoration: none;
+}
+
+.manifesto-proof-link:hover {
+  text-decoration: underline;
+}
+
+.manifesto-coda {
+  margin-top: 2.4rem;
+  padding: clamp(1.5rem, 3.5vw, 2.2rem);
+  border: 1px solid var(--ink);
+  background: var(--paper-deep);
+}
+
+.manifesto-coda p {
+  margin: 0;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(1.25rem, 2.3vw, 1.6rem);
+  line-height: 1.5;
+}
+
+@media (max-width: 680px) {
+  .manifesto-hero {
+    padding-top: 3.8rem;
+  }
+
+  .manifesto-hero h1 {
+    font-size: min(13vw, 3.8rem);
+  }
+
+  .manifesto-chapter h2 {
+    font-size: clamp(min(1.9rem, 10vw), 4vw, 2.6rem);
+  }
+
+  .manifesto-principle {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.4rem;
+    padding: 1.1rem 1rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .manifesto-hero h1 {
+    font-size: min(13vw, 3.2rem);
+  }
+}
