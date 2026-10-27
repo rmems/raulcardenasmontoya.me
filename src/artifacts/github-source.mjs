@@ -93,9 +93,12 @@ export function normalizeRepo(repo) {
   };
 }
 
-/** The first sentence of a description; the whole text when it has no sentence break. */
+/**
+ * The first sentence of a description; the whole text when it has no sentence
+ * break. A break is end punctuation followed by whitespace, so `Q8.8` stays whole.
+ */
 export function firstSentence(description) {
-  const match = /^(.+?[.!?])\s+(?=[A-Z0-9"'(])/.exec(description);
+  const match = /^(.+?[.!?])\s+\S/.exec(description);
   return match ? match[1] : description;
 }
 
@@ -167,6 +170,20 @@ export async function fetchGithubSnapshot({ fetchImpl = globalThis.fetch, now = 
       .map(normalizeRepo)
       .sort((a, b) => key(a.fullName).localeCompare(key(b.fullName))),
   };
+}
+
+/**
+ * Live data unless `skip` is set or the fetch fails; otherwise the committed
+ * snapshot, with the reason. Used by the build-time loader (src/artifacts/github.ts).
+ */
+export async function withSnapshotFallback({ skip, fetchLive, snapshot, warn = globalThis.console.warn }) {
+  if (skip) return { data: snapshot, source: 'snapshot', fallbackReason: 'skipped' };
+  try {
+    return { data: await fetchLive(), source: 'live', fallbackReason: undefined };
+  } catch (error) {
+    warn(`[artifacts] GitHub API unavailable, using the ${snapshot.asOf} snapshot: ${String(error)}`);
+    return { data: snapshot, source: 'snapshot', fallbackReason: 'unreachable' };
+  }
 }
 
 /** Group repositories for display: configured groups in order, then any repository in no group. */

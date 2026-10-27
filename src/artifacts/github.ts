@@ -1,6 +1,6 @@
 import snapshot from '../data/artifacts/github-snapshot.json';
 import { projects } from '../data/projects';
-import { fetchGithubSnapshot, firstSentence, groupRepos, listableRepos, pushMonth, REPO_NOTES } from './github-source.mjs';
+import { fetchGithubSnapshot, firstSentence, groupRepos, listableRepos, pushMonth, REPO_NOTES, withSnapshotFallback } from './github-source.mjs';
 import type { GithubSnapshot, RepoRecord } from './github-source.mjs';
 
 export interface IndexedRepo {
@@ -53,16 +53,12 @@ export function toGithubIndex(data: GithubSnapshot, source: GithubIndex['source'
 }
 
 async function load(): Promise<GithubIndex> {
-  let fallbackReason: GithubIndex['fallbackReason'] = 'skipped';
-  if (!process.env.SKIP_GH_FETCH) {
-    fallbackReason = 'unreachable';
-    try {
-      return toGithubIndex(await fetchGithubSnapshot(), 'live');
-    } catch (error) {
-      console.warn(`[artifacts] GitHub API unavailable, using the ${snapshot.asOf} snapshot: ${String(error)}`);
-    }
-  }
-  return toGithubIndex(snapshot as GithubSnapshot, 'snapshot', fallbackReason);
+  const { data, source, fallbackReason } = await withSnapshotFallback({
+    skip: Boolean(process.env.SKIP_GH_FETCH),
+    fetchLive: () => fetchGithubSnapshot(),
+    snapshot: snapshot as GithubSnapshot,
+  });
+  return toGithubIndex(data, source, fallbackReason);
 }
 
 let pending: Promise<GithubIndex> | undefined;

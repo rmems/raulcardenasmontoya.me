@@ -15,8 +15,9 @@ import {
   REPO_GROUPS,
   REPO_NOTES,
   reposUrl,
+  withSnapshotFallback,
 } from '../src/artifacts/github-source.mjs';
-import { briefLinksFrom, checkLinks, workLinks } from '../scripts/check-repo-links.mjs';
+import { briefLinksFrom, checkLinks, workLinks, workLinksFromHtml } from '../scripts/check-repo-links.mjs';
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const snapshot = JSON.parse(read('src/data/artifacts/github-snapshot.json'));
@@ -73,6 +74,7 @@ test('the repositories #57 holds back until they have results are never listed',
 
 test('descriptions are cut to their first sentence and push dates to a month', () => {
   assert.equal(firstSentence('Q8.8 fixed-point export. Then more detail.'), 'Q8.8 fixed-point export.');
+  assert.equal(firstSentence('A parser. works offline.'), 'A parser.', 'a lowercase next sentence is still a break');
   assert.equal(firstSentence('No break here'), 'No break here');
   assert.equal(firstSentence(''), '');
   assert.equal(pushMonth('2026-10-01'), 'Oct 2026');
@@ -129,6 +131,18 @@ test('the committed snapshot is dated, covers both accounts, and every listed re
 test('the link check covers every brief link and index line and fails on anything but a plain 200', async () => {
   const briefs = briefLinksFrom(projectsSource);
   assert.ok(briefs.includes('https://github.com/rmems/engram-parser'));
+  assert.deepEqual(
+    briefLinksFrom("links: [{ label: 'Demo', href: 'https://demo.example.org/run' }, { label: 'Repo', href: 'https://github.com/rmems/x' }]"),
+    ['https://demo.example.org/run', 'https://github.com/rmems/x'],
+    'non-GitHub brief links are checked too',
+  );
+  const html = [
+    '<header><a href="https://www.linkedin.com/in/someone">LinkedIn</a></header>',
+    '<a class="project-external-link" href="https://demo.example.org/run?a=1&amp;b=2" target="_blank">Demo</a>',
+    '<section class="section work-github" id="also-on-github"><ul><li><a href="https://github.com/rmems/live-only" target="_blank">live-only</a></li></ul></section>',
+    '<footer><a href="https://github.com/rmems">GitHub</a></footer>',
+  ].join('');
+  assert.deepEqual(workLinksFromHtml(html), ['https://demo.example.org/run?a=1&b=2', 'https://github.com/rmems/live-only'], 'the built page is checked, without site chrome');
   const urls = workLinks(snapshot, projectsSource);
   for (const r of listableRepos(snapshot.repos, briefs)) assert.ok(urls.includes(r.url));
   const statuses = { 'https://github.com/a': 200, 'https://github.com/b': 301, 'https://github.com/c': 404 };
@@ -146,9 +160,28 @@ test('the link check covers every brief link and index line and fails on anythin
   ]);
 });
 
+test('the loader uses live data, or the snapshot with the reason when skipped or unreachable', async () => {
+  const live = { ...snapshot, asOf: '2099-01-01' };
+  const warnings = [];
+  const warn = (message) => warnings.push(message);
+  assert.deepEqual(await withSnapshotFallback({ skip: false, fetchLive: async () => live, snapshot, warn }), { data: live, source: 'live', fallbackReason: undefined });
+  let fetched = false;
+  const skipped = await withSnapshotFallback({ skip: true, fetchLive: async () => ((fetched = true), live), snapshot, warn });
+  assert.deepEqual(skipped, { data: snapshot, source: 'snapshot', fallbackReason: 'skipped' });
+  assert.equal(fetched, false, 'SKIP_GH_FETCH never touches the network');
+  const failed = await withSnapshotFallback({ skip: false, fetchLive: async () => { throw new Error('HTTP 403'); }, snapshot, warn });
+  assert.deepEqual(failed, { data: snapshot, source: 'snapshot', fallbackReason: 'unreachable' });
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], new RegExp(`${snapshot.asOf} snapshot: Error: HTTP 403`));
+  const page = read('src/pages/work.astro');
+  assert.match(page, /the live fetch was skipped for this build/);
+  assert.match(page, /the GitHub API was unreachable at build time/);
+});
+
 test('the loader falls back to the snapshot and /work/ shows the dated index below the briefs', () => {
   const loader = read('src/artifacts/github.ts');
-  assert.match(loader, /SKIP_GH_FETCH/);
+  assert.match(loader, /skip: Boolean\(process\.env\.SKIP_GH_FETCH\)/);
+  assert.match(loader, /withSnapshotFallback\(/);
   assert.match(loader, /github-snapshot\.json/);
   const page = read('src/pages/work.astro');
   assert.match(page, /loadGithubIndex\(\)/);

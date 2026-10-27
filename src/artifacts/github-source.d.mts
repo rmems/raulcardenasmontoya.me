@@ -23,5 +23,11 @@ export function firstSentence(description: string): string;
 export function coveredByLinks(repo: RepoRecord, hrefs: string[]): boolean;
 export function listableRepos(repos: RepoRecord[], briefLinks?: string[]): RepoRecord[];
 export function fetchGithubSnapshot(options?: { fetchImpl?: typeof fetch; now?: Date; token?: string }): Promise<GithubSnapshot>;
+export function withSnapshotFallback(options: {
+  skip: boolean;
+  fetchLive: () => Promise<GithubSnapshot>;
+  snapshot: GithubSnapshot;
+  warn?: (message: string) => void;
+}): Promise<{ data: GithubSnapshot; source: 'live' | 'snapshot'; fallbackReason: 'skipped' | 'unreachable' | undefined }>;
 export function groupRepos(repos: RepoRecord[]): RepoGroup[];
 export function pushMonth(date: string): string;
