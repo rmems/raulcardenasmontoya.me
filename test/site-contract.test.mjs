@@ -837,7 +837,10 @@ test('the manifesto page publishes the full essay with typographic apostrophes, 
   assert.match(manifesto, /My hope/);
   assert.match(manifesto, /What I’ll hold to as an AI Engineer/);
 
-  // Principles point at existing proof targets.
+  // Principles point at existing proof targets and preserve list semantics in Safari VoiceOver.
+  assert.match(manifesto, /<ol class="manifesto-principles" role="list">/);
+  assert.match(manifesto, /<blockquote class="manifesto-pullquote">/);
+  assert.doesNotMatch(manifesto, /<span class="manifesto-pullquote">/);
   assert.match(manifesto, /href="\/work\/#agoge-forger"/);
   assert.match(manifesto, /href="\/work\/#synthetic-factory"/);
   assert.match(manifesto, /href="\/artifacts\/"/);
