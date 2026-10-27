@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
   CRATE_GROUPS,
+  CRATE_STATUS_NOTES,
   CRATES_API_URL,
   CRATES_USER_AGENT,
   cratesIoUrl,
@@ -42,6 +43,10 @@ test('crate records keep only what the page shows and prefer the stable version'
   });
   assert.equal(docsUrl(record), 'https://docs.rs/demo');
   assert.equal(cratesIoUrl(record), 'https://crates.io/crates/demo');
+});
+
+test('closed silicon-bridge issue has no stale crate status note', () => {
+  assert.equal(CRATE_STATUS_NOTES['silicon-bridge'], undefined);
 });
 
 test('the fetch identifies the site, refuses a paginated list, and rejects on HTTP errors', async () => {
