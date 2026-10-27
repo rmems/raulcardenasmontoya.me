@@ -9,6 +9,8 @@ export const site = {
     linkedin: 'https://www.linkedin.com/in/raul-cardenas-montoya',
     huggingface: 'https://huggingface.co/rmems',
     x: 'https://x.com/KeepOnSpiking',
+    instagram: 'https://www.instagram.com/KeepOnSpiking',
+    threads: 'https://www.threads.com/@KeepOnSpiking',
     cratesio: 'https://crates.io/users/rmems',
   },
   resumePath: '/resume.pdf',
