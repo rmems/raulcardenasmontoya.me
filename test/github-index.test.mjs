@@ -75,6 +75,8 @@ test('the repositories #57 holds back until they have results are never listed',
 test('descriptions are cut to their first sentence and push dates to a month', () => {
   assert.equal(firstSentence('Q8.8 fixed-point export. Then more detail.'), 'Q8.8 fixed-point export.');
   assert.equal(firstSentence('A parser. works offline.'), 'A parser.', 'a lowercase next sentence is still a break');
+  assert.equal(firstSentence('Encoders, e.g. rate and latency. More.'), 'Encoders, e.g. rate and latency.', 'abbreviations are not breaks');
+  assert.equal(firstSentence('Rust vs. Julia ports. More.'), 'Rust vs. Julia ports.');
   assert.equal(firstSentence('No break here'), 'No break here');
   assert.equal(firstSentence(''), '');
   assert.equal(pushMonth('2026-10-01'), 'Oct 2026');
@@ -143,6 +145,8 @@ test('the link check covers every brief link and index line and fails on anythin
     '<footer><a href="https://github.com/rmems">GitHub</a></footer>',
   ].join('');
   assert.deepEqual(workLinksFromHtml(html), ['https://demo.example.org/run?a=1&b=2', 'https://github.com/rmems/live-only'], 'the built page is checked, without site chrome');
+  assert.throws(() => workLinksFromHtml('<main><a class="project-external-link" href="https://github.com/rmems/x">x</a></main>'), /no #also-on-github section/);
+  assert.throws(() => workLinksFromHtml('<section id="also-on-github"><p>empty</p></section>'), /links to no repository/);
   const urls = workLinks(snapshot, projectsSource);
   for (const r of listableRepos(snapshot.repos, briefs)) assert.ok(urls.includes(r.url));
   const statuses = { 'https://github.com/a': 200, 'https://github.com/b': 301, 'https://github.com/c': 404 };

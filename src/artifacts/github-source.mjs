@@ -95,10 +95,11 @@ export function normalizeRepo(repo) {
 
 /**
  * The first sentence of a description; the whole text when it has no sentence
- * break. A break is end punctuation followed by whitespace, so `Q8.8` stays whole.
+ * break. A break is end punctuation followed by whitespace, so `Q8.8` stays whole;
+ * `e.g.`, `i.e.`, `etc.` and `vs.` are not breaks.
  */
 export function firstSentence(description) {
-  const match = /^(.+?[.!?])\s+\S/.exec(description);
+  const match = /^(.+?(?<!\b(?:e\.g|i\.e|etc|vs))[.!?])\s+\S/i.exec(description);
   return match ? match[1] : description;
 }
 

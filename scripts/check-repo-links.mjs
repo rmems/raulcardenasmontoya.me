@@ -22,13 +22,18 @@ export function workLinks(snapshot, projectsSource) {
   return unique([...briefs, ...listableRepos(snapshot.repos, briefs).map((repo) => repo.url)]);
 }
 
-const hrefs = (html) => [...html.matchAll(/<a\b[^>]*\bhref="(https?:\/\/[^"]+)"/g)].map((match) => match[1].replaceAll('&amp;', '&'));
+const hrefs = (html) => [...html.matchAll(/<a\b[^>]*\bhref=["'](https?:\/\/[^"']+)["']/g)].map((match) => match[1].replaceAll('&amp;', '&'));
 
 /** The brief links and index lines in a built /work/ page; site-wide header and footer links are not part of it. */
 export function workLinksFromHtml(html) {
   const briefs = [...html.matchAll(/<a\b[^>]*class="project-external-link"[^>]*>/g)].flatMap((match) => hrefs(match[0]));
-  const start = html.indexOf('id="also-on-github"');
-  const index = start === -1 ? [] : hrefs(html.slice(start, html.indexOf('</section>', start)));
+  // Fail loudly rather than pass on an empty index if the section's markup changes.
+  const start = html.search(/\bid=["']?also-on-github\b/);
+  if (start === -1) throw new Error('the built /work/ page has no #also-on-github section');
+  // The section holds headings and lists only, so its first closing tag ends it.
+  const end = html.indexOf('</section>', start);
+  const index = hrefs(html.slice(start, end === -1 ? undefined : end));
+  if (index.length === 0) throw new Error('the #also-on-github section links to no repository');
   return unique([...briefs, ...index]);
 }
 
