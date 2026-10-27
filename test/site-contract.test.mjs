@@ -24,6 +24,7 @@ test('every requested primary route is backed by an Astro page', () => {
     'src/pages/index.astro',
     'src/pages/work.astro',
     'src/pages/about.astro',
+    'src/pages/manifesto.astro',
     'src/pages/notes/index.astro',
     'src/pages/contact.astro',
     'src/pages/resume.astro',
@@ -802,8 +803,53 @@ test('the about page is first person and the main pages carry their own meta des
   assert.match(about, /Texas State University \(Spring 2026\), Concordia University Texas \(Computer Science, Fall 2025\), and Austin Community College \(Business Administration, 2019–2025\)/);
   assert.doesNotMatch(about, /Concordia Texas University|Electrical Engineering/);
   assert.doesNotMatch(about, /systems-minded approach/);
-  for (const page of ['index', 'about', 'contact', 'resume']) {
+  for (const page of ['index', 'about', 'manifesto', 'contact', 'resume']) {
     // A literal string, or a template expression that derives counts from the snapshots.
     assert.match(read(`src/pages/${page}.astro`), /<BaseLayout[^>]* description=(?:"[^"]{40,}"|\{`[^`]{40,}`\})/, page);
   }
 });
+
+test('the manifesto page publishes the full essay with typographic apostrophes, proof links, and nav entry', () => {
+  const site = read('src/data/site.ts');
+  const home = read('src/pages/index.astro');
+  const manifesto = read('src/pages/manifesto.astro');
+
+  assert.match(site, /\{ href: '\/manifesto\/', label: 'Manifesto' \}/);
+  assert.match(manifesto, /<BaseLayout\s+preloadSerif/);
+  assert.match(manifesto, /import '\.\.\/styles\/manifesto\.css';/);
+
+  // Lead paragraph without the stale second sentence.
+  assert.match(
+    manifesto,
+    /I build AI to help people, not replace them\. Understanding what that means to me took several changes of direction and a failed attempt at an AI tutor\./,
+  );
+  assert.doesNotMatch(manifesto, /But the story began with a concussion/);
+
+  // Five sections and exact narrative milestones.
+  assert.match(manifesto, /Why I build AI/);
+  assert.match(manifesto, /In 7th grade, a hit in football changed my brain/);
+  assert.match(manifesto, /I hit one deadline and missed the other by a day\./);
+  assert.match(manifesto, /Turning into a doomer/);
+  assert.match(manifesto, /The fallout at TXST and my anger at the system solidified that withdrawal\./);
+  assert.match(manifesto, /I wasn’t less necessary that night\. I was the point\./);
+  assert.match(manifesto, /Now, I am not a doomer/);
+  assert.match(manifesto, /I’ll tell you the truth I have: there’s still a place for you\. I found mine on the fourth try\./);
+  assert.match(manifesto, /My hope/);
+  assert.match(manifesto, /What I’ll hold to as an AI Engineer/);
+
+  // Principles point at existing proof targets and preserve list semantics in Safari VoiceOver.
+  assert.match(manifesto, /<ol class="manifesto-principles" role="list">/);
+  assert.match(manifesto, /<blockquote class="manifesto-pullquote">/);
+  assert.doesNotMatch(manifesto, /<span class="manifesto-pullquote">/);
+  assert.match(manifesto, /href="\/work\/#agoge-forger"/);
+  assert.match(manifesto, /href="\/work\/#synthetic-factory"/);
+  assert.match(manifesto, /href="\/artifacts\/"/);
+
+  // All apostrophes in the manifesto body are typographic (’), never straight (').
+  const body = manifesto.slice(manifesto.indexOf('<header class="manifesto-hero"'));
+  assert.doesNotMatch(body, /'/, 'manifesto body must use typographic apostrophes (’)');
+
+  // Homepage remains untouched by manifesto copy.
+  assert.doesNotMatch(home, /concussion|doomer|Jacob Coxon/i);
+});
+
