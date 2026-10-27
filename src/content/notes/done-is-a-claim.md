@@ -1,5 +1,5 @@
 ---
-title: 'Done is a claim: the day I was the bottleneck'
+title: 'The agents kept up. I couldn''t.'
 description: 'On September 15, 2026 I tried to use up my Cursor Ultra usage before the reset. The agents kept up. I was the one who couldn''t.'
 draft: true
 published: 2026-10-25
@@ -25,6 +25,6 @@ It also changed how I think about my own role. Getting the agents to write code 
 
 Running out the clock on my usage taught me more about my own limits than about the agents. They can go as wide as I let them. I can't, and that's fine, as long as I remember it.
 
-Keep in mind I've had to take 2 weeks to get most of the Cursor agent work reviewed and merged.
+Most importantly, as an AI Engineering student, this changed how I think about AI replacing humans. The agents replaced the typing. They didn't replace me — they moved me. My job became reviewing their work, answering their questions, and holding the whole thing in my head at once, and a human can only do so much of that. It took me 2 weeks to get most of that work reviewed and merged.
 
-Very importantly, this day left me knowing that AI can't fully replace humans, and that it isn't such an easy thing to review all of their work.
+I do believe AI can make a real difference in the world. Not by replacing jobs, but by doing the work humans don't want or can't do: the easy, boring tasks, and the ones that would be impossible for one person to do alone at all.
