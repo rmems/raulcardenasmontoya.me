@@ -37,8 +37,14 @@ const counts = await loadSiteCounts();
           <div class="case-study-detail">
             {project.shipped ? (
               <section class="case-study-shipped" aria-labelledby={`${project.slug}-shipped`}>
-                <p class="detail-label" id={`${project.slug}-shipped`}>Shipped</p>
+                <p class="detail-label" id={`${project.slug}-shipped`}>{project.shippedLabel ?? 'Shipped'}</p>
                 <p>{fillCounts(project.shipped, counts)}</p>
+              </section>
+            ) : null}
+            {project.next ? (
+              <section class="case-study-shipped" aria-labelledby={`${project.slug}-next`}>
+                <p class="detail-label" id={`${project.slug}-next`}>Where it is going</p>
+                <p>{fillCounts(project.next, counts)}</p>
               </section>
             ) : null}
             <section aria-labelledby={`${project.slug}-questions`}>

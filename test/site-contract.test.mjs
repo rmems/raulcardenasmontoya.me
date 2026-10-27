@@ -213,7 +213,25 @@ test('the work page expands existing project data without unsupported outcomes o
   assert.match(work, /Working areas/);
   assert.match(projects, /questions: string\[\]/);
   assert.match(work, /Each brief states its status, the questions I'm working on, and the areas it covers\./);
-  assert.doesNotMatch(projects, /https?:\/\/(?!github\.com\/(?:rmems|Limen-Neural)\/)/);
+  assert.doesNotMatch(projects, /https?:\/\/(?!github\.com\/(?:rmems|Limen-Neural)\/|huggingface\.co\/collections\/rmems\/)/);
+  assert.match(work, /Where it is going/);
+  assert.match(work, /\{project\.next \? \(/);
+  assert.match(work, /<p>\{fillCounts\(project\.next, counts\)\}<\/p>/);
+});
+
+test('the Grok-1/SAAQ brief is a long-term programme with public links and no claimed result', () => {
+  const projects = read('src/data/projects.ts');
+  const brief = projects.slice(projects.indexOf("'Grok-1/SAAQ research'"));
+  assert.match(brief, /'Active research, long-term'/);
+  assert.match(brief, /there is no validated result yet/);
+  assert.match(brief, /The formulation is still being searched for\./);
+  for (const repo of ['corinth-canal', 'xai-dissect', 'magere-brug', 'combine-for-AI']) {
+    assert.match(brief, new RegExp(`href: 'https://github\\.com/rmems/${repo}'`), repo);
+  }
+  assert.match(brief, /href: 'https:\/\/huggingface\.co\/collections\/rmems\/grok-1-dissection-and-ternary-packing-/);
+  assert.match(brief, /featured: false/);
+  // The Synthetic Factory brief names its share of the hero's dataset count, so the two read as one number set.
+  assert.match(projects, /\{\{factoryDatasets\}\} of my \{\{datasets\}\} public datasets/);
 });
 
 test('public identity links use the verified profile destinations', () => {
