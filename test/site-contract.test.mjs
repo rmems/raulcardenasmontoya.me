@@ -222,6 +222,8 @@ test('public identity links use the verified profile destinations', () => {
   assert.match(identity, /github: 'https:\/\/github\.com\/rmems'/);
   assert.match(identity, /linkedin: 'https:\/\/www\.linkedin\.com\/in\/raul-cardenas-montoya'/);
   assert.match(identity, /huggingface: 'https:\/\/huggingface\.co\/rmems'/);
+  assert.match(identity, /instagram: 'https:\/\/www\.instagram\.com\/KeepOnSpiking'/);
+  assert.match(identity, /threads: 'https:\/\/www\.threads\.com\/@KeepOnSpiking'/);
 });
 
 test('identity carries the AI Engineer title, every profile link, and Person JSON-LD', () => {
@@ -231,7 +233,7 @@ test('identity carries the AI Engineer title, every profile link, and Person JSO
   assert.match(identity, /title: 'AI Engineer'/);
   assert.match(identity, /x: 'https:\/\/x\.com\/KeepOnSpiking'/);
   assert.match(identity, /cratesio: 'https:\/\/crates\.io\/users\/rmems'/);
-  assert.doesNotMatch(identity, /cursor:|instagram:|threads:/);
+  assert.doesNotMatch(identity, /cursor:/);
   assert.match(layout, /'@type': 'Person'/);
   assert.match(layout, /sameAs: Object\.values\(site\.social\)/);
   assert.match(layout, /application\/ld\+json/);
