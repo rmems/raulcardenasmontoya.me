@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { homedir, tmpdir } from 'node:os';
 import { isAbsolute, join, resolve } from 'node:path';
 
-import { readAuditedTopologyV7 } from './audited-topology-v7.mjs';
+import { readAuditedTopologyV7, readAuditedTopologyV8 } from './audited-topology-v7.mjs';
 import { replayTraceFixture } from './replay-trace-fixture.mjs';
 
 const repository = resolve(import.meta.dirname, '..');
@@ -34,7 +34,7 @@ const EXPECTED_TOPOLOGY_WEIGHT_BITS = new Uint32Array([
   1057166719, 1062031015, 1060856244, 1059681474, 1056518174, 1063172048, 1060039326, 1059647736,
 ]);
 
-/** The 16 / 64 projection of contracts 3 to 6, in the shape \`EXPECTED_TOPOLOGY_V7\` (injected after this source) also uses. */
+/** The 16 / 64 projection of contracts 3 to 6, in the shape \`EXPECTED_TOPOLOGY_V7\` and \`EXPECTED_TOPOLOGY_V8\` (injected after this source) also use. */
 const EXPECTED_TOPOLOGY_LEGACY = {
   digest: EXPECTED_TOPOLOGY_DIGEST,
   nodeCount: 16,
@@ -46,8 +46,10 @@ const EXPECTED_TOPOLOGY_LEGACY = {
 };
 
 function assertTopologyContract(state) {
-  // Contracts 3 to 6 export the 16 / 64 projection; contract 7 the 48 / 288 one.
-  const expected = state.topology_node_ids.length === EXPECTED_TOPOLOGY_V7.nodeCount ? EXPECTED_TOPOLOGY_V7 : EXPECTED_TOPOLOGY_LEGACY;
+  // Contracts 3 to 6 export the 16 / 64 projection; contract 7 the 48 / 288
+  // one and contract 8 the 64 / 512 one.
+  const nodeCount = state.topology_node_ids.length;
+  const expected = nodeCount === EXPECTED_TOPOLOGY_V8.nodeCount ? EXPECTED_TOPOLOGY_V8 : nodeCount === EXPECTED_TOPOLOGY_V7.nodeCount ? EXPECTED_TOPOLOGY_V7 : EXPECTED_TOPOLOGY_LEGACY;
   if (!(state.membrane_potentials instanceof Float32Array) ||
       !(state.topology_rows instanceof Uint32Array) ||
       !(state.topology_targets instanceof Uint32Array) ||
@@ -64,7 +66,6 @@ function assertTopologyContract(state) {
     throw new Error('topology contract returned an unexpected typed array');
   }
 
-  const nodeCount = state.topology_node_ids.length;
   const edgeCount = state.topology_edge_sources.length;
   const canonicalArrays = [
     state.topology_edge_targets,
@@ -235,12 +236,21 @@ try {
   const fixtureJson = await readFixture('seed9-trace.json');
   const kineticFixtureJson = await readFixture('kinetic-seed9-trace.json');
   const contract7FixtureJson = await readFixture('contract7-seed9-trace.json');
-  // The generated projection, read as data so the page checks the 48 / 288
-  // topology the way it checks the 16 / 64 one.
-  const { digest, neurons: nodeCount, fanOut, edgeTargets, edgeDelays, polarities, weightBits } = await readAuditedTopologyV7();
-  const expectedTopologyV7 = JSON.stringify({ digest, nodeCount, fanOut, edgeTargets, edgeDelays, polarities, weightBits });
+  const contract8FixtureJson = await readFixture('contract8-seed9-trace.json');
+  // The generated projections, read as data so the page checks the 48 / 288
+  // and 64 / 512 topologies the way it checks the 16 / 64 one.
+  const {
+    digest: digestV7, neurons: nodeCountV7, fanOut: fanOutV7,
+    edgeTargets: edgeTargetsV7, edgeDelays: edgeDelaysV7, polarities: polaritiesV7, weightBits: weightBitsV7,
+  } = await readAuditedTopologyV7();
+  const expectedTopologyV7 = JSON.stringify({ digest: digestV7, nodeCount: nodeCountV7, fanOut: fanOutV7, edgeTargets: edgeTargetsV7, edgeDelays: edgeDelaysV7, polarities: polaritiesV7, weightBits: weightBitsV7 });
+  const {
+    digest: digestV8, neurons: nodeCountV8, fanOut: fanOutV8,
+    edgeTargets: edgeTargetsV8, edgeDelays: edgeDelaysV8, polarities: polaritiesV8, weightBits: weightBitsV8,
+  } = await readAuditedTopologyV8();
+  const expectedTopologyV8 = JSON.stringify({ digest: digestV8, nodeCount: nodeCountV8, fanOut: fanOutV8, edgeTargets: edgeTargetsV8, edgeDelays: edgeDelaysV8, polarities: polaritiesV8, weightBits: weightBitsV8 });
   const topologyOf = (handle) => '({ membrane_potentials: new Float32Array(' + handle + '.topology_node_ids.length), topology_rows: ' + handle + '.topology_rows, topology_targets: ' + handle + '.topology_targets, topology_weights: ' + handle + '.topology_weights, topology_delays: ' + handle + '.topology_delays, topology_node_ids: ' + handle + '.topology_node_ids, topology_edge_sources: ' + handle + '.topology_edge_sources, topology_edge_targets: ' + handle + '.topology_edge_targets, topology_edge_weights: ' + handle + '.topology_edge_weights, topology_edge_delays: ' + handle + '.topology_edge_delays, topology_polarities: ' + handle + '.topology_polarities, topology_weight_bits: ' + handle + '.topology_weight_bits, topology_outgoing_edge_offsets: ' + handle + '.topology_outgoing_edge_offsets, topology_digest: ' + handle + '.topology_digest })';
-  await writeFile(page, `<!doctype html><body><script type="module">\nimport init, { WasmAdapter } from './neuromorphic_adapter.mjs';\n${topologyContractSource}\nconst EXPECTED_TOPOLOGY_V7 = ${expectedTopologyV7};\nconst fixture = ${fixtureJson};\nconst kineticFixture = ${kineticFixtureJson};\nconst contract7Fixture = ${contract7FixtureJson};\nconst replayTraceFixture = ${replayTraceFixture.toString()};\ntry {\n  await init('./neuromorphic_adapter_bg.wasm');\n  const adapter = WasmAdapter.init(9n, new Uint8Array([3]));\n  adapter.input(1n, new Float32Array([1, 0.5]));\n  const state = adapter.step();\n  if (state.completed_step !== 1n) throw new Error('unexpected step');\n  assertTopologyContract(state);\n  adapter.dispose();\n\n  const initAdapter = (seed, config) => WasmAdapter.init(seed, new Uint8Array(config));\n  const first = await replayTraceFixture(fixture, initAdapter);\n  first.dispose();\n  const second = await replayTraceFixture(fixture, initAdapter);\n  second.dispose();\n  const third = initAdapter(BigInt(fixture.seed), [3]);\n  third.dispose();\n  const rebuilt = await replayTraceFixture(fixture, initAdapter);\n  rebuilt.dispose();\n  const kineticFirst = await replayTraceFixture(kineticFixture, initAdapter);\n  kineticFirst.dispose();\n  const kineticSecond = await replayTraceFixture(kineticFixture, initAdapter);\n  kineticSecond.dispose();\n\n  const six = WasmAdapter.init(9n, new Uint8Array([6]));\n  const topology = six.topology();\n  assertTopologyContract(${topologyOf('topology')});\n  six.input(1n, new Float32Array([0.5, 0.5, 0.5]));\n  const sixState = six.step();\n  if (sixState.contract_version !== 6 || sixState.completed_step !== 1n || sixState.topology_edge_sources.length !== 0 || sixState.topology_rows.length !== 0 || sixState.topology_digest !== topology.topology_digest || sixState.membrane_potentials.length !== 16 || sixState.encoder_features.length !== 16) throw new Error('contract 6 state must carry no topology arrays and the session digest');\n  six.dispose();\n\n  const seven = WasmAdapter.init(9n, new Uint8Array([7]));\n  const sevenTopology = seven.topology();\n  assertTopologyContract(${topologyOf('sevenTopology')});\n  if (sevenTopology.topology_digest === topology.topology_digest) throw new Error('contract 7 must run a different topology from contract 6');\n  seven.input(1n, new Float32Array([0.5, 0.5, 0.5]));\n  const sevenState = seven.step();\n  if (sevenState.contract_version !== 7 || sevenState.completed_step !== 1n || sevenState.topology_edge_sources.length !== 0 || sevenState.topology_rows.length !== 0 || sevenState.topology_digest !== sevenTopology.topology_digest || sevenState.membrane_potentials.length !== 48 || sevenState.encoder_features.length !== 16 || Array.from(sevenState.spike_neurons).some((neuron) => neuron >= 48)) throw new Error('contract 7 state must carry no topology arrays, the session digest and 48 neurons');\n  seven.dispose();\n  const contract7First = await replayTraceFixture(contract7Fixture, initAdapter);\n  contract7First.dispose();\n  const contract7Second = await replayTraceFixture(contract7Fixture, initAdapter);\n  contract7Second.dispose();\n\n  document.body.textContent = ['BROWSER', 'SMOKE', 'PASS'].join('_');\n} catch (error) { document.body.textContent = 'BROWSER_SMOKE_FAIL:' + error.message; }\n</script>`);
+  await writeFile(page, `<!doctype html><body><script type="module">\nimport init, { WasmAdapter } from './neuromorphic_adapter.mjs';\n${topologyContractSource}\nconst EXPECTED_TOPOLOGY_V7 = ${expectedTopologyV7};\nconst EXPECTED_TOPOLOGY_V8 = ${expectedTopologyV8};\nconst fixture = ${fixtureJson};\nconst kineticFixture = ${kineticFixtureJson};\nconst contract7Fixture = ${contract7FixtureJson};\nconst contract8Fixture = ${contract8FixtureJson};\nconst replayTraceFixture = ${replayTraceFixture.toString()};\ntry {\n  await init('./neuromorphic_adapter_bg.wasm');\n  const adapter = WasmAdapter.init(9n, new Uint8Array([3]));\n  adapter.input(1n, new Float32Array([1, 0.5]));\n  const state = adapter.step();\n  if (state.completed_step !== 1n) throw new Error('unexpected step');\n  assertTopologyContract(state);\n  adapter.dispose();\n\n  const initAdapter = (seed, config) => WasmAdapter.init(seed, new Uint8Array(config));\n  const first = await replayTraceFixture(fixture, initAdapter);\n  first.dispose();\n  const second = await replayTraceFixture(fixture, initAdapter);\n  second.dispose();\n  const third = initAdapter(BigInt(fixture.seed), [3]);\n  third.dispose();\n  const rebuilt = await replayTraceFixture(fixture, initAdapter);\n  rebuilt.dispose();\n  const kineticFirst = await replayTraceFixture(kineticFixture, initAdapter);\n  kineticFirst.dispose();\n  const kineticSecond = await replayTraceFixture(kineticFixture, initAdapter);\n  kineticSecond.dispose();\n\n  const six = WasmAdapter.init(9n, new Uint8Array([6]));\n  const topology = six.topology();\n  assertTopologyContract(${topologyOf('topology')});\n  six.input(1n, new Float32Array([0.5, 0.5, 0.5]));\n  const sixState = six.step();\n  if (sixState.contract_version !== 6 || sixState.completed_step !== 1n || sixState.topology_edge_sources.length !== 0 || sixState.topology_rows.length !== 0 || sixState.topology_digest !== topology.topology_digest || sixState.membrane_potentials.length !== 16 || sixState.encoder_features.length !== 16) throw new Error('contract 6 state must carry no topology arrays and the session digest');\n  six.dispose();\n\n  const seven = WasmAdapter.init(9n, new Uint8Array([7]));\n  const sevenTopology = seven.topology();\n  assertTopologyContract(${topologyOf('sevenTopology')});\n  if (sevenTopology.topology_digest === topology.topology_digest) throw new Error('contract 7 must run a different topology from contract 6');\n  seven.input(1n, new Float32Array([0.5, 0.5, 0.5]));\n  const sevenState = seven.step();\n  if (sevenState.contract_version !== 7 || sevenState.completed_step !== 1n || sevenState.topology_edge_sources.length !== 0 || sevenState.topology_rows.length !== 0 || sevenState.topology_digest !== sevenTopology.topology_digest || sevenState.membrane_potentials.length !== 48 || sevenState.encoder_features.length !== 16 || Array.from(sevenState.spike_neurons).some((neuron) => neuron >= 48)) throw new Error('contract 7 state must carry no topology arrays, the session digest and 48 neurons');\n  seven.dispose();\n  const contract7First = await replayTraceFixture(contract7Fixture, initAdapter);\n  contract7First.dispose();\n  const contract7Second = await replayTraceFixture(contract7Fixture, initAdapter);\n  contract7Second.dispose();\n\n  const eight = WasmAdapter.init(9n, new Uint8Array([8]));\n  const eightTopology = eight.topology();\n  assertTopologyContract(${topologyOf('eightTopology')});\n  if (eightTopology.topology_digest === sevenTopology.topology_digest) throw new Error('contract 8 must run a different topology from contract 7');\n  eight.input(1n, new Float32Array([0.5, 0.5, 0.5]));\n  const eightState = eight.step();\n  if (eightState.contract_version !== 8 || eightState.completed_step !== 1n || eightState.topology_edge_sources.length !== 0 || eightState.topology_rows.length !== 0 || eightState.topology_digest !== eightTopology.topology_digest || eightState.membrane_potentials.length !== 64 || eightState.encoder_features.length !== 16 || Array.from(eightState.spike_neurons).some((neuron) => neuron >= 64)) throw new Error('contract 8 state must carry no topology arrays, the session digest and 64 neurons');\n  eight.dispose();\n  const contract8First = await replayTraceFixture(contract8Fixture, initAdapter);\n  contract8First.dispose();\n  const contract8Second = await replayTraceFixture(contract8Fixture, initAdapter);\n  contract8Second.dispose();\n\n  document.body.textContent = ['BROWSER', 'SMOKE', 'PASS'].join('_');\n} catch (error) { document.body.textContent = 'BROWSER_SMOKE_FAIL:' + error.message; }\n</script>`);
   const dom = run(browser, ['--headless=new', '--no-sandbox', '--disable-gpu', '--allow-file-access-from-files', '--virtual-time-budget=3000', '--dump-dom', page]);
   if (!dom.includes('BROWSER_SMOKE_PASS')) {
     throw new Error(`browser Rust/WASM smoke failed:\n${dom}`);

@@ -242,7 +242,7 @@ export function statusMessage(
       return STATIC_DEMO_STATUS;
     case 'reduced-motion':
       return snapshot.mode === 'live'
-        ? 'Live visualization is running. Nonessential camera motion stays off.'
+        ? 'Live visualization is running. The view holds still because your device asks for reduced motion.'
         : 'Motion is paused. Play animation to start the live visualization.';
     case 'no-webgl':
       return 'This browser cannot start the WebGL renderer. The static diagram remains available.';

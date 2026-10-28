@@ -4,13 +4,14 @@
 //! window and a per-neuron list of recent spike steps. This replays the same
 //! two inputs the performance harness measures (the scripted Lissajous with a
 //! periodic press, and a fast pressed pointer drag) through every encoder mode
-//! on the shipped contract 7 runtime (48 neurons, RM-2355) and on the frozen
-//! contract 6 runtime (16 neurons), and holds each to the issue's targets:
+//! on the shipped contract 8 runtime (64 neurons), the frozen contract 7
+//! runtime (48 neurons, RM-2355) and the frozen contract 6 runtime (16
+//! neurons), and holds each to the issue's targets:
 //! 5 to 20 % of the neurons per step over every window, no refractory
 //! violation, never the whole population in one step.
 
 use neuromorphic_adapter::{
-    BrowserRuntime, CONTRACT_VERSION_V6, CONTRACT_VERSION_V7, TopologySpec,
+    BrowserRuntime, CONTRACT_VERSION_V6, CONTRACT_VERSION_V7, CONTRACT_VERSION_V8, TopologySpec,
     encoder::EncoderMode,
     lif_bank::{LifBankShaping, REFRACTORY_STEPS, ShapingProfile},
 };
@@ -22,8 +23,9 @@ const WINDOW: usize = 40;
 
 /// `(contract, neurons, spikes per 40-step window)`: 5 to 20 % of the
 /// neurons per step, `neurons × 40 × [0.05, 0.20]`.
-fn banks() -> [(u32, usize, RangeInclusive<usize>); 2] {
+fn banks() -> [(u32, usize, RangeInclusive<usize>); 3] {
     [
+        (CONTRACT_VERSION_V8, TopologySpec::V8.neurons, 128..=512),
         (CONTRACT_VERSION_V7, TopologySpec::V7.neurons, 96..=384),
         (CONTRACT_VERSION_V6, TopologySpec::LEGACY.neurons, 20..=120),
     ]
@@ -209,8 +211,8 @@ fn the_same_seed_replays_the_same_spikes() {
 #[test]
 fn the_legacy_profile_is_frozen_and_the_larger_bank_has_its_own() {
     // Contracts 3 to 6 keep the RM-2352 constants exactly (their goldens pin
-    // the result); contract 7 drives its bank harder, as documented on
-    // `ShapingProfile::V7`.
+    // the result); contracts 7 and 8 have their own, as documented on
+    // `ShapingProfile::V7` and `ShapingProfile::V8`.
     assert_eq!(
         ShapingProfile::LEGACY,
         ShapingProfile {
@@ -225,6 +227,9 @@ fn the_legacy_profile_is_frozen_and_the_larger_bank_has_its_own() {
     );
     assert_eq!(TopologySpec::V7.shaping_profile(), ShapingProfile::V7);
     assert_ne!(ShapingProfile::V7, ShapingProfile::LEGACY);
+    assert_eq!(TopologySpec::V8.shaping_profile(), ShapingProfile::V8);
+    assert_ne!(ShapingProfile::V8, ShapingProfile::V7);
+    assert_ne!(ShapingProfile::V8, ShapingProfile::LEGACY);
 }
 
 /// A step `neuromod` rejects must leave the shaping state untouched, like
@@ -240,13 +245,15 @@ fn a_rejected_step_leaves_the_shaping_state_untouched() {
 fn rejected_steps_are_atomic(neurons: usize) {
     use neuromod::{NeuroModulators, SeedableRng, SpikingNetwork, StdRng};
 
-    const NEURONS_MAX: usize = 48;
+    const NEURONS_MAX: usize = 64;
     assert!(neurons <= NEURONS_MAX);
     let bank = || {
         let mut network = SpikingNetwork::with_dimensions(neurons, 0, neurons);
         let shaping = LifBankShaping::install_with(
             &mut network,
-            TopologySpec::for_contract(if neurons == TopologySpec::V7.neurons {
+            TopologySpec::for_contract(if neurons == TopologySpec::V8.neurons {
+                CONTRACT_VERSION_V8
+            } else if neurons == TopologySpec::V7.neurons {
                 CONTRACT_VERSION_V7
             } else {
                 CONTRACT_VERSION_V6

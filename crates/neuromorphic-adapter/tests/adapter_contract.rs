@@ -1,6 +1,6 @@
 use neuromorphic_adapter::{
-    BrowserRuntime, CONTRACT_VERSION_V5, CONTRACT_VERSION_V6, CONTRACT_VERSION_V7, TopologySpec,
-    WasmAdapter, encoder::EncoderMode,
+    BrowserRuntime, CONTRACT_VERSION_V5, CONTRACT_VERSION_V6, CONTRACT_VERSION_V7,
+    CONTRACT_VERSION_V8, TopologySpec, WasmAdapter, encoder::EncoderMode,
 };
 
 const LEGACY_DIGEST: &str = "synaptic-wiring.topology.digest.v1:sha256:26875faf05121b9afda27a533760369da67ba9110599fb61533f08961ff6e971";
@@ -389,7 +389,7 @@ fn contract_6_accepts_every_encoder_mode_and_only_known_contracts() {
         assert!(state.topology_node_ids.is_empty());
     }
     assert!(BrowserRuntime::with_mode(3, EncoderMode::Temporal, 3).is_err());
-    assert!(BrowserRuntime::with_mode(3, EncoderMode::Temporal, 8).is_err());
+    assert!(BrowserRuntime::with_mode(3, EncoderMode::Temporal, 9).is_err());
 }
 
 #[test]
@@ -513,7 +513,7 @@ fn contract_7_init_configs_and_encoder_modes() {
         EncoderMode::parse(3).is_err(),
         "reserved modes stay rejected"
     );
-    assert!(BrowserRuntime::with_mode(9, EncoderMode::DEFAULT, 8).is_err());
+    assert!(BrowserRuntime::with_mode(9, EncoderMode::DEFAULT, 9).is_err());
     assert!(
         BrowserRuntime::with_mode(9, EncoderMode::DEFAULT, CONTRACT_VERSION_V7)
             .expect("valid")
@@ -524,8 +524,104 @@ fn contract_7_init_configs_and_encoder_modes() {
 }
 
 #[test]
+fn contract_8_runs_the_64_neuron_topology_and_leaves_contract_7_on_48() {
+    let spec = TopologySpec::V8;
+    assert_eq!((spec.neurons, spec.fan_out, spec.synapses()), (64, 8, 512));
+    assert_eq!(spec.max_delay, TopologySpec::V7.max_delay);
+    assert_eq!(TopologySpec::for_contract(CONTRACT_VERSION_V8), spec);
+    assert_eq!(
+        TopologySpec::for_contract(CONTRACT_VERSION_V7),
+        TopologySpec::V7
+    );
+
+    let mut eight = BrowserRuntime::with_mode(9, EncoderMode::DEFAULT, CONTRACT_VERSION_V8)
+        .expect("the contract-8 topology is valid");
+    let topology = eight.topology();
+    let neurons = spec.neurons as u32;
+    assert_eq!(topology.topology_node_ids, (0..neurons).collect::<Vec<_>>());
+    assert_eq!(topology.topology_edge_sources.len(), spec.synapses());
+    assert_eq!(topology.topology_rows.len(), spec.neurons + 1);
+    assert!(topology.topology_edge_targets.iter().all(|t| *t < neurons));
+    assert_eq!(
+        topology.topology_outgoing_edge_offsets,
+        (0..=spec.neurons)
+            .map(|n| (n * spec.fan_out) as u32)
+            .collect::<Vec<_>>()
+    );
+    assert!(
+        topology
+            .topology_edge_delays
+            .iter()
+            .all(|delay| (1..=spec.max_delay).contains(delay))
+    );
+    assert_eq!(
+        topology
+            .topology_polarities
+            .iter()
+            .filter(|p| **p == 1)
+            .count(),
+        (spec.synapses() as f32 * spec.inhibitory_fraction) as usize
+    );
+    let seven = BrowserRuntime::with_mode(9, EncoderMode::DEFAULT, CONTRACT_VERSION_V7)
+        .expect("valid")
+        .topology();
+    assert_ne!(topology.topology_digest, seven.topology_digest);
+    assert_ne!(topology.topology_digest, LEGACY_DIGEST);
+    assert_eq!(seven.topology_edge_sources.len(), 288);
+    let other = BrowserRuntime::with_mode(99, EncoderMode::Rate, CONTRACT_VERSION_V8)
+        .expect("valid")
+        .topology();
+    assert_eq!(other, topology, "the seed is provenance, not topology");
+
+    for step in 1..=24u64 {
+        let packet = [
+            0.5 + step as f32 * 0.017,
+            0.4 - step as f32 * 0.011,
+            0.6 + (step % 3) as f32 * 0.1,
+        ];
+        eight.input(step, &packet).expect("input is accepted");
+        let state = eight.step().expect("contract 8 advances");
+        assert_eq!(state.contract_version, CONTRACT_VERSION_V8);
+        assert_eq!(state.membrane_potentials.len(), spec.neurons);
+        assert!(state.spike_neurons.iter().all(|n| *n < neurons));
+        assert!(state.spike_neurons.len() < spec.neurons);
+        assert_eq!(state.encoder_features.len(), 16);
+        assert_eq!(state.topology_digest, topology.topology_digest);
+        assert!(state.topology_rows.is_empty());
+        assert!(state.topology_edge_sources.is_empty());
+    }
+
+    for (config, mode) in [
+        (&[8_u8][..], EncoderMode::DEFAULT),
+        (&[8, 0][..], EncoderMode::Delta),
+        (&[8, 1][..], EncoderMode::Temporal),
+        (&[8, 2][..], EncoderMode::Rate),
+    ] {
+        let mut adapter = WasmAdapter::init(9, config).expect("contract 8 config is accepted");
+        adapter
+            .input(1, &[0.5, 0.5, 0.5])
+            .expect("telemetry packet");
+        let state = adapter.step().expect("step");
+        let state = state.browser_state();
+        assert_eq!(state.contract_version, CONTRACT_VERSION_V8);
+        assert_eq!(state.encoder_mode, mode as u8);
+        assert_eq!(state.membrane_potentials.len(), 64);
+        adapter.dispose();
+    }
+}
+
+#[test]
 fn contract_7_fans_each_encoder_channel_into_every_neuron_of_its_residue_class() {
-    // Rebuild the contract-7 pipeline from the public crate surfaces with an
+    assert_residue_fan_out(CONTRACT_VERSION_V7, TopologySpec::V7);
+}
+
+#[test]
+fn contract_8_fans_each_encoder_channel_into_every_neuron_of_its_residue_class() {
+    assert_residue_fan_out(CONTRACT_VERSION_V8, TopologySpec::V8);
+}
+
+fn assert_residue_fan_out(contract: u32, spec: TopologySpec) {
+    // Rebuild the contract's pipeline from the public crate surfaces with an
     // explicit channel-to-neuron mapping, and compare its spikes and
     // potentials with the runtime's, step by step. The residue-class mapping
     // (channel `c` drives every neuron `n` with `n % 16 == c`) reproduces the
@@ -539,7 +635,6 @@ fn contract_7_fans_each_encoder_channel_into_every_neuron_of_its_residue_class()
 
     const SEED: u64 = 9;
     const STEPS: u64 = 120;
-    let spec = TopologySpec::V7;
     let packet = |sequence: u64| -> [f32; 3] {
         let step = sequence as f32;
         [
@@ -550,7 +645,7 @@ fn contract_7_fans_each_encoder_channel_into_every_neuron_of_its_residue_class()
     };
 
     let mut runtime =
-        BrowserRuntime::with_mode(SEED, EncoderMode::Temporal, CONTRACT_VERSION_V7).expect("valid");
+        BrowserRuntime::with_mode(SEED, EncoderMode::Temporal, contract).expect("valid");
     let actual: Vec<(Vec<u32>, Vec<u32>)> = (1..=STEPS)
         .map(|sequence| {
             runtime.input(sequence, &packet(sequence)).expect("input");

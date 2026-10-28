@@ -14,7 +14,7 @@ import {
  * Dedicated simulation worker. Mirrors the adapter's init/input/step/dispose
  * contract: every request carries a tagged id, and each step replies with a
  * fresh snapshot whose typed-array buffers are transferred (never shared) to
- * the main thread. On contracts 6 and 7 the topology travels once, with
+ * the main thread. On contracts 6 to 8 the topology travels once, with
  * `ready`, and each step's snapshot crosses detached (empty topology arrays,
  * digest kept); the main thread re-attaches its copy.
  */

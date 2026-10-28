@@ -28,7 +28,8 @@ export class WasmAdapter {
      * `[6]` and `[6, mode]` are contract 5 with the topology sent once
      * through [`WasmAdapter::topology`] instead of in every snapshot. `[7]`
      * and `[7, mode]` are contract 6 on the larger 48-neuron audited topology
-     * ([`TopologySpec::V7`]).
+     * ([`TopologySpec::V7`]); `[8]` and `[8, mode]` on the 64-neuron one
+     * ([`TopologySpec::V8`]).
      * @param {bigint} seed
      * @param {Uint8Array} config
      * @returns {WasmAdapter}
@@ -75,7 +76,7 @@ export class WasmAdapter {
         return WasmState.__wrap(ret[0]);
     }
     /**
-     * The topology every snapshot belongs to; contracts 6 and 7 read it once.
+     * The topology every snapshot belongs to; contracts 6 to 8 read it once.
      * @returns {WasmTopology}
      */
     topology() {

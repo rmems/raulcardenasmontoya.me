@@ -121,6 +121,19 @@ impl ShapingProfile {
         evoked_gain: 0.04,
         tonic_dither: 0.6,
     };
+    /// The 64-neuron bank of contract 8. Unlike the step from 16 to 48, going
+    /// to 64 needs *less* drive: with eight synapses per neuron the routed
+    /// current is larger, and the contract-7 profile reached 542 spikes per
+    /// 40-step window (the ceiling is 512) with a 28-neuron peak. A tonic
+    /// drive of 1.8× rheobase and an evoked gain of 0.03 hold 169 to 445
+    /// spikes per window across every input and encoder mode, peak at 22 of 64
+    /// neurons (18 when idle), and leave no neuron silent. The sweep is
+    /// recorded in `docs/architecture/browser-runtime.md`.
+    pub const V8: Self = Self {
+        tonic_rheobase_multiple: 1.8,
+        evoked_gain: 0.03,
+        tonic_dither: 0.6,
+    };
 }
 
 /// Fractional parts of multiples of these irrationals are well spread and

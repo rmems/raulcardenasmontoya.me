@@ -1,5 +1,6 @@
 /** Browser-safe bridge for the generated `neuromorphic-adapter` WASM package. */
 import { AUDITED_TOPOLOGY_V7 } from './audited-topology-v7';
+import { AUDITED_TOPOLOGY_V8 } from './audited-topology-v8';
 
 export const NEUROMORPHIC_CONTRACT_VERSION = 3;
 export const NEUROMORPHIC_CONTRACT_VERSION_V4 = 4;
@@ -26,11 +27,20 @@ export const NEUROMORPHIC_CONTRACT_VERSION_V6 = 6;
  */
 export const NEUROMORPHIC_CONTRACT_VERSION_V7 = 7;
 /**
+ * Contract 8 is contract 7 at the RM-2355 hero scale: 64 neurons with eight
+ * canonical outgoing synapses each (512) instead of 48 / 288. Contracts 3
+ * to 6 keep the 16 / 64 projection and contract 7 the 48 / 288 one; the
+ * bridge audits each contract's snapshots against its own projection. The
+ * `n % 16` encoder source rule is unchanged, so every neuron can still be
+ * an evoked source.
+ */
+export const NEUROMORPHIC_CONTRACT_VERSION_V8 = 8;
+/**
  * The contract the live demo runs (`LIVE_ADAPTER_OPTIONS` in
  * `wasm-session.ts`) and the topology {@link auditedBrowserTopology} returns
  * by default.
  */
-export const NEUROMORPHIC_LIVE_CONTRACT_VERSION = NEUROMORPHIC_CONTRACT_VERSION_V7;
+export const NEUROMORPHIC_LIVE_CONTRACT_VERSION = NEUROMORPHIC_CONTRACT_VERSION_V8;
 export const TELEMETRY_PACKET_LENGTH = 3;
 export const ENCODER_FEATURE_COUNT = 16;
 export const CORPUS_IPC_WIRE_VERSION = 1;
@@ -49,7 +59,7 @@ export const DEFAULT_ENCODER_MODE: EncoderModeName = 'temporal';
 /**
  * One contract's audited canonical projection: the `synaptic-wiring`
  * identity the bridge requires of every snapshot (contracts 3 to 5) or of the
- * topology sent once (6 and 7). The bridge recomputes this identity from
+ * topology sent once (6 to 8). The bridge recomputes this identity from
  * exported contents instead of trusting the digest string reported by the
  * generated Rust/WASM package. Node ids, edge sources and the outgoing
  * offsets follow from the counts: every neuron has exactly `fanOut`
@@ -164,7 +174,22 @@ const V7_PROJECTION = auditedProjectionOf({
   weightBits: AUDITED_TOPOLOGY_V7.weightBits,
 });
 
-const AUDITED_PROJECTIONS = [LEGACY_PROJECTION, V7_PROJECTION];
+/**
+ * The 64-neuron, 512-synapse topology of contract 8, generated from the crate
+ * (`audited-topology-v8.ts`; `tests/audited_topology.rs` fails on drift).
+ */
+const V8_PROJECTION = auditedProjectionOf({
+  contractVersions: [NEUROMORPHIC_CONTRACT_VERSION_V8],
+  digest: AUDITED_TOPOLOGY_V8.digest,
+  neurons: AUDITED_TOPOLOGY_V8.neurons,
+  fanOut: AUDITED_TOPOLOGY_V8.fanOut,
+  edgeTargets: AUDITED_TOPOLOGY_V8.edgeTargets,
+  edgeDelays: AUDITED_TOPOLOGY_V8.edgeDelays,
+  polarities: AUDITED_TOPOLOGY_V8.polarities,
+  weightBits: AUDITED_TOPOLOGY_V8.weightBits,
+});
+
+const AUDITED_PROJECTIONS = [LEGACY_PROJECTION, V7_PROJECTION, V8_PROJECTION];
 
 /** The projection a contract's snapshots must carry, or `null` for an unknown contract. */
 function auditedProjectionFor(contract: number): AuditedProjection | null {
@@ -335,7 +360,8 @@ export type NeuromorphicContractVersion =
   | typeof NEUROMORPHIC_CONTRACT_VERSION_V4
   | typeof NEUROMORPHIC_CONTRACT_VERSION_V5
   | typeof NEUROMORPHIC_CONTRACT_VERSION_V6
-  | typeof NEUROMORPHIC_CONTRACT_VERSION_V7;
+  | typeof NEUROMORPHIC_CONTRACT_VERSION_V7
+  | typeof NEUROMORPHIC_CONTRACT_VERSION_V8;
 
 export interface NeuromorphicAdapterOptions {
   contractVersion?: NeuromorphicContractVersion;
@@ -346,7 +372,7 @@ interface RawWasmAdapter {
   input(sequence: bigint, samples: Float32Array): void;
   step(): RawWasmState;
   state(): RawWasmState;
-  /** Contracts 6 and 7: the projection, read once at init. */
+  /** Contracts 6 to 8: the projection, read once at init. */
   topology?(): RawWasmTopology;
   dispose(): void;
 }
@@ -364,7 +390,7 @@ export interface NeuromorphicAdapter {
   state(): NeuromorphicState;
   /**
    * The topology every snapshot of this adapter belongs to. On contracts 6
-   * and 7 it is the projection validated once at init, the same arrays every
+   * to 8 it is the projection validated once at init, the same arrays every
    * snapshot carries; on earlier contracts it is read from a fresh snapshot.
    */
   topology(): NeuromorphicTopology;
@@ -384,15 +410,21 @@ const ENCODER_DIAGNOSTIC_CONTRACTS = new Set<number>([
   NEUROMORPHIC_CONTRACT_VERSION_V5,
   NEUROMORPHIC_CONTRACT_VERSION_V6,
   NEUROMORPHIC_CONTRACT_VERSION_V7,
+  NEUROMORPHIC_CONTRACT_VERSION_V8,
 ]);
 /** Contracts whose snapshots carry the clamped `kinetic-signals` feature vector. */
 const FEATURE_CONTRACTS = new Set<number>([
   NEUROMORPHIC_CONTRACT_VERSION_V5,
   NEUROMORPHIC_CONTRACT_VERSION_V6,
   NEUROMORPHIC_CONTRACT_VERSION_V7,
+  NEUROMORPHIC_CONTRACT_VERSION_V8,
 ]);
 /** Contracts whose topology crosses the boundary once (`topology()`) and whose snapshots carry it empty. */
-const ONCE_SENT_CONTRACTS = new Set<number>([NEUROMORPHIC_CONTRACT_VERSION_V6, NEUROMORPHIC_CONTRACT_VERSION_V7]);
+const ONCE_SENT_CONTRACTS = new Set<number>([
+  NEUROMORPHIC_CONTRACT_VERSION_V6,
+  NEUROMORPHIC_CONTRACT_VERSION_V7,
+  NEUROMORPHIC_CONTRACT_VERSION_V8,
+]);
 
 /** Whether `contract` sends its topology once at init instead of in every snapshot. */
 export function topologySentOnce(contract: number): boolean {
@@ -518,7 +550,7 @@ function snapshot(handle: RawWasmState, shared: NeuromorphicTopology | null): Ne
 
 const invalidState = () => new AdapterUnavailableError('The Rust/WASM runtime returned an invalid contract state.');
 
-/** Once-sent (contract 6 and 7) per-step states carry every topology array empty, of the right type. */
+/** Once-sent (contracts 6 to 8) per-step states carry every topology array empty, of the right type. */
 function hasEmptyTopologyArrays(raw: RawWasmState): boolean {
   return (
     raw.topology_rows instanceof Uint32Array &&
@@ -552,7 +584,7 @@ function hasEmptyTopologyArrays(raw: RawWasmState): boolean {
  * Every structural, identity and ordering check of a topology: the routed CSR
  * arrays, the canonical projection, the audited digest and contents of
  * `expected` (the contract's own projection), and their agreement. Runs on
- * every snapshot of contracts 3 to 5 and once, at init, on contracts 6 and 7.
+ * every snapshot of contracts 3 to 5 and once, at init, on contracts 6 to 8.
  */
 function hasValidTopology(raw: RawTopologyFields, expected: AuditedProjection): boolean {
   return (
@@ -1045,7 +1077,7 @@ export async function initNeuromorphicAdapter(
   const runtime = wasm.WasmAdapter.init(seed, config);
   let disposed = false;
 
-  // Contracts 6 and 7: the projection crosses the boundary once, is validated
+  // Contracts 6 to 8: the projection crosses the boundary once, is validated
   // once against the contract's audited projection, and is attached to every
   // snapshot. Earlier contracts repeat and re-validate it per step.
   let shared: NeuromorphicTopology | null = null;

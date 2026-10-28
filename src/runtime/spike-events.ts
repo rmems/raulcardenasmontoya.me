@@ -1,4 +1,4 @@
-import { AUDITED_TOPOLOGY_V7 } from './audited-topology-v7';
+import { AUDITED_TOPOLOGY_V8 } from './audited-topology-v8';
 import { DEMO_TICK_MS } from './demo-stimulus';
 import type { NeuromorphicState } from './neuromorphic-adapter';
 import type { SimulationChannel } from './simulation-channel';
@@ -70,14 +70,14 @@ export const PULSE_DISPLAY_STEP_MS = SPIKE_EVENT_STEP_MS / PULSE_DISPLAY_SPEED;
  * audited topology against it; the retention and capacity defaults below are
  * derived from it.
  */
-export const LIVE_MAX_DELAY_STEPS = AUDITED_TOPOLOGY_V7.maxDelay;
+export const LIVE_MAX_DELAY_STEPS = AUDITED_TOPOLOGY_V8.maxDelay;
 
 /**
- * Synapses in the live topology (contract 7: 48 neurons × 6 outgoing edges).
+ * Synapses in the live topology (contract 8: 64 neurons × 8 outgoing edges).
  * `test/spike-events.test.mjs` checks it against the audited topology the
  * bridge requires of every live snapshot.
  */
-export const LIVE_SYNAPSE_COUNT = AUDITED_TOPOLOGY_V7.neurons * AUDITED_TOPOLOGY_V7.fanOut;
+export const LIVE_SYNAPSE_COUNT = AUDITED_TOPOLOGY_V8.neurons * AUDITED_TOPOLOGY_V8.fanOut;
 
 /** Length of a drawn pulse behind its head, in steps of travel time. */
 export const PULSE_TAIL_STEPS = 1.5;
@@ -96,16 +96,16 @@ export const DEFAULT_SPIKE_EVENT_RETAIN_STEPS = Math.ceil(
  * Events the ring must hold so it never evicts a live event: even if every
  * neuron spikes on every step, every live synapse carries one event per step
  * for `(delay + retain + 1)` steps, so at most
- * `288 × (4 + 18 + 1) = 6,624` are buffered at once with the defaults above.
+ * `512 × (4 + 18 + 1) = 11,776` are buffered at once with the defaults above.
  */
 export const LIVE_SPIKE_EVENT_WORST_CASE =
   LIVE_SYNAPSE_COUNT * (LIVE_MAX_DELAY_STEPS + DEFAULT_SPIKE_EVENT_RETAIN_STEPS + 1);
 
 /**
  * Default ring capacity: the live worst case rounded up to a power of two
- * (8,192 for the 48 / 288 topology; it was 2,048 for 16 / 64). The renderer
- * preallocates its pulse buffers to this (`performance-budgets.md`, buffer
- * audit).
+ * (16,384 for the 64 / 512 topology; it was 8,192 for 48 / 288 and 2,048
+ * for 16 / 64). The renderer preallocates its pulse buffers to this
+ * (`performance-budgets.md`, buffer audit).
  */
 export const DEFAULT_SPIKE_EVENT_CAPACITY = 2 ** Math.ceil(Math.log2(LIVE_SPIKE_EVENT_WORST_CASE));
 

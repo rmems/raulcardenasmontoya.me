@@ -249,10 +249,10 @@ test('the view mirrors the mode on the island and its radios', () => {
 });
 
 test('each session records its own [contract, mode] config and the worker is told the mode', () => {
-  assert.deepEqual(wasmSession.liveAdapterConfig(), [7, 1]);
-  assert.deepEqual(wasmSession.liveAdapterConfig('delta'), [7, 0]);
-  assert.deepEqual(wasmSession.liveAdapterConfig('rate'), [7, 2]);
-  assert.deepEqual(wasmSession.liveAdapterOptions('rate'), { contractVersion: 7, encoderMode: 'rate' });
+  assert.deepEqual(wasmSession.liveAdapterConfig(), [8, 1]);
+  assert.deepEqual(wasmSession.liveAdapterConfig('delta'), [8, 0]);
+  assert.deepEqual(wasmSession.liveAdapterConfig('rate'), [8, 2]);
+  assert.deepEqual(wasmSession.liveAdapterOptions('rate'), { contractVersion: 8, encoderMode: 'rate' });
   const source = readSource('../src/runtime/wasm-session.ts');
   assert.match(source, /const adapterOptions = liveAdapterOptions\(initOptions\.encoderMode\);/);
   assert.match(source, /options: adapterOptions,/);

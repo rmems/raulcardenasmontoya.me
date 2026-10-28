@@ -245,7 +245,7 @@ export async function renderStress({ rendererUrl, channelUrl, spikesUrl, quality
 
   /**
    * A case's topology: the audited arrays when the case carries them (the
-   * shipped 48 / 288 graph, still driven by synthetic spikes), otherwise a
+   * shipped 64 / 512 graph, still driven by synthetic spikes), otherwise a
    * synthetic ring lattice of `nodes` × `fanOut` edges.
    */
   function topology(nodes, fanOut, audited) {

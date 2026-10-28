@@ -119,7 +119,10 @@ test('reduced-motion keeps the static representation until an explicit play acti
   assert.equal(runtime.demoExecutionOrigin(live), 'live-wasm');
   assert.equal(live.cameraMotionEnabled, false);
   assert.equal(live.playLabel, 'Pause animation');
-  assert.match(live.status, /camera motion stays off/i);
+  assert.equal(
+    live.status,
+    'Live visualization is running. The view holds still because your device asks for reduced motion.',
+  );
   assert.deepEqual(wasmCalls, [true]);
 });
 
@@ -385,7 +388,7 @@ test('applyDemoView exposes status, play affordance, and reason for assistive te
 
   assert.equal(elements.root.dataset.mode, 'awaiting-play');
   assert.equal(elements.root.dataset.reason, 'reduced-motion');
-  assert.equal(elements.root.dataset.motion, 'off', 'the caption can say pulses stay off');
+  assert.equal(elements.root.dataset.motion, 'off', 'the caption says the view holds still while pulses travel');
   assert.equal(elements.play.hidden, false);
   assert.equal(elements.play.disabled, false);
   assert.equal(elements.play.textContent, 'Play animation');

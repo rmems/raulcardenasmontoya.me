@@ -32,10 +32,10 @@ import type { PerfProbe } from './perf-probe';
 export const WASM_MODULE_URL = '/wasm/neuromorphic-adapter/neuromorphic_adapter.js';
 
 /**
- * Live demo adapter configuration: contract 7 routes telemetry through
+ * Live demo adapter configuration: contract 8 routes telemetry through
  * `kinetic-signals` before the default `axon-encoder` mode, exactly as
- * contracts 5 and 6 do, sends the topology projection once instead of in
- * every snapshot like contract 6, and runs the 48-neuron audited topology
+ * contracts 5 to 7 do, sends the topology projection once instead of in
+ * every snapshot like contract 6, and runs the 64-neuron audited topology
  * (RM-2355). The worker and the main-thread fallback use the identical
  * options.
  */
@@ -279,7 +279,7 @@ function workerEngine(
           response.type === 'error' ? response.message : 'unexpected worker reply',
         );
       }
-      // Contracts 6 and 7: the worker sent the topology once with `ready`;
+      // Contracts 6 to 8: the worker sent the topology once with `ready`;
       // every snapshot shares this copy of it.
       return topology ? attachTopology(response.state, topology) : response.state;
     },

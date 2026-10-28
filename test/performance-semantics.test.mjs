@@ -187,7 +187,7 @@ test('adaptive quality and the perf probe never change simulation output (same s
       // mode. The recorder (#44) labels traces with the shipped config
       // ([5, 1], temporal); this test injects other modes through the
       // main-thread adapter seam, so replay uses the mode it actually ran.
-      assert.deepEqual(adapted.trace.config, [7, 1]);
+      assert.deepEqual(adapted.trace.config, [8, 1]);
       const replayed = [];
       await replayTraceFixture(adapted.trace, async () => {
         const adapter = await liveAdapter(encoderMode);
@@ -324,7 +324,7 @@ test('the routed-topology check is cached by value and still rejects any change'
     },
     stimulus.DEMO_SEED,
     // Contract 5 repeats the projection in every snapshot, which is what this
-    // per-step cache serves; contracts 6 and 7 validate the projection once at init.
+    // per-step cache serves; contracts 6 to 8 validate the projection once at init.
     { ...wasmSession.LIVE_ADAPTER_OPTIONS, contractVersion: 5 },
   );
   const fields = (handle) => {

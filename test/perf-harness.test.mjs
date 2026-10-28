@@ -63,9 +63,9 @@ test('the boundary benchmark runs against the committed WASM package and shipped
     for (const key of ['rawInput', 'rawTick', 'rawState', 'getters', 'bridgeState', 'bridgeTick', 'spikeIngest']) {
       assert.ok(Number.isFinite(row[key].medianUs), `${key} is reported`);
     }
-    assert.equal(row.contract, 7, 'the bench measures the live contract by default');
-    // 48 potentials (192 B) + 16 features (64 B) + up to 48 spikes (192 B), no topology arrays.
-    assert.ok(row.snapshotBytes >= 256 && row.snapshotBytes <= 448, `a contract-7 snapshot carries no topology arrays (${row.snapshotBytes} bytes)`);
+    assert.equal(row.contract, 8, 'the bench measures the live contract by default');
+    // 64 potentials (256 B) + 16 features (64 B) + up to 64 spikes (256 B), no topology arrays.
+    assert.ok(row.snapshotBytes >= 320 && row.snapshotBytes <= 576, `a contract-8 snapshot carries no topology arrays (${row.snapshotBytes} bytes)`);
   }
   const repeated = await runBoundaryBench(
     {
@@ -99,8 +99,8 @@ test('the browser harness only runs fixture topologies through the renderer, nev
   assert.doesNotMatch(tasks, /provenance: 'live-wasm'/);
   const harness = readSource('../scripts/perf/measure-browser.mjs');
   assert.match(harness, /neuromorphic-perf/);
-  // `--contract 5` (or 6) reaches the page task and the bench, so the Chrome rows can compare contracts.
-  assert.match(harness, /contract: Number\(option\('contract', 7\)\)/);
+  // `--contract 5` (or 6, or 7) reaches the page task and the bench, so the Chrome rows can compare contracts.
+  assert.match(harness, /contract: Number\(option\('contract', 8\)\)/);
   assert.match(tasks, /boundaryBench\(\{[^}]*\bcontract\b[^}]*\}\)/);
   assert.match(tasks, /\{ ticks, repeats, contract \}/);
   assert.match(readSource('../src/runtime/perf-probe.ts'), /PERF_PROBE_QUERY = 'neuromorphic-perf'/);
