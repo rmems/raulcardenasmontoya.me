@@ -1,4 +1,4 @@
-export type ProjectStatus = 'Active research' | 'In development' | 'Exploration';
+export type ProjectStatus = 'Active research' | 'Active research, long-term' | 'In development' | 'Exploration';
 export interface Project {
   name: string;
   slug: string;
@@ -14,6 +14,10 @@ export interface Project {
    * count is typed here.
    */
   shipped?: string;
+  /** Heading for the `shipped` line; defaults to "Shipped". */
+  shippedLabel?: string;
+  /** Where the work is going, stated as plainly as its status. Never a result. */
+  next?: string;
   links: { label: string; href: string }[];
   featured: boolean;
 }
@@ -24,6 +28,8 @@ interface ProjectExtras {
   links?: Project['links'];
   featured?: boolean;
   shipped?: string;
+  shippedLabel?: string;
+  next?: string;
 }
 
 const project = (
@@ -34,8 +40,8 @@ const project = (
   technologies: string[],
   summary: string,
   questions: string[],
-  { links = [], featured = true, shipped }: ProjectExtras = {},
-): Project => ({ name, slug, status, category, technologies, summary, questions, shipped, links, featured });
+  { links = [], featured = true, shipped, shippedLabel, next }: ProjectExtras = {},
+): Project => ({ name, slug, status, category, technologies, summary, questions, shipped, shippedLabel, next, links, featured });
 
 export const projects: Project[] = [
   project(
@@ -120,7 +126,7 @@ export const projects: Project[] = [
     {
       links: repository('https://github.com/rmems/synthetic-factory'),
       shipped:
-        'A reviewed generator registry, a fail-closed rights policy in which unknown provenance resolves to blocked, append-only raw JSONL, and {{factoryDatasets}} public datasets on Hugging Face across {{factoryCollections}} collections as of {{datasetsAsOf}}.',
+        'A reviewed generator registry, a fail-closed rights policy in which unknown provenance resolves to blocked, append-only raw JSONL, and {{factoryDatasets}} of my {{datasets}} public datasets on Hugging Face, across {{factoryCollections}} collections, as of {{datasetsAsOf}}.',
     },
   ),
   project(
@@ -143,18 +149,28 @@ export const projects: Project[] = [
   project(
     'Grok-1/SAAQ research',
     'grok-1-saaq-research',
-    'Exploration',
-    'Research exploration',
-    ['Quantization', 'Neuromorphic computing', 'Research engineering'],
-    'An ongoing exploration of quantization and neuromorphic, brain-inspired systems through careful research and prototype-oriented engineering.',
+    'Active research, long-term',
+    'Research programme',
+    ['Quantization', 'Mixture of experts', 'Rust', 'Research engineering'],
+    'A long-term research programme on activity-aware quantization (SAAQ). The problem: fitting a very large open-weight mixture-of-experts checkpoint, Grok-1 at about 318 GB, onto personal hardware with an RTX 5080 and 16 GB of VRAM. It matters beyond one workstation because the cost of inference decides whether open-weight models can run on premises or at the edge. The hypothesis is that precision can follow measured activity, spending bits where experts and weights are used and saving them where they are not. SAAQ is a standalone programme, kept separate from Spikenaut, and there is no validated result yet.',
     [
-      'Where do quantization and brain-inspired architectures create useful research questions?',
-      'How can prototype-oriented engineering keep exploratory work legible?',
+      'Can measured activity guide per-expert precision without losing what the model can do?',
+      'What run artifact would make a SAAQ result trustworthy enough to cite?',
     ],
     {
       featured: false,
+      shippedLabel: 'What exists today',
       shipped:
-        'Public research artifacts in the Grok-1 dissection collection on Hugging Face: the structural parse inventory, the ternary quantization experiment reports, and the GOZ1 packs.',
+        'The Grok-1 dissection collection on Hugging Face (the structural parse inventory, the ternary quantization experiment reports and the GOZ1 packs) and the repositories: corinth-canal, the Rust hybrid MoE/SNN runner; xai-dissect, a Rust CLI for raw Grok-1 shards; magere-brug, the artifact registry with recipes and manifests; and combine-for-AI, a neutral benchmark harness.',
+      next:
+        'The formulation is still being searched for. There is no trusted run artifact to cite yet, and the brief will name a result only once a run is published with its manifest.',
+      links: [
+        { label: 'Hugging Face collection', href: 'https://huggingface.co/collections/rmems/grok-1-dissection-and-ternary-packing-6a7927095f6a7ca444f003af' },
+        { label: 'corinth-canal', href: 'https://github.com/rmems/corinth-canal' },
+        { label: 'xai-dissect', href: 'https://github.com/rmems/xai-dissect' },
+        { label: 'magere-brug', href: 'https://github.com/rmems/magere-brug' },
+        { label: 'combine-for-AI', href: 'https://github.com/rmems/combine-for-AI' },
+      ],
     },
   ),
 ];
