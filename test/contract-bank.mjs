@@ -106,7 +106,12 @@ export async function contractBank({ contract, neurons, fanOut, live = false, ba
   /** Another contract's audited topology under this contract's digest. */
   function foreignTopology(otherContract) {
     const foreign = bridge.auditedBrowserTopology(otherContract);
-    const foreignOffsets = Uint32Array.from({ length: foreign.nodeIds.length + 1 }, (_, index) => index * foreign.fanOut);
+    // The bridge's projection does not carry the fan-out, so derive it from
+    // the audited edges: the CSR offsets must stay valid for the foreign
+    // network, or init would reject the case for its offsets, not for its
+    // topology.
+    const foreignFanOut = foreign.edgeSources.length / foreign.nodeIds.length;
+    const foreignOffsets = Uint32Array.from({ length: foreign.nodeIds.length + 1 }, (_, index) => index * foreignFanOut);
     return {
       topology: rawTopology({
         topology_rows: foreignOffsets,
