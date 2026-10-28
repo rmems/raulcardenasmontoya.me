@@ -69,7 +69,7 @@ Two things still depend on the machine:
 `docker-compose.base44.yml` runs the site for the Base44 preview (host port 3000):
 
 ```bash
-docker compose -f docker-compose.base44.yml up -d --build
+docker compose -f docker-compose.base44.yml up -d --build --wait
 curl -s -o /dev/null -w '%{http_code}\n' http://localhost:3000/
 ```
 
