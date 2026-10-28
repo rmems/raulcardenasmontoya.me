@@ -199,15 +199,23 @@ impl LifBankShaping {
     /// Turn `synaptic-wiring` currents into the stimulus handed to `neuromod`:
     /// inhibition clamped to zero, a per-neuron gain, plus background drive.
     /// `neuromod` clamps each channel to `[0, 1]` itself, so no clamp here: the
-    /// bank sees exactly this sum, and a non-finite current still reaches
-    /// `neuromod`'s own rejection instead of being masked.
+    /// bank sees exactly this sum, and a non-finite current (NaN or infinite) still
+    /// reaches `neuromod`'s own rejection instead of being masked.
     fn stimulus(&self, currents: &[f32]) -> Vec<f32> {
         let step = self.steps;
         currents
             .iter()
             .enumerate()
             .map(|(index, current)| {
-                let evoked = current.max(0.0) * self.gain.get(index).copied().unwrap_or(0.0);
+                // `f32::max` returns the other operand for NaN, which would turn a
+                // NaN current into 0 and hide it from `neuromod`'s rejection, so
+                // only finite currents are clamped.
+                let current = if current.is_finite() {
+                    current.max(0.0)
+                } else {
+                    *current
+                };
+                let evoked = current * self.gain.get(index).copied().unwrap_or(0.0);
                 let dither = 1.0 + TONIC_DITHER * (2.0 * unit_hash(index as u64, step) - 1.0);
                 let background = self.tonic.get(index).copied().unwrap_or(0.0) * dither;
                 evoked + background

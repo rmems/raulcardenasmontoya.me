@@ -201,17 +201,25 @@ fn a_rejected_step_leaves_the_shaping_state_untouched() {
     let mut spiked = 0;
     for step in 0..200 {
         if step % 3 == 1 {
-            // One current short: `neuromod` rejects it before changing anything.
-            assert!(
-                shaping_a
-                    .step(
-                        &mut network_a,
-                        &drive[..NEURONS - 1],
-                        &modulators,
-                        &mut rng_a
-                    )
-                    .is_err()
-            );
+            // Inputs `neuromod` rejects before changing anything: one current
+            // short, and a NaN or infinite current (which the inhibitory clamp
+            // must not turn into a valid 0).
+            let mut nan = drive;
+            nan[step % NEURONS] = f32::NAN;
+            let mut infinite = drive;
+            infinite[step % NEURONS] = if step % 2 == 0 {
+                f32::INFINITY
+            } else {
+                f32::NEG_INFINITY
+            };
+            for rejected in [&drive[..NEURONS - 1], &nan[..], &infinite[..]] {
+                assert!(
+                    shaping_a
+                        .step(&mut network_a, rejected, &modulators, &mut rng_a)
+                        .is_err(),
+                    "step {step}: input {rejected:?} must be rejected"
+                );
+            }
         }
         let with_failures = shaping_a
             .step(&mut network_a, &drive, &modulators, &mut rng_a)
