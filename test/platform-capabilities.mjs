@@ -37,6 +37,10 @@ export const skipWithoutCargo = probe(
     // Mirror scripts/verify-browser-dependencies.mjs, which runs the pinned toolchain from CARGO_HOME.
     const cargo = join(process.env.CARGO_HOME || join(homedir(), '.cargo'), 'bin', process.platform === 'win32' ? 'cargo.exe' : 'cargo');
     if (!statSync(cargo).isFile()) return false;
-    return spawnSync(cargo, ['+1.99.0', '--version'], { stdio: 'ignore' }).status === 0;
+    return spawnSync(cargo, ['+1.99.0', '--version'], {
+      stdio: 'ignore',
+      // Keep the probe offline: never let rustup download the toolchain just to decide on a skip.
+      env: { ...process.env, RUSTUP_AUTO_INSTALL: '0' },
+    }).status === 0;
   },
 );
