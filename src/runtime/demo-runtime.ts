@@ -97,6 +97,12 @@ export interface DemoSnapshot {
   playVisible: boolean;
   playEnabled: boolean;
   playLabel: 'Play animation' | 'Pause animation';
+  /**
+   * Whether the current pause came from the user's Pause action, as opposed
+   * to viewport gating or a runtime that has not started yet; the status
+   * text depends on the difference.
+   */
+  userPaused: boolean;
   cameraMotionEnabled: boolean;
   freezeFrame: boolean;
   hasGraphicsSurface: boolean;
@@ -205,9 +211,14 @@ export function detectWebGL(host: CapabilityHost): boolean {
   }
 }
 
-export function statusMessage(snapshot: Pick<DemoSnapshot, 'mode' | 'reason' | 'cameraMotionEnabled'>): string {
+export function statusMessage(
+  snapshot: Pick<
+    DemoSnapshot,
+    'mode' | 'reason' | 'cameraMotionEnabled' | 'userPaused' | 'hasGraphicsSurface'
+  >,
+): string {
   if (snapshot.mode === 'initializing') {
-    return 'Starting the live visualization.';
+    return 'Starting the live runtime.';
   }
 
   switch (snapshot.reason) {
@@ -218,7 +229,15 @@ export function statusMessage(snapshot: Pick<DemoSnapshot, 'mode' | 'reason' | '
           : 'Live visualization is running. Nonessential camera motion stays off.';
       }
       if (snapshot.mode === 'awaiting-play') {
-        return 'Motion is paused. Play animation to start the live visualization.';
+        // "Motion is paused" only for a pause the user owns. An island that
+        // has not started yet keeps the static line, so a load (or a mesh
+        // still below the fold) never reads as broken; a started session
+        // parked off screen says it resumes on return.
+        return snapshot.userPaused
+          ? 'Motion is paused. Play animation to start the live visualization.'
+          : snapshot.hasGraphicsSurface
+            ? 'The live network resumes when the mesh is back in view.'
+            : STATIC_DEMO_STATUS;
       }
       return STATIC_DEMO_STATUS;
     case 'reduced-motion':
@@ -391,6 +410,7 @@ export class DemoRuntime {
       playVisible,
       playEnabled,
       playLabel: this.mode === 'live' && !this.userPaused ? 'Pause animation' : 'Play animation',
+      userPaused: this.userPaused,
       cameraMotionEnabled,
       freezeFrame: this.mode === 'frozen',
       hasGraphicsSurface: this.rendererSession !== null && this.mode !== 'fallback',
@@ -753,6 +773,7 @@ export class DemoRuntime {
     if (this.initAbort === null || this.initAbort.signal.aborted) {
       this.initAbort = new AbortController();
     }
+    this.emitSnapshotChange();
   }
 
   private async recreateRenderer(enabled: boolean): Promise<boolean> {
@@ -853,6 +874,11 @@ export class DemoRuntime {
     this.mode = 'initializing';
     this.partialGraphicsDisposed = false;
     this.initAbort = new AbortController();
+    // Paint the starting status now. Initialization spans seconds (the worker
+    // and the WASM module), and the view only repaints on snapshot changes,
+    // so without this the load would sit on the pre-start message until the
+    // first live frame.
+    this.emitSnapshotChange();
     const generation = ++this.generation;
     const rendererSeam = this.seams.renderer;
     const wasmSeam = this.seams.wasm;

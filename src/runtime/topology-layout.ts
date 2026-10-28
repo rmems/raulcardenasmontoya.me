@@ -16,8 +16,18 @@ export interface NodeLayout {
 
 /** Half the shorter side of the orthographic view, in world units. */
 export const CAMERA_EXTENT = 1.35;
-/** Neuron marker size in CSS pixels (`PointsMaterial.size`, no attenuation). */
-export const NODE_SIZE_PX = 10;
+/**
+ * Neuron marker diameter in world units (viewBox units in the static SVG):
+ * one 36th of the 2 × {@link CAMERA_EXTENT} frame, so markers scale with the
+ * stage instead of staying a fixed pixel size. The static SVG draws it as the
+ * node path's stroke width (so it grows with the rendered box) and the live
+ * renderer converts it through `worldPerPixel` (`PointsMaterial.size` with
+ * `sizeAttenuation: false` is CSS pixels), so both land on the same on-screen
+ * size: ≈10 px on the 402 px plate this replaced, ≈13 px on the ≥480 px one,
+ * and proportionally less on a phone. The exact literal keeps the serialized
+ * stroke width clean.
+ */
+export const NODE_SIZE_WORLD = 0.075;
 /** Opacity of the edge lines. */
 export const EDGE_OPACITY = 0.4;
 /**
@@ -162,7 +172,8 @@ export interface StaticMesh {
   nodes: StaticMeshNode[];
   edges: StaticMeshEdge[];
   nodeFill: string;
-  nodeSizePx: number;
+  /** Node marker diameter in world (viewBox) units, so it scales with the stage. */
+  nodeSize: number;
   edgeOpacity: number;
 }
 
@@ -206,7 +217,8 @@ const round = (value: number) => Math.round(value * 10_000) / 10_000;
  * (polarity colour mixed toward `--line` by weight). SVG's y axis points
  * down, so world y is negated. Node markers keep their resting `--muted`
  * colour, which is what the renderer shows before any membrane potential
- * arrives.
+ * arrives, and their stroke width is world units, so the markers scale with
+ * the stage exactly like the renderer's do.
  */
 export function staticMeshGeometry(
   topology: TopologyDrawingInput,
@@ -260,7 +272,7 @@ export function staticMeshGeometry(
     })),
     edges,
     nodeFill: toHex(muted),
-    nodeSizePx: NODE_SIZE_PX,
+    nodeSize: NODE_SIZE_WORLD,
     edgeOpacity: EDGE_OPACITY,
   };
 }

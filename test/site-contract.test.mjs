@@ -397,6 +397,17 @@ test('the homepage hero hosts the live demo static-first and traces it to its cr
   assert.match(styles, /\.hero-mesh \.demo-surface\[hidden\] \{\s*display: block;\s*visibility: hidden;/);
   assert.match(styles, /\.hero-mesh \.demo-surface:not\(\[hidden\]\) \+ \.hero-mesh-static \{ visibility: hidden; \}/);
 
+  // RM-2354: the mesh column is at least 480 px wide at 1440 px, so the
+  // 1/4-speed pulses have room to read. At that width the 1240 px shell keeps
+  // 2 × 3rem gutters and the hero gap clamps to 4.5rem: 1072 px of free track
+  // space shared by the two `minmax(0, …fr)` columns.
+  const heroTracks = styles.match(/\.hero\.hero-live \{[\s\S]*?grid-template-columns: ([^;]+);/);
+  assert.ok(heroTracks, 'the hero-live grid columns');
+  const heroFr = [...heroTracks[1].matchAll(/minmax\(0, ([\d.]+)fr\)/g)].map((match) => Number(match[1]));
+  assert.ok(heroFr.length === 2 && heroFr.every((fr) => fr > 0), 'two minmax(0, …fr) tracks');
+  const meshColumnPx = (1240 - 96 - 72) * (heroFr[1] / (heroFr[0] + heroFr[1]));
+  assert.ok(meshColumnPx >= 480, `the mesh column is ≥ 480 px at 1440 px (it is ${meshColumnPx.toFixed(1)} px)`);
+
   // Provenance: runtime-bound origin label, static crate links, evidence kept apart.
   assert.match(island, /simulating in this browser/);
   // The caption states the replay rate from the renderer's own constants, and

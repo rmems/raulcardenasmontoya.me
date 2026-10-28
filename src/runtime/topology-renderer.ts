@@ -22,7 +22,7 @@ import {
   LANDING_GLOW_MIX,
   SPIKE_FLASH_SECONDS,
   SITE_TOPOLOGY_PALETTE,
-  NODE_SIZE_PX,
+  NODE_SIZE_WORLD,
   afterglowDecay,
   edgeStrength,
   edgeWeightExtent,
@@ -43,8 +43,13 @@ import {
   type SpikePropagationEvent,
 } from './spike-events';
 
-/** Drawn pulse width at its head, in CSS pixels. */
-const PULSE_WIDTH_PX = 3;
+/**
+ * Drawn pulse width at its head, in world units: a fixed fraction of the
+ * camera's frame, so pulses scale with the stage (≈3 px on the 402 px plate
+ * this replaced, ≈4 px on the ≥480 px one) instead of staying a fixed pixel
+ * size. `writePulse` draws it directly in world space.
+ */
+export const PULSE_WIDTH_WORLD = (CAMERA_EXTENT * 2) / 116;
 
 /** Draw order, back to front: edges, then pulses, then the neuron markers. */
 export const EDGE_RENDER_ORDER = 0;
@@ -240,8 +245,11 @@ export function createTopologyRendererSeam(options: TopologyRendererSeamOptions)
 
       const nodeSprite = roundNodeSprite(THREE);
       const nodeMaterial = new THREE.PointsMaterial({
-        // The sprite's halo needs room beyond the solid core.
-        size: NODE_SIZE_PX * 1.6,
+        // The sprite's solid core is 62% of its face, so the halo needs room
+        // beyond it; `size` (CSS pixels, `sizeAttenuation: false` under an
+        // orthographic camera) is set in `resize()` from the world-unit
+        // marker size, so the dot scales with the stage.
+        size: 0,
         vertexColors: true,
         sizeAttenuation: false,
         map: nodeSprite,
@@ -453,7 +461,7 @@ export function createTopologyRendererSeam(options: TopologyRendererSeamOptions)
         const dx = target.x - source.x;
         const dy = target.y - source.y;
         const length = Math.hypot(dx, dy) || 1;
-        const halfWidth = (PULSE_WIDTH_PX / 2) * worldPerPixel;
+        const halfWidth = PULSE_WIDTH_WORLD / 2;
         // Normal to the edge; the clear tail tapers to a third of the head.
         const nx = (-dy / length) * halfWidth;
         const ny = (dx / length) * halfWidth;
@@ -560,6 +568,12 @@ export function createTopologyRendererSeam(options: TopologyRendererSeamOptions)
         }
         camera.updateProjectionMatrix();
         worldPerPixel = (camera.top - camera.bottom) / height;
+        // World-unit marker size through `worldPerPixel`: the neuron dot is
+        // as wide on screen as the stage allows (≈13 px on the ≥480 px hero
+        // plate, proportionally less on a phone), matching the static SVG's
+        // viewBox-scaled stroke. The sprite's solid core is 62% of its face,
+        // so the material draws the halo around it at 1/0.62 ≈ 1.6×.
+        nodeMaterial.size = (NODE_SIZE_WORLD / worldPerPixel) * 1.6;
       };
 
       const renderFrame = (time: number) => {

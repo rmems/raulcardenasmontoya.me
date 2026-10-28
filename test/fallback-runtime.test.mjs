@@ -395,6 +395,63 @@ test('applyDemoView exposes status, play affordance, and reason for assistive te
   assert.equal(elements.origin.dataset.origin, 'static');
 });
 
+test('the paused wording only appears for a user pause or reduced motion (RM-2354)', async () => {
+  const { seams } = connectedSeams();
+
+  // A load with the mesh still out of view: nothing has started, so nothing
+  // is paused; the status stays the static line until initialization begins.
+  const demo = runtime.createDemoRuntime({ capabilities: capable, seams, inViewport: false });
+  assert.equal(demo.getSnapshot().status, runtime.STATIC_DEMO_STATUS);
+  await demo.startIfAllowed();
+  const gated = demo.getSnapshot();
+  assert.equal(gated.mode, 'awaiting-play');
+  assert.equal(gated.userPaused, false);
+  assert.equal(gated.status, runtime.STATIC_DEMO_STATUS, 'a gated load never reads as paused');
+
+  // Entering the viewport starts initialization, and the starting status
+  // paints through the snapshot change while the worker and WASM come up.
+  const statuses = [];
+  demo.onSnapshotChange(() => statuses.push(demo.getSnapshot().status));
+  await demo.setInViewport(true);
+  assert.ok(statuses.includes('Starting the live runtime.'));
+  const live = demo.getSnapshot();
+  assert.equal(live.mode, 'live');
+  assert.equal(live.status, 'Live visualization is running.');
+
+  // The user's own pause keeps the paused wording and Play to return.
+  await demo.play();
+  const paused = demo.getSnapshot();
+  assert.equal(paused.mode, 'awaiting-play');
+  assert.equal(paused.userPaused, true);
+  assert.equal(paused.status, 'Motion is paused. Play animation to start the live visualization.');
+  await demo.play();
+  assert.equal(demo.getSnapshot().mode, 'live');
+
+  // A live session parked off screen is gated, not paused: it says it
+  // resumes, and never claims the user paused it.
+  demo.setInViewport(false);
+  await demo.setDocumentHidden(false);
+  const parked = demo.getSnapshot();
+  assert.equal(parked.mode, 'awaiting-play');
+  assert.equal(parked.userPaused, false);
+  assert.equal(parked.status, 'The live network resumes when the mesh is back in view.');
+  demo.dispose();
+
+  // Reduced motion is the one non-user state that may say paused: the
+  // runtime waits for an explicit Play.
+  const reduced = runtime.createDemoRuntime({
+    capabilities: { ...capable, prefersReducedMotion: true },
+    seams: connectedSeams().seams,
+    inViewport: true,
+  });
+  await reduced.startIfAllowed();
+  const reducedSnapshot = reduced.getSnapshot();
+  assert.equal(reducedSnapshot.mode, 'awaiting-play');
+  assert.equal(reducedSnapshot.userPaused, false);
+  assert.equal(reducedSnapshot.status, 'Motion is paused. Play animation to start the live visualization.');
+  reduced.dispose();
+});
+
 test('LIVE origin is reserved for a verified adapter-backed live runtime', () => {
   const live = {
     mode: 'live',
@@ -1961,7 +2018,7 @@ test('Play paints initializing immediately, then the live surface after settleme
     assert.equal(play.disabled, true);
     assert.equal(play.textContent, 'Play animation');
     assert.equal(surface.hidden, true);
-    assert.match(status.textContent, /Starting the live visualization/);
+    assert.match(status.textContent, /Starting the live runtime/);
 
     rendererCreate.resolve();
     await waitFor(() => root.dataset.mode === 'live');
@@ -2017,7 +2074,7 @@ test('Play during a no-setter camera replacement paints initializing status', as
     assert.equal(play.disabled, true);
     assert.equal(play.textContent, 'Play animation');
     assert.equal(surface.hidden, true);
-    assert.match(status.textContent, /Starting the live visualization/);
+    assert.match(status.textContent, /Starting the live runtime/);
 
     replacement.resolve();
     await waitFor(() => root.dataset.mode === 'live');

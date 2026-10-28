@@ -9,7 +9,12 @@
 
 .hero.hero-live {
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
+  /* 0.85fr of the 1440 px column pair: with the 1240 px shell, 2 × 3rem
+     gutters and the 4.5rem gap, the mesh column is
+     (1240 − 96 − 72) × 0.85 / 1.85 ≈ 493 px, past the 480 px the pulses need
+     to read at 1/4 speed. The copy column keeps ≈ 580 px, wide enough for the
+     action row to stay on one line. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr);
   grid-template-areas:
     'heading heading'
     'text mesh';
@@ -105,8 +110,10 @@
   .hero-mesh-edges-light { display: none; }
   .hero-mesh-edges-dark { display: inline; }
 }
-.hero-mesh-edges line,
-.hero-mesh-nodes { vector-effect: non-scaling-stroke; }
+/* Edges stay hairlines at any stage size. The node stroke keeps its viewBox
+   (world) units, so the markers scale with the stage exactly like the live
+   renderer's do, and the first live frame lands on the static drawing. */
+.hero-mesh-edges line { vector-effect: non-scaling-stroke; }
 
 .hero-mesh .demo-surface {
   min-height: 0;
@@ -140,6 +147,46 @@
   font-size: 0.72rem;
   line-height: 1.5;
 }
+
+/* Legend: the colour code the drawing and the live view share, as the
+   caption's first row (directly under the stage on desktop and mobile). The
+   --muted ring keeps every key at 3:1 against the page in both schemes (light
+   --secondary on --paper is below it alone), and the labels sit in --ink. */
+.hero-mesh-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1.1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hero-mesh-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--ink);
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.hero-mesh-legend-key {
+  flex: none;
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 1px solid var(--muted);
+  border-radius: 999px;
+  background: var(--spike);
+}
+
+/* Synapses are edges, so their keys are short strokes, not dots. */
+.hero-mesh-legend-synapse {
+  width: 1.1rem;
+  height: 0.3rem;
+}
+
+.hero-mesh-legend-excitatory { background: var(--accent); }
+.hero-mesh-legend-inhibitory { background: var(--secondary); }
 
 /* Controls sit in the plate's bottom strip, absolutely placed, so showing or
    hiding them never reflows the page. */

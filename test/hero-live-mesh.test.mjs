@@ -76,7 +76,7 @@ test('the static drawing uses the renderer layout and camera framing', () => {
   const positions = layout.layoutTopology(16);
 
   assert.equal(mesh.viewBox, '-1.35 -1.35 2.7 2.7');
-  assert.equal(mesh.nodeSizePx, 10);
+  assert.equal(mesh.nodeSize, layout.NODE_SIZE_WORLD, 'the node stroke is world (viewBox) units, so it scales with the stage');
   assert.equal(mesh.edgeOpacity, 0.4);
   assert.equal(mesh.nodes.length, 16);
   assert.equal(mesh.edges.length, 64);
@@ -165,6 +165,41 @@ test('static drawing helpers reject inconsistent topologies and bad colours', ()
   assert.equal(layout.edgeStrength(-2, 1), 1);
 });
 
+test('markers and pulses scale with the stage instead of staying fixed pixels (RM-2354)', () => {
+  const frame = layout.CAMERA_EXTENT * 2;
+  const mesh = layout.staticMeshGeometry(adapterModule.auditedBrowserTopology());
+  assert.equal(mesh.nodeSize, layout.NODE_SIZE_WORLD, 'the static node stroke is world (viewBox) units');
+
+  // On a canvas whose shorter side is `px` wide, both the static SVG (viewBox
+  // scaling) and the live renderer (worldPerPixel) draw a marker
+  // NODE_SIZE_WORLD * px / frame CSS pixels across: the 402 px plate this
+  // replaced keeps its ≈10 px dot, the ≥480 px one draws ≈13 px, and a phone
+  // stage shrinks proportionally.
+  const markerAt = (shorterSidePx) => (layout.NODE_SIZE_WORLD / frame) * shorterSidePx;
+  const pulseAt = (shorterSidePx) => (renderer.PULSE_WIDTH_WORLD / frame) * shorterSidePx;
+  assert.ok(markerAt(347.6) > 9 && markerAt(347.6) < 10, 'the old 402 px plate keeps its ~10 px dot');
+  assert.ok(markerAt(347.6) < markerAt(453.4), 'a wider stage draws wider nodes');
+  assert.ok(pulseAt(347.6) < pulseAt(453.4), 'and wider pulses');
+  assert.ok(Math.abs(markerAt(453.4) / 453.4 - markerAt(159.2) / 159.2) < 1e-12, 'nodes scale on mobile too');
+  assert.ok(Math.abs(pulseAt(453.4) / 453.4 - pulseAt(159.2) / 159.2) < 1e-12, 'pulses scale on mobile too');
+
+  // The live renderer derives both from the canvas, never from fixed pixels:
+  // nodes through worldPerPixel (PointsMaterial.size is CSS px under the
+  // orthographic camera), pulses straight in world space.
+  const rendererSource = readSource('../src/runtime/topology-renderer.ts');
+  assert.match(rendererSource, /nodeMaterial\.size = \(NODE_SIZE_WORLD \/ worldPerPixel\) \* 1\.6/);
+  assert.match(rendererSource, /const halfWidth = PULSE_WIDTH_WORLD \/ 2/);
+  assert.doesNotMatch(rendererSource, /PULSE_WIDTH_PX/);
+  assert.doesNotMatch(readSource('../src/runtime/topology-layout.ts'), /NODE_SIZE_PX/);
+
+  // The static stroke keeps viewBox units (no non-scaling pin), so the first
+  // live frame still lands on the drawing at every stage size.
+  const heroStyles = readSource('../src/styles/hero.css');
+  assert.match(heroStyles, /\.hero-mesh-edges line \{ vector-effect: non-scaling-stroke; \}/);
+  assert.doesNotMatch(heroStyles, /\.hero-mesh-nodes[^}]*vector-effect/);
+  assert.match(readSource('../src/components/NeuromorphicDemo.astro'), /stroke-width=\{mesh\.nodeSize\}/);
+});
+
 test('the build-time palettes match the stylesheet tokens in both colour schemes', () => {
   const styles = readSource('../src/styles/global.css');
   const light = styles.match(/^:root \{([\s\S]*?)\}/m);
@@ -185,6 +220,56 @@ test('the build-time palettes match the stylesheet tokens in both colour schemes
   assert.deepEqual(darkMesh.edges.map((edge) => [edge.x1, edge.y1, edge.x2, edge.y2]), lightMesh.edges.map((edge) => [edge.x1, edge.y1, edge.x2, edge.y2]));
   assert.ok(darkMesh.edges.some((edge) => edge.stroke === layout.SITE_TOPOLOGY_PALETTE_DARK.accent), 'the strongest excitatory edge is the dark --accent');
   assert.notEqual(darkMesh.nodeFill, lightMesh.nodeFill);
+});
+
+test('the visible legend sits under the stage and passes contrast in both schemes (RM-2354)', () => {
+  const island = readSource('../src/components/NeuromorphicDemo.astro');
+  const heroStyles = readSource('../src/styles/hero.css');
+  const styles = readSource('../src/styles/global.css');
+
+  // The three keys, as the caption's first row: directly under the stage on
+  // desktop and mobile, beside it on tablet. No mode or scheme hides them.
+  assert.match(island, /<figcaption class="hero-mesh-caption">\s*<ul class="hero-mesh-legend" aria-label="What the colours in the drawing mean">/);
+  for (const item of ['Neuron spike', 'Excitatory synapse', 'Inhibitory synapse']) {
+    assert.match(island, new RegExp(`>${item}</li>`), item);
+  }
+  assert.match(heroStyles, /\.hero-mesh-legend-key \{[^}]*border: 1px solid var\(--muted\);[^}]*background: var\(--spike\);/);
+  assert.match(heroStyles, /\.hero-mesh-legend-excitatory \{ background: var\(--accent\); \}/);
+  assert.match(heroStyles, /\.hero-mesh-legend-inhibitory \{ background: var\(--secondary\); \}/);
+  assert.match(heroStyles, /\.hero-mesh-legend li \{[^}]*color: var\(--ink\);/);
+
+  // WCAG contrast per scheme: every key needs 3:1 against the page as a
+  // graphic, from its fill or its --muted ring (light --secondary is below
+  // 3:1 alone), and the labels need 4.5:1 as text in --ink.
+  const luminance = (hex) => {
+    const value = Number.parseInt(hex.slice(1), 16);
+    const channel = (shift) => {
+      const c = ((value >> shift) & 255) / 255;
+      return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    };
+    return 0.2126 * channel(16) + 0.7152 * channel(8) + 0.0722 * channel(0);
+  };
+  const contrast = (a, b) => {
+    const [lighter, darker] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+    return (lighter + 0.05) / (darker + 0.05);
+  };
+  const scheme = (block) =>
+    Object.fromEntries([...block.matchAll(/--([\w-]+): (#(?:[0-9a-f]{6}));/g)].map((match) => [match[1], match[2]]));
+  const schemes = [
+    scheme(styles.match(/^:root \{([\s\S]*?)\}/m)[1]),
+    scheme(styles.match(/@media \(prefers-color-scheme: dark\) \{\s*:root \{([\s\S]*?)\}/)[1]),
+  ];
+  for (const tokens of schemes) {
+    assert.ok(contrast(tokens.ink, tokens.paper) >= 4.5, `legend labels pass text contrast (${contrast(tokens.ink, tokens.paper).toFixed(2)}:1)`);
+    for (const token of ['spike', 'accent', 'secondary']) {
+      const fill = contrast(tokens[token], tokens.paper);
+      const ring = contrast(tokens.muted, tokens.paper);
+      assert.ok(
+        fill >= 3 || ring >= 3,
+        `${token} key passes non-text contrast (fill ${fill.toFixed(2)}:1, ring ${ring.toFixed(2)}:1)`,
+      );
+    }
+  }
 });
 
 test('the crate trail pins every layer exactly as the adapter manifest and lockfile do', () => {
