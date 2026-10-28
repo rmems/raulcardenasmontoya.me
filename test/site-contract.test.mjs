@@ -461,12 +461,14 @@ test('the homepage hero hosts the live demo static-first and traces it to its cr
   assert.match(island, /<span data-when="live-still">[^<]*simulating in this browser at \{simulationHz\} Hz · pulses shown at \{pulseSpeedLabel\} speed \(none in the lightest quality mode\) · view held still<\/span>/);
   assert.doesNotMatch(island, /pulses off/);
   // The reduced-motion notice appears with the Play control: the media query
-  // lets it show, and `data-mode` — set only when the runtime initializes —
-  // is what shows it, so a no-JavaScript or fallback island, which has no
-  // Play control either, never displays it.
+  // lets it show, and `data-mode` — which only the runtime writes — is what
+  // shows it. The initializing, awaiting-play and live modes all lead to a
+  // Play control, so the note is up before and while the network waits; a
+  // no-JavaScript or fallback island, which has no Play control either,
+  // never displays it.
   assert.match(island, /<p class="hero-mesh-motion-note">Your device asks for reduced motion, so the network waits until you press Play\./);
   assert.match(styles, /\.hero-mesh-motion-note \{[^}]*display: none;/);
-  assert.match(styles, /@media \(prefers-reduced-motion: reduce\) \{\s*\.live-hero\[data-mode='live'\] \.hero-mesh-motion-note \{ display: block; \}/);
+  assert.match(styles, /@media \(prefers-reduced-motion: reduce\) \{\s*\.live-hero:is\(\[data-mode='live'\], \[data-mode='awaiting-play'\], \[data-mode='initializing'\]\) \.hero-mesh-motion-note \{ display: block; \}/);
   assert.match(styles, /\.live-hero\[data-mode='live'\]:not\(\[data-motion='off'\]\) \.hero-mesh-mode > \[data-when='live'\]/);
   assert.match(styles, /\.live-hero\[data-mode='live'\]\[data-motion='off'\] \.hero-mesh-mode > \[data-when='live-still'\]/);
   assert.match(island, /liveCrateLayers\.map/);

@@ -22,6 +22,48 @@ export const LEGACY_DIGEST = 'synaptic-wiring.topology.digest.v1:sha256:26875faf
 const wasmUrl = new URL('../public/wasm/neuromorphic-adapter/neuromorphic_adapter.js', import.meta.url);
 const wasmBytes = readFileSync(new URL('../public/wasm/neuromorphic-adapter/neuromorphic_adapter_bg.wasm', import.meta.url));
 
+function emptyTopologyArrays() {
+  return {
+    topology_rows: new Uint32Array(0),
+    topology_targets: new Uint32Array(0),
+    topology_weights: new Float32Array(0),
+    topology_delays: new Uint16Array(0),
+    topology_node_ids: new Uint32Array(0),
+    topology_edge_sources: new Uint32Array(0),
+    topology_edge_targets: new Uint32Array(0),
+    topology_edge_weights: new Float32Array(0),
+    topology_edge_delays: new Uint16Array(0),
+    topology_polarities: new Uint8Array(0),
+    topology_weight_bits: new Uint32Array(0),
+    topology_outgoing_edge_offsets: new Uint32Array(0),
+  };
+}
+
+/** The fake WASM module every fail-closed test injects: a `WasmAdapter` whose
+ *  adapter serves the given topology and state handles, counting calls. */
+function buildFakeModule({ topology, state, withTopology }) {
+  const calls = { init: [], topology: 0, free: 0 };
+  return {
+    calls,
+    module: async () => ({
+      async default() {},
+      WasmAdapter: {
+        init(seed, config) {
+          calls.init.push([seed, [...config]]);
+          const adapter = { input() {}, step: () => state, state: () => state, dispose() {} };
+          if (withTopology) {
+            adapter.topology = () => {
+              calls.topology += 1;
+              return { ...topology, free() { calls.free += 1; } };
+            };
+          }
+          return adapter;
+        },
+      },
+    }),
+  };
+}
+
 /** Build the scaffolding for one audited contract:
  * `contract` pins the version, `neurons` and `fanOut` size its network, `live`
  * marks the contract the demo runs, `badStates` adds snapshot states that must
@@ -34,7 +76,7 @@ export async function contractBank({ contract, neurons, fanOut, live = false, ba
   const generated = await loadTsModule(`../src/runtime/audited-topology-v${contract}.ts`);
   const module = generated[`AUDITED_TOPOLOGY_V${contract}`];
   const edges = neurons * fanOut;
-  const offsets = () => new Uint32Array([...Array(neurons + 1).keys()].map((index) => index * fanOut));
+  const offsets = () => Uint32Array.from({ length: neurons + 1 }, (_, index) => index * fanOut);
   const auditedOf = () => (live ? bridge.auditedBrowserTopology() : bridge.auditedBrowserTopology(contract));
 
   /** The audited topology of this contract as the raw `topology()` handle would expose it. */
@@ -64,7 +106,7 @@ export async function contractBank({ contract, neurons, fanOut, live = false, ba
   /** Another contract's audited topology under this contract's digest. */
   function foreignTopology(otherContract) {
     const foreign = bridge.auditedBrowserTopology(otherContract);
-    const foreignOffsets = new Uint32Array([...Array(foreign.nodeIds.length + 1).keys()].map((index) => index * foreign.fanOut));
+    const foreignOffsets = Uint32Array.from({ length: foreign.nodeIds.length + 1 }, (_, index) => index * foreign.fanOut);
     return {
       topology: rawTopology({
         topology_rows: foreignOffsets,
@@ -83,23 +125,6 @@ export async function contractBank({ contract, neurons, fanOut, live = false, ba
       digest: foreign.digest,
       nodeCount: foreign.nodeIds.length,
       edgeCount: foreign.edgeSources.length,
-    };
-  }
-
-  function emptyTopologyArrays() {
-    return {
-      topology_rows: new Uint32Array(0),
-      topology_targets: new Uint32Array(0),
-      topology_weights: new Float32Array(0),
-      topology_delays: new Uint16Array(0),
-      topology_node_ids: new Uint32Array(0),
-      topology_edge_sources: new Uint32Array(0),
-      topology_edge_targets: new Uint32Array(0),
-      topology_edge_weights: new Float32Array(0),
-      topology_edge_delays: new Uint16Array(0),
-      topology_polarities: new Uint8Array(0),
-      topology_weight_bits: new Uint32Array(0),
-      topology_outgoing_edge_offsets: new Uint32Array(0),
     };
   }
 
@@ -126,26 +151,7 @@ export async function contractBank({ contract, neurons, fanOut, live = false, ba
   }
 
   function fakeModule({ topology = rawTopology(), state = rawState(), withTopology = true } = {}) {
-    const calls = { init: [], topology: 0, free: 0 };
-    return {
-      calls,
-      module: async () => ({
-        async default() {},
-        WasmAdapter: {
-          init(seed, config) {
-            calls.init.push([seed, [...config]]);
-            const adapter = { input() {}, step: () => state, state: () => state, dispose() {} };
-            if (withTopology) {
-              adapter.topology = () => {
-                calls.topology += 1;
-                return { ...topology, free() { calls.free += 1; } };
-              };
-            }
-            return adapter;
-          },
-        },
-      }),
-    };
+    return buildFakeModule({ topology, state, withTopology });
   }
 
   /** A session against the committed homepage package, pinned to this contract. */
@@ -189,8 +195,8 @@ export async function contractBank({ contract, neurons, fanOut, live = false, ba
       assert.equal(bridge.NEUROMORPHIC_LIVE_CONTRACT_VERSION, 8, 'the live contract is 8');
       assert.equal(audited.contractVersion, contract);
       assert.equal(audited.digest, module.digest);
-      assert.deepEqual([...audited.nodeIds], [...Array(neurons).keys()]);
-      assert.deepEqual([...audited.edgeSources], [...Array(neurons).keys()].flatMap((source) => Array(fanOut).fill(source)));
+      assert.deepEqual([...audited.nodeIds], Array.from({ length: neurons }, (_, index) => index));
+      assert.deepEqual([...audited.edgeSources], Array.from({ length: neurons * fanOut }, (_, index) => Math.floor(index / fanOut)));
       assert.deepEqual([...audited.edgeTargets], [...module.edgeTargets]);
       assert.deepEqual([...audited.edgeDelays], [...module.edgeDelays]);
       assert.deepEqual([...audited.polarities], [...module.polarities]);
@@ -224,23 +230,24 @@ export async function contractBank({ contract, neurons, fanOut, live = false, ba
       assert.equal(first.topologyEdgeSources, second.topologyEdgeSources, 'snapshots share one projection');
       assert.equal(first.membranePotentials.length, neurons);
       assert.deepEqual([...first.spikeNeurons], [2, 7, 40]);
-      assert.deepEqual([...first.encoderFeatures], Array(16).fill(0.5), 'the encoder contract stays 16 features');
+      assert.deepEqual([...first.encoderFeatures], Array.from({ length: 16 }, () => 0.5), 'the encoder contract stays 16 features');
       assert.equal(adapter.topology().topologyEdgeSources, first.topologyEdgeSources);
       adapter.dispose();
     });
 
     test(`contract ${contract} snapshots must carry empty topology arrays, the session digest, and ${neurons}-neuron state`, async () => {
-      for (const [name, overrides] of [
+      const cases = [
         ['a repeated projection', { topology_edge_sources: new Uint32Array([0]) }],
         ['another digest', { topology_digest: LEGACY_DIGEST }],
         ...badStates,
         [`a spike outside the ${neurons} neurons`, { spike_neurons: new Uint32Array([neurons]) }],
-      ]) {
+      ];
+      await Promise.all(cases.map(async ([name, overrides]) => {
         const fake = fakeModule({ state: rawState(overrides) });
         const adapter = await bridge.initNeuromorphicAdapter(fake.module, 9n, { contractVersion: contract });
         assert.throws(() => adapter.step(), bridge.AdapterUnavailableError, name);
         adapter.dispose();
-      }
+      }));
     });
 
     test(`contract ${contract} init fails closed on a projection that is not the audited ${neurons} / ${edges} one`, async () => {
@@ -248,24 +255,25 @@ export async function contractBank({ contract, neurons, fanOut, live = false, ba
         bridge.initNeuromorphicAdapter(fakeModule({ withTopology: false }).module, 9n, { contractVersion: contract }),
         /does not export its topology/,
       );
-      const cases = [];
-      for (const foreignContract of foreignContracts) {
+      const cases = foreignContracts.flatMap((foreignContract) => {
         const { topology, digest, nodeCount, edgeCount } = foreignTopology(foreignContract);
-        cases.push([`the ${nodeCount} / ${edgeCount} network under the contract-${contract} digest`, topology]);
-        cases.push([`the ${nodeCount} / ${edgeCount} network with its own digest`, { ...topology, topology_digest: digest }]);
-      }
+        return [
+          [`the ${nodeCount} / ${edgeCount} network under the contract-${contract} digest`, topology],
+          [`the ${nodeCount} / ${edgeCount} network with its own digest`, { ...topology, topology_digest: digest }],
+        ];
+      });
       cases.push(
         ['a flipped polarity', rawTopology({ topology_polarities: bridge.auditedBrowserTopology(contract).polarities.map((polarity, edge) => (edge === 0 ? 1 - polarity : polarity)) })],
         ['a target outside the network', rawTopology({ topology_edge_targets: bridge.auditedBrowserTopology(contract).edgeTargets.map((target, edge) => (edge === 5 ? neurons : target)) })],
         ['a foreign digest', rawTopology({ topology_digest: 'synaptic-wiring.topology.digest.v1:sha256:0000' })],
       );
-      for (const [name, topology] of cases) {
+      await Promise.all(cases.map(async ([name, topology]) => {
         await assert.rejects(
           bridge.initNeuromorphicAdapter(fakeModule({ topology }).module, 9n, { contractVersion: contract }),
           /invalid topology/,
           name,
         );
-      }
+      }));
     });
 
     test(`the committed homepage package exports exactly the audited contract-${contract} topology and runs ${neurons} neurons`, async () => {

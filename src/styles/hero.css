@@ -150,10 +150,11 @@
 
 /* Reduced-motion notice. It explains why the hero waits for Play, including
    to visitors who never knowingly turned the setting on. The media query
-   decides *that* it can show; `data-mode` (set when the runtime initializes)
-   decides *when*, so the note appears exactly with the Play control. An
-   island that never runs — no JavaScript, or a fallback with no WebGL or
-   WebAssembly — has no Play control and never shows it. */
+   decides *that* it can show; `data-mode` — which only the runtime writes —
+   decides *when*: the initializing, awaiting-play and live modes all lead to
+   a Play control, so the note is up before and while the network waits. An
+   island that never gets there — no JavaScript, or a fallback with no WebGL
+   or WebAssembly — has no Play control and never shows it. */
 .hero-mesh-motion-note {
   display: none;
   margin: 0;
@@ -165,7 +166,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .live-hero[data-mode='live'] .hero-mesh-motion-note { display: block; }
+  .live-hero:is([data-mode='live'], [data-mode='awaiting-play'], [data-mode='initializing']) .hero-mesh-motion-note { display: block; }
 }
 
 /* Legend: the colour code the drawing and the live view share, as the

@@ -170,8 +170,9 @@ export interface TopologyRendererSeam extends RendererSeam {
  * event's real emission, so pulses stay legible while the 20 Hz simulation is
  * untouched (see "Display clock" in `spike-events.ts`). A firing neuron
  * flashes and a pulse's target glows briefly as it lands, both with
- * exponential afterglow. With reduced motion, pulses (and so landing glows)
- * and camera drift stay off and only the static topology and node state render.
+ * exponential afterglow. With reduced motion, camera drift stays off while
+ * pulses (and so landing glows) still travel, so the network keeps its
+ * content with the camera held still.
  */
 export function createTopologyRendererSeam(options: TopologyRendererSeamOptions): TopologyRendererSeam {
   let partial: (() => void) | null = null;

@@ -7,12 +7,15 @@
 import { readFile } from 'node:fs/promises';
 
 const SCALAR = /^\s*(\w+): '?([^',\n]+?)'?,$/gm;
-// `\r?` so the parser also reads a Windows checkout, where the generated
-// modules land with CRLF line endings.
-const LIST = /^\s*(\w+): \[\r?\n([\s\S]*?)\r?\n\s*\],$/gm;
+// A list body is every line up to the closing `],`; those lines hold only
+// integers, so they never contain `]`, which keeps the match linear.
+const LIST = /^\s*(\w+): \[\n((?:[^\]\n]*\n)*)\s*\],$/gm;
 
 /** Parse one generated module's source into `{ digest, neurons, fanOut, maxDelay, edgeTargets, edgeDelays, polarities, weightBits }`. */
-function parseGeneratedTopology(source, file) {
+function parseGeneratedTopology(rawSource, file) {
+  // Normalize to LF first, so the parser also reads a Windows checkout,
+  // where the generated modules land with CRLF line endings.
+  const source = rawSource.replace(/\r\n/g, '\n');
   const scalars = Object.fromEntries([...source.matchAll(SCALAR)].map(([, key, value]) => [key, value]));
   const lists = Object.fromEntries(
     [...source.matchAll(LIST)].map(([, key, body]) => [
