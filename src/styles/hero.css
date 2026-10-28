@@ -148,10 +148,12 @@
   line-height: 1.5;
 }
 
-/* Reduced-motion notice. CSS alone decides when it shows, so it is in place at
-   first paint and never shifts the layout. It explains why the hero waits for
-   Play, including to visitors who never knowingly turned the setting on. A
-   fallback island has no Play control, so the note goes away there. */
+/* Reduced-motion notice. It explains why the hero waits for Play, including
+   to visitors who never knowingly turned the setting on. The media query
+   decides *that* it can show; `data-mode` (set when the runtime initializes)
+   decides *when*, so the note appears exactly with the Play control. An
+   island that never runs — no JavaScript, or a fallback with no WebGL or
+   WebAssembly — has no Play control and never shows it. */
 .hero-mesh-motion-note {
   display: none;
   margin: 0;
@@ -163,8 +165,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero-mesh-motion-note { display: block; }
-  .live-hero[data-mode='fallback'] .hero-mesh-motion-note { display: none; }
+  .live-hero[data-mode='live'] .hero-mesh-motion-note { display: block; }
 }
 
 /* Legend: the colour code the drawing and the live view share, as the

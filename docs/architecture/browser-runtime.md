@@ -587,10 +587,13 @@ synaptic-wiring projection (same snapshot) ──┴→ mapSpikesThroughTopology
   Play: they are the content the visitor asked for, while drift is
   decoration. Until RM-2355 the flag hid pulses too, so an iPhone with Reduce
   Motion on showed a still mesh after Play, captioned "pulses off". A notice
-  above the legend (`.hero-mesh-motion-note`, shown by the
-  `prefers-reduced-motion` media query alone, so it is present at first paint
-  and never shifts the layout) tells visitors, including those who never
-  knowingly turned the setting on, why the hero waits for Play.
+  above the legend (`.hero-mesh-motion-note`) tells visitors, including those
+  who never knowingly turned the setting on, why the hero waits for Play. The
+  `prefers-reduced-motion` media query lets it show, and
+  `.live-hero[data-mode='live']` — `data-mode` is set when the runtime
+  initializes, exactly when the Play control appears — is what shows it, so
+  an island that never runs (no JavaScript, or a fallback without WebGL or
+  WebAssembly) shows no note about a Play button it does not have.
 - **Inspection.** Under `astro dev`, `globalThis.__neuromorphicSpikeEvents`
   exposes `stats()`, `recent(limit)` (with `u64` steps as strings), and
   `renderer()`.

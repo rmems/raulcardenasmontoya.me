@@ -459,11 +459,13 @@ test('the homepage hero hosts the live demo static-first and traces it to its cr
   // Reduced motion holds the camera still after Play; pulses still travel.
   assert.match(island, /<span data-when="live-still">[^<]*simulating in this browser at \{simulationHz\} Hz · pulses shown at \{pulseSpeedLabel\} speed · view held still<\/span>/);
   assert.doesNotMatch(island, /pulses off/);
-  // The reduced-motion notice is shown by the media query alone, so it is
-  // there at first paint, and hidden on a fallback island with no Play.
+  // The reduced-motion notice appears with the Play control: the media query
+  // lets it show, and `data-mode` — set only when the runtime initializes —
+  // is what shows it, so a no-JavaScript or fallback island, which has no
+  // Play control either, never displays it.
   assert.match(island, /<p class="hero-mesh-motion-note">Your device asks for reduced motion, so the network waits until you press Play\./);
   assert.match(styles, /\.hero-mesh-motion-note \{[^}]*display: none;/);
-  assert.match(styles, /@media \(prefers-reduced-motion: reduce\) \{\s*\.hero-mesh-motion-note \{ display: block; \}\s*\.live-hero\[data-mode='fallback'\] \.hero-mesh-motion-note \{ display: none; \}/);
+  assert.match(styles, /@media \(prefers-reduced-motion: reduce\) \{\s*\.live-hero\[data-mode='live'\] \.hero-mesh-motion-note \{ display: block; \}/);
   assert.match(styles, /\.live-hero\[data-mode='live'\]:not\(\[data-motion='off'\]\) \.hero-mesh-mode > \[data-when='live'\]/);
   assert.match(styles, /\.live-hero\[data-mode='live'\]\[data-motion='off'\] \.hero-mesh-mode > \[data-when='live-still'\]/);
   assert.match(island, /liveCrateLayers\.map/);
