@@ -636,7 +636,14 @@ test('the labs index is a list driven by one data array', () => {
   const labs = read('src/data/labs.ts');
 
   assert.match(index, /labs\.map\(\(lab\) =>/);
-  assert.match(index, /<ExecutionOrigin origin=\{lab\.origin\} \/>/);
+  // Honesty rule: a live-wasm lab has no runtime on the static index, so it must
+  // render the static "UNAVAILABLE · Rust/WASM" state instead of asserting LIVE
+  // where no runtime runs. The index has no script to upgrade the badge, so no
+  // runtimeBound flag is passed here (unlike the lab page).
+  assert.match(
+    index,
+    /<ExecutionOrigin origin=\{lab\.origin === 'live-wasm' \? 'unavailable-wasm' : lab\.origin\} \/>/,
+  );
   assert.match(index, /href=\{lab\.href\}/);
   assert.match(labs, /export const labs: readonly LabEntry\[\] = \[/);
   assert.match(labs, /href: '\/labs\/nir\/'/);

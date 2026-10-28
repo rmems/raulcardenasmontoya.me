@@ -135,13 +135,13 @@ export const projects: Project[] = [
     'Active research',
     'Limen Neural',
     ['Rust', 'Spiking neural networks', 'NIR', 'CUDA', 'FPGA export'],
-    'A solo research organisation of small Rust crates for spiking neural networks, one concern per repository: sensory encoding, neuron dynamics, wiring and delays, NIR interchange, reward-modulated training loops, transport, and CUDA kernels.',
+    'A solo research organization of small Rust crates for spiking neural networks, one concern per repository: sensory encoding, neuron dynamics, wiring and delays, NIR interchange, reward-modulated training loops, transport, and CUDA kernels.',
     [
       'Which crate boundaries hold when a real pipeline, like the browser demo, composes them?',
       'What must each layer expose for a network to move between a simulator and hardware?',
     ],
     {
-      links: [{ label: 'Organisation', href: 'https://github.com/Limen-Neural/' }],
+      links: [{ label: 'Organization', href: 'https://github.com/Limen-Neural/' }],
       shipped:
         '{{crates}} crates on crates.io as of {{cratesAsOf}}. The homepage demo runs axon-encoder, neuromod, synaptic-wiring and kinetic-signals in the browser, and the plasticity lab runs limbic-critic and plasticity-lab.',
     },
