@@ -14,19 +14,26 @@ const downloads = (name: string) => {
 };
 ---
 
-<BaseLayout title="About" description={`Background, education, and the work I do: a WGU B.S. in AI Engineering (expected September 2027), ${counts.crates} published Rust crates, synthetic-factory, and merged upstream PRs.`}>
+<BaseLayout title="About" description={`${site.fullName} is an AI engineer in San Marcos, Texas, building agentic infrastructure, synthetic data, and neuromorphic Rust: ${counts.crates} published crates, synthetic-factory, and a WGU B.S. in AI Engineering in progress.`}>
   <section class="page-intro" aria-labelledby="about-title">
     <p class="eyebrow">About</p>
-    <h1 id="about-title">About me.</h1>
-    <p>I'm {site.fullName}. I live in San Marcos, Texas, and I'm open to relocating.</p>
+    <h1 id="about-title">About {site.fullName}</h1>
+    <p>I'm {site.fullName}, an AI engineer born in Los Angeles and raised in San Marcos, Texas, where I live now. I build agentic infrastructure, synthetic data, model evaluation, and spiking neural networks in Rust, because I want AI that helps people, not replaces them. I'm open to relocating to San Francisco, New York, Boston, Seattle, or Austin.</p>
   </section>
   <section class="about-profile" aria-label="Professional background">
     <figure><picture><source type="image/webp" srcset="/assets/raul-cardenas-montoya-256.webp 256w, /assets/raul-cardenas-montoya-512.webp 512w" sizes="(max-width: 760px) 90vw, 380px" /><img src="/assets/raul-cardenas-montoya-512.jpg" srcset="/assets/raul-cardenas-montoya-256.jpg 256w, /assets/raul-cardenas-montoya-512.jpg 512w" sizes="(max-width: 760px) 90vw, 380px" width="512" height="512" alt="Raul Cardenas Montoya" loading="eager" /></picture><figcaption>Raul Cardenas Montoya, San Marcos, TX.</figcaption></figure>
     <div class="prose">
-      <p>Most of what I build is infrastructure for agentic systems, synthetic data, and model evaluation. synthetic-factory is a synthetic-data platform where unknown provenance resolves to blocked and every record replays from its pack, seed, and actions. I've published {counts.datasets} datasets on Hugging Face as of {counts.datasetsAsOf}{counts.factoryDatasets > 0 ? `, ${counts.factoryDatasets} of them from it` : ''}. agoge-forger is a local-first LoRA/QLoRA post-training harness with immutable manifests, split-integrity checks, and leakage detection.</p>
+      <h2>Why I build AI</h2>
+      <p>I didn't take a straight path here. At Austin Community College, Business Administration was only the placeholder major on my enrollment. I was exploring economics, pre-med, and finance while I worked out where to transfer, and my goal after transferring was never business. I later studied Computer Science at Concordia University Texas, then left because I was convinced AI would replace software engineers, and I chose Electrical Engineering at Texas State as the safer bet.</p>
+      <p>Working heavily with AI coding agents changed my mind. The bottleneck wasn't writing code; it was knowing whether the code was right. That judgment still requires humans, so I came back to AI directly, this time to build it. The <a href="/manifesto/">manifesto</a> has the longer version.</p>
+      <p>In early 2026, a tool I built to clean up bad code deleted a large amount of my neuromorphic computing code. I was devastated and swore I'd never use AI coding agents again. Two hours later, after trying to bring it back myself, I was asking Claude to help. Most of it was gone. The lesson stuck: if code isn't backed up and published, it isn't safe. That's why I push everything to GitHub and publish on crates.io.</p>
+      <h2>What I build</h2>
+      <p>Most of what I build is systems that involve artificial intelligence and neuromorphic computing: infrastructure for agentic systems, synthetic data, and model evaluation, as well as spiking neural networks. synthetic-factory is a synthetic-data platform where unknown provenance resolves to blocked and every record replays from its pack, seed, and actions. I've published {counts.datasets} datasets on Hugging Face as of {counts.datasetsAsOf}{counts.factoryDatasets > 0 ? `, ${counts.factoryDatasets} of them from it` : ''}. agoge-forger is a local-first LoRA/QLoRA post-training harness with immutable manifests, split-integrity checks, and leakage detection.</p>
       <p>I've published {counts.crates} Rust crates on crates.io as of {counts.cratesAsOf}, including neuromod ({downloads('neuromod')}) and nir-rs ({downloads('nir-rs')}). The spiking-network demo on the homepage runs on four of them. Upstream, I implemented the xAI/Grok provider in agent-afk, and I added Linux support and Devin usage tracking to UsagePal. Both sets of PRs are merged.</p>
-      <p>I'm working toward a B.S. in Artificial Intelligence Engineering at Western Governors University, expected September 2027. Before that I took coursework at Texas State University (Spring 2026), Concordia University Texas (Computer Science, Fall 2025), and Austin Community College (Business Administration, 2019–2025).</p>
-      <p>I work in Rust, Python, Julia, and CUDA C/C++, mostly on Fedora Linux. The fastest way to reach me is <a href={`mailto:${site.email}`}>{site.email}</a>, and my <a href={site.resumePath}>résumé is a PDF</a>.</p>
+      <h2>Education</h2>
+      <p>I'm working toward a B.S. in Artificial Intelligence Engineering at Western Governors University, expected September 2027. Before that I took coursework at Texas State University (Electrical Engineering, Spring 2026), Concordia University Texas (Computer Science, Fall 2025), and Austin Community College (2019–2020 and 2024–2025).</p>
+      <h2>Tools and contact</h2>
+      <p>I work in Rust, Python, and Julia, mostly on Fedora Linux and Windows 11. The fastest way to reach me is <a href={`mailto:${site.email}`}>{site.email}</a>, and my <a href={site.resumePath}>résumé is a PDF</a>.</p>
     </div>
   </section>
 </BaseLayout>

@@ -833,11 +833,16 @@ test('Evidence and Notes stay out of the nav until they have published entries; 
 
 test('the about page is first person and the main pages carry their own meta descriptions', () => {
   const about = read('src/pages/about.astro');
-  assert.match(about, /I'm \{site\.fullName\}\./);
+  assert.match(about, /<h1 id="about-title">About \{site\.fullName\}<\/h1>/);
+  assert.match(about, /<p>I'm \{site\.fullName\}, an AI engineer born in Los Angeles and raised in San Marcos, Texas/);
   assert.match(about, /import '\.\.\/styles\/about\.css';/);
+  const headings = [...about.matchAll(/<h2>([^<]+)<\/h2>/g)].map((match) => match[1]);
+  assert.deepEqual(headings, ['Why I build AI', 'What I build', 'Education', 'Tools and contact']);
+  assert.match(about, /description=\{`\$\{site\.fullName\} is an AI engineer in San Marcos, Texas/);
   assert.match(about, /Western Governors University, expected September 2027/);
-  assert.match(about, /Texas State University \(Spring 2026\), Concordia University Texas \(Computer Science, Fall 2025\), and Austin Community College \(Business Administration, 2019–2025\)/);
-  assert.doesNotMatch(about, /Concordia Texas University|Electrical Engineering/);
+  assert.match(about, /Texas State University \(Electrical Engineering, Spring 2026\), Concordia University Texas \(Computer Science, Fall 2025\), and Austin Community College \(2019–2020 and 2024–2025\)/);
+  assert.doesNotMatch(about, /Concordia Texas University|2023/);
+  assert.doesNotMatch(about, /\b\d+ (?:datasets|crates|downloads)\b|\b\d{1,3},\d{3}\b/);
   assert.doesNotMatch(about, /systems-minded approach/);
   for (const page of ['index', 'about', 'manifesto', 'contact', 'resume']) {
     // A literal string, or a template expression that derives counts from the snapshots.
