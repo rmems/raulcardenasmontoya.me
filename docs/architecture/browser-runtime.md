@@ -73,9 +73,9 @@ state(instance) -> StateView
 ```
 
 - `init` requires an explicit 64-bit seed and validated, versioned configuration.
-  The adapter accepts `[3]`, `[4]` / `[4, mode]`, `[5]` / `[5, mode]` and
-  `[6]` / `[6, mode]`; it rejects other payloads rather than pretending to
-  support custom topologies.
+  The adapter accepts `[3]`, `[4]` / `[4, mode]`, `[5]` / `[5, mode]`,
+  `[6]` / `[6, mode]` and `[7]` / `[7, mode]`; it rejects other payloads
+  rather than pretending to support custom topologies.
   No entropy, wall clock, locale, device capability, or frame timing may affect
   simulation results.
 - `input` accepts canonical `Float32Array` data plus a monotonic sequence.
@@ -135,15 +135,16 @@ deterministic for identical ordered input. The per-tick order is fixed:
   mode/config pairs before loading WASM, keeps contract-3 callers delta-only,
   and surfaces the active mode plus diagnostics on every contract-4 snapshot
   for inspection. WASM is required; there is no JavaScript encoding fallback.
-  The live demo's worker and main-thread session paths both use contract 6
-  (below), which is contract 5 with the topology sent once, with the default
-  mode; contracts 3 to 5 remain for their goldens and for callers that send
-  raw sample packets or need the projection in every snapshot.
+  The live demo's worker and main-thread session paths both use contract 7
+  (below), which is contract 6 (contract 5 with the topology sent once) on
+  the 48-neuron topology, with the default mode; contracts 3 to 6 remain for
+  their goldens and for callers that send raw sample packets, need the
+  projection in every snapshot, or need the 16-neuron network.
 - **Live switch (#95).** The hero caption offers the three modes as radios
   once a session can start. Selecting one calls `DemoRuntime.setEncoderMode`:
   before a session exists the next init uses the mode; while a WASM session
   exists it is disposed and a new one starts with the same seed and
-  `[6, mode]` on the same worker or main-thread path. The renderer keeps its
+  `[7, mode]` on the same worker or main-thread path. The renderer keeps its
   geometry (same topology digest), the spike-event buffer restarts on the step
   reset, and each session records its own trace with its own config. Quick
   changes coalesce: the latest mode wins. A choice made while the first
@@ -231,10 +232,73 @@ contract 5 with that projection sent once:
   topology arrays, digest kept) with three buffers transferred instead of
   fifteen. The main thread re-attaches its copy (`attachTopology`), which
   refuses a snapshot whose digest differs.
-- **Live path.** `LIVE_ADAPTER_OPTIONS` selects contract 6 with the default
-  encoder mode; a session's trace records `[6, mode]`, so it replays under the
-  same contract. Contracts 3 to 5 remain for their goldens and for callers
-  that send raw sample packets or need the projection in every snapshot.
+- **Live path.** `LIVE_ADAPTER_OPTIONS` selected contract 6 with the default
+  encoder mode until RM-2355 moved it to contract 7 (next section), which
+  keeps every rule above. Contracts 3 to 5 remain for their goldens and for
+  callers that send raw sample packets or need the projection in every
+  snapshot.
+
+### Contract 7: a larger audited topology (GitHub #106 / Linear RM-2355)
+
+Sixteen neurons on one ring were too few to follow once firing was sparse
+(RM-2352) and pulses were slowed (RM-2353). Contract 7 (`[7]` / `[7, mode]`)
+is contract 6 on a larger `synaptic-wiring` network; nothing else in the
+pipeline changes.
+
+- **Topology.** `TopologySpec::V7` in `crates/neuromorphic-adapter/src/lib.rs`:
+  `generate_small_world(48, 6, 0.2, 4, 0.25)`, that is 48 neurons with six
+  outgoing synapses each (288), rewire probability 0.2, delays 1 to 4 steps
+  and a quarter of the synapses inhibitory. `TopologySpec::LEGACY` (16, 4,
+  0.2, 4, 0.25) is what contracts 3 to 6 build, byte for byte: their goldens,
+  the `/protocol/` fixtures and every replay test are untouched, and the
+  shipped `.wasm` carries both specs but builds only the one the requested
+  contract names. The digest is
+  `synaptic-wiring.topology.digest.v1:sha256:1f0b0cccc10d9f6ce1f751f5fa3ad1c58a00944ca7e76a1b0eb08864607f95bf`.
+  48 was the plan's starting size; 64 was not attempted on this pass (see the
+  measurement notes in `performance-budgets.md`, section 12).
+- **Encoder sources.** The `kinetic-signals` → `axon-encoder` contract stays
+  16 channels. Channel `c` is the mesh source for every neuron `n` with
+  `n % 16 == c` (`pending_source_spikes[n] |= channel_spikes[n % 16]`), so
+  neurons 0, 16 and 32 all carry channel 0 into the mesh and the evoked
+  current reaches the whole graph. On 16 neurons that rule is the identity,
+  which is why contracts 3 to 6 do not change. `neuromod` output spikes are
+  still not fed back into the mesh.
+- **LIF bank.** `LifBankShaping` keeps its wiring (one synapse per neuron,
+  clamped inhibition, spread thresholds, refractory period, dithered
+  background drive) and gains a `ShapingProfile` per topology size. The
+  legacy profile (tonic 1.2× rheobase, evoked gain 0.09, dither 0.3) is
+  frozen. On 48 neurons it fired 60 to 99 spikes per 40-step window in the
+  default mode against a floor of 96 and left up to 19 neurons silent:
+  `neuromod`'s lateral inhibition is global (every non-firing neuron loses
+  0.05 whenever any neuron fires), a 48-neuron bank has some neuron firing on
+  nearly every step, and a drive 1.2× rheobase never gets a quiet step to
+  climb through. The sweep over tonic multiples 1.2 to 4.0, evoked gains 0.03
+  to 0.09 and dithers 0.3 to 0.75 (worst window over the scripted,
+  pointer-active and idle inputs in every mode, 2,400 steps each) showed the
+  floor only lifting past 2.0× tonic; `ShapingProfile::V7` is tonic 2.1×,
+  evoked gain 0.04 and dither 0.6, which holds 194 to 366 spikes per window
+  (the band is 96 to 384: 5 to 20 % of 48 neurons per step), peaks at 21 of
+  48 neurons in one step (19 at idle), leaves no neuron silent, and still
+  raises the rate by about half when the pointer is active. The same tests in
+  `tests/sparse_firing.rs` now run both banks.
+- **Golden and projection.** `tests/fixtures/contract7-seed9-trace.json`
+  replays the contract-5 pointer packets on contract 7 (native, Node and
+  headless Chrome). The bridge's audited constants for this topology are too
+  large to type: `tests/audited_topology.rs` generates
+  `src/runtime/audited-topology-v7.ts` from the crate and fails when the
+  committed file drifts; `test/contract-7.test.mjs` checks that the committed
+  homepage package exports exactly those arrays.
+- **Bridge, worker, live path.** The bridge audits each contract against its
+  own projection (`auditedBrowserTopology(contract)`; the zero-argument form
+  is the live contract's) and treats 6 and 7 alike for the once-sent
+  topology (`topologySentOnce`). The worker detaches by that predicate.
+  `LIVE_ADAPTER_OPTIONS` selects contract 7; a session's trace records
+  `[7, mode]`. The spike-event ring is sized from the live topology
+  (`DEFAULT_SPIKE_EVENT_CAPACITY` = 8,192, the 288 × (4 + 18 + 1) = 6,624
+  worst case rounded up to a power of two) and the renderer preallocates its
+  pulse buffers to it.
+- **Drawing.** See the hero section: two rings, with the count and the
+  measurement that justified it.
 
 ### Recorded `corpus-ipc` protocol viewer (GitHub #21 / Linear RM-1657)
 
@@ -411,9 +475,9 @@ synaptic-wiring projection (same snapshot) ──┴→ mapSpikesThroughTopology
   motion").
 - **Buffering, separate from frames.** Snapshots are ingested when the WASM
   seam publishes them, through `feedSpikeEvents(channel, buffer)`. Frames only
-  read the buffer. The buffer is a fixed-capacity ring (default 2,048, above
-  the live topology's worst case of 64 edges × (4 + 18 + 1) retained steps =
-  1,472). The oldest events are evicted first and counted, and events retire
+  read the buffer. The buffer is a fixed-capacity ring (default 8,192, the
+  live topology's worst case of 288 edges × (4 + 18 + 1) retained steps =
+  6,624 rounded up to a power of two; it was 2,048 for 64 edges). The oldest events are evicted first and counted, and events retire
   `DEFAULT_SPIKE_EVENT_RETAIN_STEPS` = 18 steps after they arrive, derived
   from the display clock so the slowed pulse on the longest live edge
   (`LIVE_MAX_DELAY_STEPS` = 4, checked against the audited topology) has
@@ -599,11 +663,15 @@ only: it never reimplements equations, thresholds, or integrators.
   `neuromod` threshold crossing; the shaping adds none. The snapshot layout is
   unchanged, so this is not a contract bump. The goldens were regenerated, and
   `tests/sparse_firing.rs` holds the result to 20 to 120 spikes in every
-  40-step window, no neuron firing inside its refractory period, and never
-  the whole population in one step, for every encoder mode with scripted and
-  pointer-active input. The same wiring keeps the bank active between presses
-  and leaves per-neuron rates uneven: `neuromod`'s global lateral inhibition,
-  which the adapter does not change, favours the most excitable neurons.
+  40-step window on the 16-neuron contracts and 96 to 384 on contract 7's 48
+  neurons (5 to 20 % of the population per step in both cases), no neuron
+  firing inside its refractory period, and never the whole population in one
+  step, for every encoder mode with scripted and pointer-active input. The
+  same wiring keeps the bank active between presses and leaves per-neuron
+  rates uneven: `neuromod`'s global lateral inhibition, which the adapter
+  does not change, favours the most excitable neurons. The two rate-setting
+  constants and the dither are a per-contract `ShapingProfile` since RM-2355
+  (see "Contract 7").
 - **Feature gating.** `neuromod` and `axon-encoder` are linked with
   `default-features = false` plus the opt-in `wasm-js` feature. That feature
   only enables the `getrandom 0.4.3` `wasm_js` backend so the crates link on
@@ -694,7 +762,7 @@ row, whose counts come from `src/artifacts/counts.ts`) and
 passes it through the slots of `src/components/NeuromorphicDemo.astro`, which
 renders the island root (`[data-neuromorphic-demo]`), the mesh beside the copy,
 and, below the first screen, a short explanation and the telemetry panel. It
-uses the runtime above unchanged: contract 6, the worker path, the `live-wasm`
+uses the runtime above unchanged: contract 7, the worker path, the `live-wasm`
 spike-event buffer, and #10's adaptive quality.
 
 - **Composition** (`src/styles/hero.css`). Desktop: copy on the left, the mesh
@@ -708,12 +776,31 @@ spike-event buffer, and #10's adaptive quality.
   topology that the bridge requires of every live snapshot
   (`auditedBrowserTopology()` in `neuromorphic-adapter.ts`) as plain SVG.
   `src/runtime/topology-layout.ts` holds the rules the three.js renderer also
-  uses: the ring layout, the camera framing (`viewBox` with the default
+  uses: the two-ring layout, the camera framing (`viewBox` with the default
   `xMidYMid meet` behaves like the orthographic camera at any aspect ratio),
-  the 16 px node markers, and the edge colours, mixed in linear space as
-  three.js does. `test/hero-live-mesh.test.mjs` checks the topology against the
-  committed homepage package and every edge colour against `THREE.Color`. The
-  first live frame therefore lands on the drawing it replaces, at rotation 0.
+  the node markers (`NODE_SIZE_WORLD`, which scale with the stage), and the
+  edge colours, mixed in linear space as three.js does.
+  `test/hero-live-mesh.test.mjs` checks the topology against the committed
+  homepage package and every edge colour against `THREE.Color`. The first
+  live frame therefore lands on the drawing it replaces, at rotation 0.
+- **48 neurons on two rings (RM-2355).** The hero draws contract 7's 48
+  neurons and 288 synapses. `layoutTopology` places node `i` at angle
+  `2π·i/n − π/2` on the inner ring (radius 0.62) when `i` is even and on the
+  outer ring (1.12) when it is odd, plus an index-keyed jitter of up to 0.06.
+  A `synaptic-wiring` small-world graph joins `i` to `i ± 1..3`, so on one
+  ring at 48 nodes most synapses were 7.5° chords of 0.13 world units (under
+  two marker diameters) and pulses only skirted the rim; alternating rings
+  make the `i ± 1` and `i ± 3` synapses spokes of about 0.5 units and the
+  rewired fifth of the synapses cross the stage. An angular stride (node `i`
+  at slot `i × g mod 48`, the plan's first candidate) lengthened every
+  synapse but produced 8,000 to 15,000 edge crossings against 1,300 here and
+  1,500 for the old ring, so it was dropped. The test holds the drawing to:
+  every node inside the frame, the closest two markers at least 1.5
+  diameters apart (2.2 measured), a median synapse of at least 0.45 units
+  (0.52), at most a tenth of the synapses shorter than two diameters (none),
+  and under 2,000 crossings. The caption and `<desc>` say "on two rings"; the
+  copy's "16 features" refers to the encoder, which is unchanged. The frame
+  budgets at this size are in `performance-budgets.md`, section 12.
   The drawing carries one edge set per colour scheme (`SITE_TOPOLOGY_PALETTE`
   and `SITE_TOPOLOGY_PALETTE_DARK`, the tokens of `global.css` and of its
   `prefers-color-scheme: dark` block); `hero.css` shows the matching set, and

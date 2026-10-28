@@ -1,6 +1,9 @@
 use neuromorphic_adapter::{
-    BrowserRuntime, CONTRACT_VERSION_V5, CONTRACT_VERSION_V6, encoder::EncoderMode,
+    BrowserRuntime, CONTRACT_VERSION_V5, CONTRACT_VERSION_V6, CONTRACT_VERSION_V7, TopologySpec,
+    WasmAdapter, encoder::EncoderMode,
 };
+
+const LEGACY_DIGEST: &str = "synaptic-wiring.topology.digest.v1:sha256:26875faf05121b9afda27a533760369da67ba9110599fb61533f08961ff6e971";
 
 #[test]
 fn a_seeded_runtime_preserves_topology_provenance_and_advances_deterministically() {
@@ -52,10 +55,7 @@ fn a_seeded_runtime_preserves_topology_provenance_and_advances_deterministically
         left_state.membrane_potentials,
         right_state.membrane_potentials
     );
-    assert_eq!(
-        left_state.topology_digest,
-        "synaptic-wiring.topology.digest.v1:sha256:26875faf05121b9afda27a533760369da67ba9110599fb61533f08961ff6e971",
-    );
+    assert_eq!(left_state.topology_digest, LEGACY_DIGEST);
     // The background drive starts the bank part-way to threshold, so a few
     // neurons may fire on step 1, but never the whole population, and every
     // membrane is below the highest threshold `neuromod` allows (0.50).
@@ -389,5 +389,246 @@ fn contract_6_accepts_every_encoder_mode_and_only_known_contracts() {
         assert!(state.topology_node_ids.is_empty());
     }
     assert!(BrowserRuntime::with_mode(3, EncoderMode::Temporal, 3).is_err());
-    assert!(BrowserRuntime::with_mode(3, EncoderMode::Temporal, 7).is_err());
+    assert!(BrowserRuntime::with_mode(3, EncoderMode::Temporal, 8).is_err());
+}
+
+#[test]
+fn contract_7_runs_the_48_neuron_topology_and_leaves_contracts_3_to_6_on_16() {
+    let spec = TopologySpec::V7;
+    assert_eq!((spec.neurons, spec.fan_out, spec.synapses()), (48, 6, 288));
+    assert_eq!(spec.max_delay, TopologySpec::LEGACY.max_delay);
+    for contract in [3, 4, CONTRACT_VERSION_V5, CONTRACT_VERSION_V6] {
+        assert_eq!(TopologySpec::for_contract(contract), TopologySpec::LEGACY);
+    }
+    assert_eq!(TopologySpec::for_contract(CONTRACT_VERSION_V7), spec);
+
+    let mut seven = BrowserRuntime::with_mode(9, EncoderMode::DEFAULT, CONTRACT_VERSION_V7)
+        .expect("the contract-7 topology is valid");
+    let topology = seven.topology();
+    let neurons = spec.neurons as u32;
+    assert_eq!(topology.topology_node_ids, (0..neurons).collect::<Vec<_>>());
+    assert_eq!(topology.topology_edge_sources.len(), spec.synapses());
+    assert_eq!(topology.topology_edge_targets.len(), spec.synapses());
+    assert_eq!(topology.topology_rows.len(), spec.neurons + 1);
+    assert!(topology.topology_edge_targets.iter().all(|t| *t < neurons));
+    assert!(topology.topology_targets.iter().all(|t| *t < neurons));
+    // Every neuron keeps exactly `fan_out` outgoing synapses (rewiring moves
+    // targets, never sources), so the canonical offsets are a fixed stride.
+    assert_eq!(
+        topology.topology_outgoing_edge_offsets,
+        (0..=spec.neurons)
+            .map(|n| (n * spec.fan_out) as u32)
+            .collect::<Vec<_>>()
+    );
+    assert!(
+        topology
+            .topology_edge_sources
+            .iter()
+            .enumerate()
+            .all(|(edge, source)| *source as usize == edge / spec.fan_out)
+    );
+    assert!(
+        topology
+            .topology_edge_delays
+            .iter()
+            .all(|delay| (1..=spec.max_delay).contains(delay))
+    );
+    assert_eq!(
+        topology
+            .topology_polarities
+            .iter()
+            .filter(|p| **p == 1)
+            .count(),
+        (spec.synapses() as f32 * spec.inhibitory_fraction) as usize
+    );
+    assert_ne!(topology.topology_digest, LEGACY_DIGEST);
+    assert!(
+        topology
+            .topology_digest
+            .starts_with("synaptic-wiring.topology.digest.v1:sha256:")
+    );
+
+    // The seed is provenance, not topology: every contract-7 runtime shares
+    // one projection, and contract 6 still ships the legacy one.
+    let other = BrowserRuntime::with_mode(99, EncoderMode::Rate, CONTRACT_VERSION_V7)
+        .expect("valid")
+        .topology();
+    assert_eq!(other, topology);
+    let six = BrowserRuntime::with_mode(9, EncoderMode::DEFAULT, CONTRACT_VERSION_V6)
+        .expect("valid")
+        .topology();
+    assert_eq!(six.topology_digest, LEGACY_DIGEST);
+    assert_eq!(six.topology_edge_sources.len(), 64);
+
+    // Per-step state: 48 potentials, spikes inside the topology, the topology
+    // sent once (empty arrays, digest kept) and contract 5's feature vector.
+    for step in 1..=24u64 {
+        let packet = [
+            0.5 + step as f32 * 0.017,
+            0.4 - step as f32 * 0.011,
+            0.6 + (step % 3) as f32 * 0.1,
+        ];
+        seven.input(step, &packet).expect("input is accepted");
+        let state = seven.step().expect("contract 7 advances");
+        assert_eq!(state.contract_version, CONTRACT_VERSION_V7);
+        assert_eq!(state.completed_step, step);
+        assert_eq!(state.membrane_potentials.len(), spec.neurons);
+        assert!(state.spike_neurons.iter().all(|n| *n < neurons));
+        assert!(state.spike_neurons.len() < spec.neurons);
+        assert_eq!(state.encoder_features.len(), 16);
+        assert_eq!(state.topology_digest, topology.topology_digest);
+        assert!(state.topology_rows.is_empty());
+        assert!(state.topology_node_ids.is_empty());
+        assert!(state.topology_edge_sources.is_empty());
+        assert!(state.topology_outgoing_edge_offsets.is_empty());
+        assert_eq!(seven.topology(), topology, "the projection never changes");
+    }
+}
+
+#[test]
+fn contract_7_init_configs_and_encoder_modes() {
+    for (config, mode) in [
+        (&[7_u8][..], EncoderMode::DEFAULT),
+        (&[7, 0][..], EncoderMode::Delta),
+        (&[7, 1][..], EncoderMode::Temporal),
+        (&[7, 2][..], EncoderMode::Rate),
+    ] {
+        let mut adapter = WasmAdapter::init(9, config).expect("contract 7 config is accepted");
+        // `WasmTopology`'s getters build `js_sys` arrays, which only exist on
+        // wasm32; the native test reads the state through `browser_state`.
+        adapter
+            .input(1, &[0.5, 0.5, 0.5])
+            .expect("telemetry packet");
+        let state = adapter.step().expect("step");
+        let state = state.browser_state();
+        assert_eq!(state.contract_version, CONTRACT_VERSION_V7);
+        assert_eq!(state.encoder_mode, mode as u8);
+        assert_eq!(state.membrane_potentials.len(), 48);
+        assert!(state.topology_edge_sources.is_empty());
+        adapter.dispose();
+    }
+    // Rejections build a `JsValue`, which only exists on wasm32; the native
+    // test checks the same rules on `BrowserRuntime` and `EncoderMode`.
+    assert!(
+        EncoderMode::parse(3).is_err(),
+        "reserved modes stay rejected"
+    );
+    assert!(BrowserRuntime::with_mode(9, EncoderMode::DEFAULT, 8).is_err());
+    assert!(
+        BrowserRuntime::with_mode(9, EncoderMode::DEFAULT, CONTRACT_VERSION_V7)
+            .expect("valid")
+            .input(1, &[0.5, 0.5])
+            .is_err(),
+        "contract 7 input is one [x, y, pressure] packet, like contracts 5 and 6"
+    );
+}
+
+#[test]
+fn contract_7_fans_each_encoder_channel_into_every_neuron_of_its_residue_class() {
+    // Rebuild the contract-7 pipeline from the public crate surfaces with an
+    // explicit channel-to-neuron mapping, and compare its spikes and
+    // potentials with the runtime's, step by step. The residue-class mapping
+    // (channel `c` drives every neuron `n` with `n % 16 == c`) reproduces the
+    // runtime exactly; a one-to-one mapping onto neurons 0 to 15 does not, so
+    // the test fails if `input` ever reverts to it.
+    use neuromod::{NeuroModulators, SeedableRng, SpikingNetwork, StdRng};
+    use neuromorphic_adapter::encoder::{ENCODER_CHANNELS, V1Encoder};
+    use neuromorphic_adapter::kinetic::KineticExtractor;
+    use neuromorphic_adapter::lif_bank::LifBankShaping;
+    use synaptic_wiring::{SynapticMesh, topology::generate_small_world};
+
+    const SEED: u64 = 9;
+    const STEPS: u64 = 120;
+    let spec = TopologySpec::V7;
+    let packet = |sequence: u64| -> [f32; 3] {
+        let step = sequence as f32;
+        [
+            0.5 + 0.4 * (step * 0.21).sin(),
+            0.5 + 0.3 * (step * 0.17).cos(),
+            if sequence % 10 < 6 { 0.6 } else { 0.0 },
+        ]
+    };
+
+    let mut runtime =
+        BrowserRuntime::with_mode(SEED, EncoderMode::Temporal, CONTRACT_VERSION_V7).expect("valid");
+    let actual: Vec<(Vec<u32>, Vec<u32>)> = (1..=STEPS)
+        .map(|sequence| {
+            runtime.input(sequence, &packet(sequence)).expect("input");
+            let state = runtime.step().expect("step");
+            (
+                state.spike_neurons,
+                state
+                    .membrane_potentials
+                    .iter()
+                    .map(|p| p.to_bits())
+                    .collect(),
+            )
+        })
+        .collect();
+
+    let pipeline = |map: &dyn Fn(usize, usize) -> bool| -> Vec<(Vec<u32>, Vec<u32>)> {
+        let graph = generate_small_world(
+            spec.neurons,
+            spec.fan_out,
+            spec.rewire,
+            spec.max_delay,
+            spec.inhibitory_fraction,
+        )
+        .expect("valid");
+        let mut mesh = SynapticMesh::new(graph);
+        let mut network = SpikingNetwork::with_dimensions(spec.neurons, 0, spec.neurons);
+        for neuron in &mut network.neurons {
+            neuron.weights = vec![2.0 / spec.neurons as f32; spec.neurons];
+        }
+        let mut shaping = LifBankShaping::install_with(&mut network, spec.shaping_profile());
+        let mut rng = StdRng::seed_from_u64(SEED);
+        let mut extractor = KineticExtractor::new();
+        let mut encoder = V1Encoder::for_mode(EncoderMode::Temporal);
+        (1..=STEPS)
+            .map(|sequence| {
+                let features = extractor.extract(&packet(sequence));
+                let channels = encoder.encode_step(&features);
+                let mut sources = vec![false; spec.neurons];
+                for channel in &channels {
+                    for (neuron, source) in sources.iter_mut().enumerate() {
+                        *source |= map(neuron, usize::from(*channel));
+                    }
+                }
+                let currents = mesh.propagate(&sources).expect("propagate");
+                let spikes = shaping
+                    .step(
+                        &mut network,
+                        &currents,
+                        &NeuroModulators::default(),
+                        &mut rng,
+                    )
+                    .expect("step");
+                (
+                    spikes.into_iter().map(|n| n as u32).collect(),
+                    network
+                        .get_membrane_potentials()
+                        .iter()
+                        .map(|p| p.to_bits())
+                        .collect(),
+                )
+            })
+            .collect()
+    };
+
+    let residue = pipeline(&|neuron, channel| neuron % ENCODER_CHANNELS == channel);
+    let first_sixteen_only = pipeline(&|neuron, channel| neuron == channel);
+    assert_eq!(
+        actual, residue,
+        "the runtime drives neuron n from channel n % 16, bit for bit"
+    );
+    assert_ne!(
+        actual, first_sixteen_only,
+        "a mapping onto neurons 0..16 alone would give a different trace"
+    );
+    assert!(
+        actual
+            .iter()
+            .any(|(spikes, _)| spikes.iter().any(|n| *n >= 16)),
+        "neurons above 15 fire in the comparison window"
+    );
 }

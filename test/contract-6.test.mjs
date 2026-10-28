@@ -5,14 +5,13 @@ import test from 'node:test';
 import { loadTsModule } from './load-ts-module.mjs';
 
 const bridge = await loadTsModule('../src/runtime/neuromorphic-adapter.ts');
-const channelModule = await loadTsModule('../src/runtime/simulation-channel.ts');
 const wasmSession = await loadTsModule('../src/runtime/wasm-session.ts');
 
 const DIGEST = 'synaptic-wiring.topology.digest.v1:sha256:26875faf05121b9afda27a533760369da67ba9110599fb61533f08961ff6e971';
 
-/** The audited topology as the raw `topology()` handle would expose it. */
+/** The audited contract-6 (16 / 64) topology as the raw `topology()` handle would expose it. */
 function rawTopology(overrides = {}) {
-  const audited = bridge.auditedBrowserTopology();
+  const audited = bridge.auditedBrowserTopology(6);
   const routed = routedArrays(audited);
   return {
     topology_rows: new Uint32Array([...Array(17).keys()].map((index) => index * 4)),
@@ -153,7 +152,7 @@ test('contract 6 init fails closed on a missing or invalid projection and dispos
     bridge.initNeuromorphicAdapter(fakeModule({ withTopology: false }).module, 9n, { contractVersion: 6 }),
     /does not export its topology/,
   );
-  const polarities = bridge.auditedBrowserTopology().polarities;
+  const polarities = bridge.auditedBrowserTopology(6).polarities;
   polarities[0] = 0;
   await assert.rejects(
     bridge.initNeuromorphicAdapter(fakeModule({ topology: rawTopology({ topology_polarities: polarities }) }).module, 9n, { contractVersion: 6 }),
@@ -166,7 +165,7 @@ test('contract 6 init fails closed on a missing or invalid projection and dispos
 });
 
 test('a contract-5 adapter still carries the projection in every snapshot and reports it through topology()', async () => {
-  const audited = bridge.auditedBrowserTopology();
+  const audited = bridge.auditedBrowserTopology(6);
   const stateV5 = rawStateV6({ contract_version: 5, ...rawTopology() });
   const fake = fakeModule({ state: stateV5, withTopology: false });
   const adapter = await bridge.initNeuromorphicAdapter(fake.module, 9n, { contractVersion: 5 });
@@ -202,48 +201,22 @@ test('detach and attach round-trip a snapshot across a worker boundary and refus
   adapter.dispose();
 });
 
-test('the live options select contract 6 and a worker session re-attaches the topology sent with ready', async () => {
-  assert.equal(wasmSession.LIVE_ADAPTER_OPTIONS.contractVersion, 6);
-  assert.deepEqual(wasmSession.liveAdapterConfig('rate'), [6, 2]);
-
-  const fake = fakeModule();
-  const adapter = await bridge.initNeuromorphicAdapter(fake.module, 9n, { contractVersion: 6 });
-  const topology = bridge.cloneTopology(adapter.topology());
-  const detached = bridge.detachTopology(adapter.step());
-  adapter.dispose();
-
-  // A fake worker that answers like the shipped one: ready carries the
-  // topology once, every step reply is detached.
-  const listeners = {};
-  const posted = [];
-  const worker = {
-    postMessage(message) {
-      posted.push(message);
-      const deliver = (data) => queueMicrotask(() => (worker.onmessage ?? listeners.message)?.({ data }));
-      if (message.type === 'init') deliver({ id: message.id, type: 'ready', topology });
-      if (message.type === 'input') deliver({ id: message.id, type: 'ack' });
-      if (message.type === 'step') deliver({ id: message.id, type: 'state', state: { ...detached, completedStep: BigInt(posted.filter((m) => m.type === 'step').length) } });
-    },
-    addEventListener(type, listener) { listeners[type] = listener; },
-    removeEventListener() {},
-    terminate() {},
-    onerror: null,
-    onmessageerror: null,
-    onmessage: null,
-  };
-  const channel = channelModule.createSimulationChannel();
-  const published = [];
-  channel.subscribe((state) => published.push(state));
-  const seam = wasmSession.createWasmSeam({ channel, workerFactory: () => worker });
-  const session = await seam.init({ useWorker: true, signal: new AbortController().signal, onWorkerFailure: () => {}, encoderMode: 'temporal' });
-  assert.deepEqual(posted[0].options, { contractVersion: 6, encoderMode: 'temporal' });
-  session.resume();
-  await new Promise((resolve) => setTimeout(resolve, 130));
-  session.dispose();
-  assert.ok(published.length >= 1, 'at least one snapshot was published');
-  for (const state of published) {
-    assert.equal(state.topologyEdgeSources, topology.topologyEdgeSources, 'the main thread attached its one copy');
-    assert.equal(state.topologyNodeIds.length, 16);
-    assert.equal(state.topologyDigest, DIGEST);
-  }
+test('contract 6 is no longer the live contract but keeps its 16 / 64 projection and worker path', async () => {
+  assert.notEqual(wasmSession.LIVE_ADAPTER_OPTIONS.contractVersion, 6);
+  assert.equal(bridge.topologySentOnce(6), true);
+  const audited = bridge.auditedBrowserTopology(6);
+  assert.equal(audited.contractVersion, 3, 'contracts 3 to 6 share the legacy projection');
+  assert.equal(audited.digest, DIGEST);
+  assert.equal(audited.nodeIds.length, 16);
+  assert.equal(audited.edgeSources.length, 64);
+  // A contract-6 adapter still rejects the contract-7 projection, and vice versa.
+  const seven = bridge.auditedBrowserTopology(7);
+  await assert.rejects(
+    bridge.initNeuromorphicAdapter(
+      fakeModule({ topology: rawTopology({ topology_digest: seven.digest }) }).module,
+      9n,
+      { contractVersion: 6 },
+    ),
+    /invalid topology/,
+  );
 });

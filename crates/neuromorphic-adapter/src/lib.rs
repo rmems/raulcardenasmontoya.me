@@ -33,7 +33,7 @@ use encoder::{
     normalize_to_encoder_input_for_contract,
 };
 use kinetic::{KineticExtractor, TELEMETRY_PACKET_LEN};
-use lif_bank::LifBankShaping;
+use lif_bank::{LifBankShaping, ShapingProfile};
 
 pub const CONTRACT_VERSION: u32 = 3;
 /// Contract version that adds selectable encoder modes and spike-train
@@ -49,8 +49,82 @@ pub const CONTRACT_VERSION_V5: u32 = 5;
 /// stays, so a consumer can still key a snapshot to its topology. Input,
 /// encoding, dynamics and the exported neuron state are exactly contract 5's.
 pub const CONTRACT_VERSION_V6: u32 = 6;
-const CHANNEL_COUNT: usize = 16;
+/// Contract version that runs a larger audited `synaptic-wiring` topology
+/// (RM-2355): 48 neurons with a fan-out of 6 (288 synapses) instead of the
+/// 16 / 64 network of contracts 3 to 6, which stay frozen. Everything else is
+/// contract 6: `[x, y, pressure]` telemetry through `kinetic-signals`, the
+/// 16-channel `axon-encoder` contract, the projection sent once through
+/// [`WasmAdapter::topology`]. Encoder channel `c` is the mesh source for every
+/// neuron `n` with `n % 16 == c`, which is the identity on the 16-neuron
+/// contracts.
+pub const CONTRACT_VERSION_V7: u32 = 7;
 const STATUS_OK: &str = "ok";
+
+/// The parameters the adapter hands to `synaptic_wiring::generate_small_world`
+/// for one contract. The crate carries both specs; `with_mode` builds only the
+/// one the requested contract names.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct TopologySpec {
+    pub neurons: usize,
+    pub fan_out: usize,
+    pub rewire: f32,
+    pub max_delay: u16,
+    pub inhibitory_fraction: f32,
+}
+
+impl TopologySpec {
+    /// The 16-neuron, 64-synapse network of contracts 3 to 6.
+    pub const LEGACY: Self = Self {
+        neurons: 16,
+        fan_out: 4,
+        rewire: 0.2,
+        max_delay: 4,
+        inhibitory_fraction: 0.25,
+    };
+    /// The 48-neuron, 288-synapse network of contract 7 (RM-2355).
+    pub const V7: Self = Self {
+        neurons: 48,
+        fan_out: 6,
+        rewire: 0.2,
+        max_delay: 4,
+        inhibitory_fraction: 0.25,
+    };
+
+    /// The topology a contract runs. Unknown contracts are rejected by
+    /// `with_mode` before this is consulted; they map to the legacy spec here.
+    pub const fn for_contract(contract: u32) -> Self {
+        if contract >= CONTRACT_VERSION_V7 {
+            Self::V7
+        } else {
+            Self::LEGACY
+        }
+    }
+
+    /// Synapses `generate_small_world` creates for this spec.
+    pub const fn synapses(self) -> usize {
+        self.neurons * self.fan_out
+    }
+
+    /// The LIF-bank shaping profile tuned for this contract's topology size.
+    pub const fn shaping_profile(self) -> ShapingProfile {
+        if self.neurons == Self::V7.neurons {
+            ShapingProfile::V7
+        } else {
+            ShapingProfile::LEGACY
+        }
+    }
+
+    fn graph(self) -> Result<synaptic_wiring::SynapticGraph, String> {
+        generate_small_world(
+            self.neurons,
+            self.fan_out,
+            self.rewire,
+            self.max_delay,
+            self.inhibitory_fraction,
+        )
+        .map_err(|error| format!("could not construct browser topology: {error}"))
+    }
+}
 
 /// Neuron model the adapter selects inside `neuromod::SpikingNetwork`.
 ///
@@ -68,9 +142,12 @@ enum NeuronModel {
 const V1_NEURON_MODEL: NeuronModel = NeuronModel::Lif;
 
 impl NeuronModel {
-    fn network_dimensions(self) -> (usize, usize, usize) {
+    /// `(lif, izhikevich, channels)` for a topology of `neurons` neurons. The
+    /// LIF bank's one-synapse-per-neuron wiring (`lif_bank`) needs exactly one
+    /// channel per neuron.
+    fn network_dimensions(self, neurons: usize) -> (usize, usize, usize) {
         match self {
-            NeuronModel::Lif => (CHANNEL_COUNT, 0, CHANNEL_COUNT),
+            NeuronModel::Lif => (neurons, 0, neurons),
             // Reserved for a future contract version; unreachable in v1.
             NeuronModel::Izhikevich => unreachable!("Izhikevich is not enabled in contract v1"),
         }
@@ -190,8 +267,8 @@ pub struct BrowserState {
     pub encoder_features: Vec<f32>,
 }
 
-/// The topology a runtime exports once on contract 6, and that every contract
-/// 3 to 5 snapshot repeats: the routed CSR arrays `synaptic-wiring` exports
+/// The topology a runtime exports once on contracts 6 and 7, and that every
+/// contract 3 to 5 snapshot repeats: the routed CSR arrays `synaptic-wiring` exports
 /// plus the adapter's canonical [`TopologyProjection`] and the upstream digest.
 #[derive(Clone, Debug, PartialEq)]
 pub struct BrowserTopology {
@@ -211,7 +288,7 @@ pub struct BrowserTopology {
 }
 
 /// A per-step copy of a topology array on contracts 3 to 5; nothing on
-/// contract 6, where the projection travels once through `topology()`.
+/// contracts 6 and 7, where the projection travels once through `topology()`.
 fn per_step<T: Clone>(include: bool, values: &[T]) -> Vec<T> {
     if include { values.to_vec() } else { Vec::new() }
 }
@@ -219,8 +296,8 @@ fn per_step<T: Clone>(include: bool, values: &[T]) -> Vec<T> {
 /// Construct the `neuromod` network for the selected model. All dynamics and
 /// spike generation live inside `neuromod`; the adapter only picks dimensions
 /// and initial synaptic weights.
-fn build_network(model: NeuronModel) -> SpikingNetwork {
-    let (num_lif, num_izh, num_channels) = model.network_dimensions();
+fn build_network(model: NeuronModel, neurons: usize) -> SpikingNetwork {
+    let (num_lif, num_izh, num_channels) = model.network_dimensions(neurons);
     let mut network = SpikingNetwork::with_dimensions(num_lif, num_izh, num_channels);
     // `with_dimensions` zero-initializes LIF weights, and `neuromod` gates all
     // stimulus current on those weights, so a default network can never fire.
@@ -238,10 +315,15 @@ fn build_network(model: NeuronModel) -> SpikingNetwork {
 
 /// The shipped LIF bank: [`build_network`] rewired by [`LifBankShaping`]
 /// (one synapse per neuron, spread thresholds, refractory period, background
-/// drive). Returned together so the two can never be separated.
-fn build_shaped_network(model: NeuronModel) -> (SpikingNetwork, LifBankShaping) {
-    let mut network = build_network(model);
-    let shaping = LifBankShaping::install(&mut network);
+/// drive) with the contract's [`ShapingProfile`]. Returned together so the
+/// two can never be separated.
+fn build_shaped_network(
+    model: NeuronModel,
+    spec: TopologySpec,
+    profile: ShapingProfile,
+) -> (SpikingNetwork, LifBankShaping) {
+    let mut network = build_network(model, spec.neurons);
+    let shaping = LifBankShaping::install_with(&mut network, profile);
     (network, shaping)
 }
 
@@ -252,7 +334,7 @@ pub struct BrowserRuntime {
     completed_step: u64,
     last_sequence: Option<u64>,
     encoder: V1Encoder,
-    /// Present only on contract 5, where input is telemetry rather than raw
+    /// Present from contract 5 on, where input is telemetry rather than raw
     /// samples.
     kinetic: Option<KineticExtractor>,
     encoder_features: [f32; ENCODER_CHANNELS],
@@ -288,6 +370,7 @@ impl BrowserRuntime {
             CONTRACT_VERSION_V4_U32,
             CONTRACT_VERSION_V5,
             CONTRACT_VERSION_V6,
+            CONTRACT_VERSION_V7,
         ]
         .contains(&contract)
         {
@@ -296,17 +379,14 @@ impl BrowserRuntime {
         if contract == CONTRACT_VERSION && mode != EncoderMode::Delta {
             return Err("contract 3 supports only delta encoding".to_owned());
         }
-        if ENCODER_CHANNELS != CHANNEL_COUNT {
-            return Err("encoder channel contract breached".to_owned());
-        }
-        let graph = generate_small_world(CHANNEL_COUNT, 4, 0.2, 4, 0.25)
-            .map_err(|error| format!("could not construct browser topology: {error}"))?;
-        let mesh = SynapticMesh::new(graph);
+        let spec = TopologySpec::for_contract(contract);
+        let mesh = SynapticMesh::new(spec.graph()?);
         let topology_projection = TopologyProjection::from_graph(mesh.graph());
         let topology_digest = topology_projection.topology_digest.clone();
         let (topology_rows, topology_targets, topology_weights, topology_delays) =
             mesh.to_gpu_arrays();
-        let (network, shaping) = build_shaped_network(V1_NEURON_MODEL);
+        let (network, shaping) =
+            build_shaped_network(V1_NEURON_MODEL, spec, spec.shaping_profile());
 
         Ok(Self {
             seed,
@@ -314,8 +394,7 @@ impl BrowserRuntime {
             completed_step: 0,
             last_sequence: None,
             encoder: V1Encoder::for_mode(mode),
-            kinetic: (contract == CONTRACT_VERSION_V5 || contract == CONTRACT_VERSION_V6)
-                .then(KineticExtractor::new),
+            kinetic: (contract >= CONTRACT_VERSION_V5).then(KineticExtractor::new),
             encoder_features: [0.0; ENCODER_CHANNELS],
             encoded_spike_count: 0,
             encoded_spike_channels: 0,
@@ -324,7 +403,7 @@ impl BrowserRuntime {
             network,
             shaping,
             rng: StdRng::seed_from_u64(seed),
-            pending_source_spikes: vec![false; CHANNEL_COUNT],
+            pending_source_spikes: vec![false; spec.neurons],
             last_spikes: Vec::new(),
             topology_rows,
             topology_targets,
@@ -339,11 +418,12 @@ impl BrowserRuntime {
     /// Accept a monotonically increasing browser input sequence.
     ///
     /// On contracts 3 and 4, raw samples are summarized by `kinetic-signals`
-    /// statistics into a bounded feature vector. On contracts 5 and 6, samples
+    /// statistics into a bounded feature vector. From contract 5 on, samples
     /// are one `[x, y, pressure]` telemetry packet that the stateful
     /// [`KineticExtractor`] turns into clamped motion features. Either way the
-    /// features are encoded by `axon-encoder`. The resulting
-    /// spikes are queued, so each logical `step` advances `synaptic-wiring`
+    /// features are encoded by `axon-encoder`. The resulting spikes are
+    /// queued as mesh sources (encoder channel `c` drives every neuron `n`
+    /// with `n % 16 == c`), so each logical `step` advances `synaptic-wiring`
     /// exactly once before it advances `neuromod` with a seeded RNG.
     pub fn input(&mut self, sequence: u64, samples: &[f32]) -> Result<(), String> {
         if self
@@ -376,18 +456,21 @@ impl BrowserRuntime {
         self.encoder_features = features;
 
         let channels = self.encoder.encode_step(&features);
-        let mut source_spikes = vec![false; CHANNEL_COUNT];
+        let mut channel_spikes = [false; ENCODER_CHANNELS];
         for channel in &channels {
-            source_spikes[usize::from(*channel)] = true;
+            channel_spikes[usize::from(*channel)] = true;
         }
-        let distinct = source_spikes.iter().filter(|spiked| **spiked).count();
+        let distinct = channel_spikes.iter().filter(|spiked| **spiked).count();
         self.encoded_spike_count = channels.len().try_into().unwrap_or(u32::MAX);
         self.encoded_spike_channels = distinct.try_into().unwrap_or(u32::MAX);
         self.encoded_spike_total = self
             .encoded_spike_total
             .saturating_add(channels.len() as u64);
-        for (pending, spike) in self.pending_source_spikes.iter_mut().zip(source_spikes) {
-            *pending |= spike;
+        // Channel `c` is the mesh source for every neuron `n` with
+        // `n % ENCODER_CHANNELS == c`: the identity on the 16-neuron contracts,
+        // and on contract 7 every neuron can be an evoked source.
+        for (neuron, pending) in self.pending_source_spikes.iter_mut().enumerate() {
+            *pending |= channel_spikes[neuron % ENCODER_CHANNELS];
         }
         self.last_sequence = Some(sequence);
         self.last_error_status = STATUS_OK.to_owned();
@@ -395,8 +478,9 @@ impl BrowserRuntime {
     }
 
     pub fn step(&mut self) -> Result<BrowserState, String> {
+        let neurons = self.pending_source_spikes.len();
         let source_spikes =
-            std::mem::replace(&mut self.pending_source_spikes, vec![false; CHANNEL_COUNT]);
+            std::mem::replace(&mut self.pending_source_spikes, vec![false; neurons]);
         let currents = match self.mesh.propagate(&source_spikes) {
             Ok(currents) => currents,
             Err(error) => {
@@ -438,9 +522,9 @@ impl BrowserRuntime {
     }
 
     pub fn state(&self) -> BrowserState {
-        // Contract 6 sends the projection once (`topology()`); earlier
+        // Contracts 6 and 7 send the projection once (`topology()`); earlier
         // contracts keep repeating it in every snapshot.
-        let repeat = self.contract_version != CONTRACT_VERSION_V6;
+        let repeat = self.contract_version < CONTRACT_VERSION_V6;
         let projection = &self.topology_projection;
         BrowserState {
             contract_version: self.contract_version,
@@ -479,8 +563,8 @@ impl BrowserRuntime {
     }
 
     /// The topology every snapshot of this runtime belongs to. Identical on
-    /// every step; contract 6 consumers read it once and attach it to each
-    /// per-step state themselves.
+    /// every step; contract 6 and 7 consumers read it once and attach it to
+    /// each per-step state themselves.
     pub fn topology(&self) -> BrowserTopology {
         let projection = &self.topology_projection;
         BrowserTopology {
@@ -639,7 +723,7 @@ impl WasmState {
     }
 }
 
-/// The topology a contract-6 session sends once (`WasmAdapter.topology()`).
+/// The topology a contract-6 or -7 session sends once (`WasmAdapter.topology()`).
 /// Getters mirror the `topology_*` fields of [`WasmState`].
 #[wasm_bindgen]
 pub struct WasmTopology {
@@ -709,12 +793,14 @@ impl WasmAdapter {
     /// (`0 = delta`, `1 = temporal`, `2 = rate`). `[5]` and `[5, mode]` select
     /// the same encoder modes behind `kinetic-signals` telemetry extraction.
     /// `[6]` and `[6, mode]` are contract 5 with the topology sent once
-    /// through [`WasmAdapter::topology`] instead of in every snapshot.
+    /// through [`WasmAdapter::topology`] instead of in every snapshot. `[7]`
+    /// and `[7, mode]` are contract 6 on the larger 48-neuron audited topology
+    /// ([`TopologySpec::V7`]).
     #[wasm_bindgen(js_name = init)]
     pub fn init(seed: u64, config: &[u8]) -> Result<WasmAdapter, JsValue> {
         let invalid = || {
             JsValue::from_str(
-                "adapter config must be [3], [4], [4, mode], [5], [5, mode], [6], or [6, mode]",
+                "adapter config must be [3], [4], [4, mode], [5], [5, mode], [6], [6, mode], [7], or [7, mode]",
             )
         };
         let runtime = match config {
@@ -736,6 +822,12 @@ impl WasmAdapter {
                 let selected =
                     EncoderMode::parse(*mode).map_err(|error| JsValue::from_str(&error))?;
                 BrowserRuntime::with_mode(seed, selected, CONTRACT_VERSION_V6)
+            }
+            [7] => BrowserRuntime::with_mode(seed, EncoderMode::DEFAULT, CONTRACT_VERSION_V7),
+            [7, mode] => {
+                let selected =
+                    EncoderMode::parse(*mode).map_err(|error| JsValue::from_str(&error))?;
+                BrowserRuntime::with_mode(seed, selected, CONTRACT_VERSION_V7)
             }
             _ => return Err(invalid()),
         }
@@ -769,7 +861,7 @@ impl WasmAdapter {
         })
     }
 
-    /// The topology every snapshot belongs to; contract 6 reads it once.
+    /// The topology every snapshot belongs to; contracts 6 and 7 read it once.
     pub fn topology(&self) -> Result<WasmTopology, JsValue> {
         let runtime = self
             .runtime

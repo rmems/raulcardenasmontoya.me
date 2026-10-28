@@ -65,21 +65,21 @@ test('the audited topology is returned as fresh copies', () => {
   assert.notEqual(second.edgeTargets[0], 99);
   assert.notEqual(second.weightBits[0], 0);
   assert.notEqual(second.edgeWeights[1], 42);
-  assert.equal(second.nodeIds.length, 16);
-  assert.equal(second.edgeSources.length, 64);
+  assert.equal(second.nodeIds.length, 48);
+  assert.equal(second.edgeSources.length, 288);
 });
 
 test('the static drawing uses the renderer layout and camera framing', () => {
   assert.equal(renderer.layoutTopology, layout.layoutTopology, 'one layout implementation');
   const topology = adapterModule.auditedBrowserTopology();
   const mesh = layout.staticMeshGeometry(topology);
-  const positions = layout.layoutTopology(16);
+  const positions = layout.layoutTopology(48);
 
   assert.equal(mesh.viewBox, '-1.35 -1.35 2.7 2.7');
   assert.equal(mesh.nodeSize, layout.NODE_SIZE_WORLD, 'the node stroke is world (viewBox) units, so it scales with the stage');
   assert.equal(mesh.edgeOpacity, 0.4);
-  assert.equal(mesh.nodes.length, 16);
-  assert.equal(mesh.edges.length, 64);
+  assert.equal(mesh.nodes.length, 48);
+  assert.equal(mesh.edges.length, 288);
   mesh.nodes.forEach((node, index) => {
     assert.equal(node.id, index);
     assert.ok(Math.abs(node.x - positions[index].x) < 1e-4);
@@ -95,6 +95,73 @@ test('the static drawing uses the renderer layout and camera framing', () => {
       assert.ok(Math.abs(value) < layout.CAMERA_EXTENT);
     }
   });
+});
+
+test('the two-ring layout gives every synapse visible length and keeps nodes apart (RM-2355)', () => {
+  // The goal of RM-2355: more neurons the eye can follow, on a layout where
+  // pulses have visible length instead of skirting the rim. A single ring at
+  // 48 nodes put lattice neighbours 7.5° apart (0.13 world units, under two
+  // marker diameters); alternating rings turn them into spokes.
+  const topology = adapterModule.auditedBrowserTopology();
+  const nodeCount = topology.nodeIds.length;
+  const positions = layout.layoutTopology(nodeCount);
+  const diameter = layout.NODE_SIZE_WORLD;
+  assert.equal(nodeCount, 48);
+  assert.ok(nodeCount >= 32, 'the hero shows at least 32 neurons');
+  assert.ok(layout.LAYOUT_INNER_RADIUS < layout.LAYOUT_OUTER_RADIUS);
+
+  // Two rings, nodes alternating, every node inside the camera frame with its marker.
+  const radii = positions.map(({ x, y }) => Math.hypot(x, y));
+  radii.forEach((radius, node) => {
+    const ring = node % 2 === 0 ? layout.LAYOUT_INNER_RADIUS : layout.LAYOUT_OUTER_RADIUS;
+    assert.ok(radius >= ring && radius <= ring + layout.LAYOUT_RADIUS_JITTER, `node ${node} sits on its ring`);
+    assert.ok(radius + diameter / 2 < layout.CAMERA_EXTENT, `node ${node} stays inside the frame`);
+  });
+  // Nodes keep their index order around the rings, so the drawing reads as one circle of NeuronIds.
+  positions.forEach(({ x, y }, node) => {
+    const expected = (2 * Math.PI * node) / nodeCount - Math.PI / 2;
+    assert.ok(Math.abs(Math.atan2(y, x) - expected) < 1e-9 || Math.abs(Math.abs(Math.atan2(y, x) - expected) - 2 * Math.PI) < 1e-9, `node ${node} angle`);
+  });
+
+  // Minimum node separation: at least 1.5 marker diameters.
+  const separation = (a, b) => Math.hypot(positions[a].x - positions[b].x, positions[a].y - positions[b].y);
+  let minimumSeparation = Infinity;
+  for (let a = 0; a < nodeCount; a += 1) {
+    for (let b = a + 1; b < nodeCount; b += 1) minimumSeparation = Math.min(minimumSeparation, separation(a, b));
+  }
+  assert.ok(minimumSeparation >= 1.5 * diameter, `nodes are ${minimumSeparation.toFixed(3)} apart at the closest (need ${(1.5 * diameter).toFixed(3)})`);
+
+  // Edge lengths: the median synapse is at least 0.45 world units, no more
+  // than 10% of synapses are shorter than two marker diameters, and none is
+  // hidden under its own markers.
+  const lengths = [...topology.edgeSources].map((source, edge) => separation(source, topology.edgeTargets[edge])).sort((left, right) => left - right);
+  const median = lengths[Math.floor(lengths.length / 2)];
+  assert.ok(median >= 0.45, `median edge length ${median.toFixed(3)}`);
+  const short = lengths.filter((length) => length < 2 * diameter).length;
+  assert.ok(short * 10 <= lengths.length, `${short} of ${lengths.length} synapses are shorter than two marker diameters`);
+  assert.ok(lengths[0] > diameter, `the shortest synapse (${lengths[0].toFixed(3)}) clears its markers`);
+
+  // Tangle: edge crossings stay near the old single ring's count (about
+  // 1,500 at 48 nodes) rather than the 8,000+ an angular stride produced.
+  const orientation = (p, q, r) => Math.sign((q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x));
+  const crosses = (a, b, c, d) => orientation(a, b, c) !== orientation(a, b, d) && orientation(c, d, a) !== orientation(c, d, b);
+  let crossings = 0;
+  for (let i = 0; i < topology.edgeSources.length; i += 1) {
+    for (let j = i + 1; j < topology.edgeSources.length; j += 1) {
+      const ends = [topology.edgeSources[i], topology.edgeTargets[i], topology.edgeSources[j], topology.edgeTargets[j]];
+      if (new Set(ends).size < 4) continue;
+      if (crosses(positions[ends[0]], positions[ends[1]], positions[ends[2]], positions[ends[3]])) crossings += 1;
+    }
+  }
+  assert.ok(crossings < 2000, `${crossings} edge crossings`);
+
+  // The layout is still a pure function of the count.
+  assert.equal(layout.layoutTopology(16).length, 16);
+  assert.deepEqual(layout.layoutTopology(0), []);
+  // The copy says what is drawn.
+  const island = readSource('../src/components/NeuromorphicDemo.astro');
+  assert.match(island, /neurons on two rings/);
+  assert.doesNotMatch(island, /neurons on a ring/);
 });
 
 test('afterglow fades exponentially to a floor: 0.8 s spike flash, 0.3 s landing glow', () => {

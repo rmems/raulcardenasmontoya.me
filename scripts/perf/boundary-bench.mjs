@@ -1,5 +1,5 @@
 // WASM ↔ JavaScript boundary microbenchmarks for the live contract path
-// (contract 6 by default; `options.contract` selects 5 to compare)
+// (contract 7 by default; `options.contract` selects 6 or 5 to compare)
 // (GitHub #10 / RM-1646). Self-contained (no imports) so the same code runs in
 // Node (`measure-node.mjs`) and is injected into Chrome by
 // `measure-browser.mjs`. Every number is a batch mean: `performance.now()` is
@@ -92,8 +92,9 @@ export async function runBoundaryBench(deps, options = {}) {
   const repeats = options.repeats ?? 7;
   const workerTimeoutMs = options.workerTimeoutMs ?? DEFAULT_WORKER_TIMEOUT_MS;
   const modes = options.modes ?? ['delta', 'temporal', 'rate'];
-  // Contract 6 sends the topology once; 5 repeats it in every snapshot.
-  const contract = options.contract ?? 6;
+  // Contracts 6 and 7 send the topology once; 5 repeats it in every snapshot.
+  // 7 is the live contract (48 neurons); 6 is the same pipeline on 16.
+  const contract = options.contract ?? 7;
   const sources = {
     scripted: scriptedTelemetry,
     'pointer-active': pointerActivePacket,

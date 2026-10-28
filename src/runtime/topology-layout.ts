@@ -70,16 +70,39 @@ export function landingGlow(sinceArrivalSeconds: number): number {
 }
 
 /**
- * Deterministic topology layout: nodes on a ring with a small index-keyed
- * radial jitter. Pure function of the node count, never of timing or device
- * state.
+ * Radius of the inner ring (even-numbered nodes) and of the outer ring (odd
+ * ones), before the index-keyed jitter of up to {@link LAYOUT_RADIUS_JITTER}.
+ * With the live 48-node topology the outer ring plus jitter and marker stays
+ * inside {@link CAMERA_EXTENT}, and the closest two markers are 2.2 marker
+ * diameters apart.
+ */
+export const LAYOUT_INNER_RADIUS = 0.62;
+export const LAYOUT_OUTER_RADIUS = 1.12;
+export const LAYOUT_RADIUS_JITTER = 0.06;
+
+/**
+ * Deterministic topology layout: two concentric rings, nodes alternating
+ * between them in index order, with a small index-keyed radial jitter. Pure
+ * function of the node count, never of timing or device state.
+ *
+ * A single ring at 48 nodes (RM-2355) put lattice neighbours 7.5° apart: a
+ * `synaptic-wiring` small-world graph joins `i` to `i ± 1..3`, so most
+ * synapses were 0.13 world units long, under two marker diameters, and
+ * pulses only skirted the rim. Alternating rings turn the `i ± 1` and
+ * `i ± 3` synapses into spokes between the rings (about 0.5 units) and leave
+ * the `i ± 2` ones as short chords along a ring; the rewired fifth of the
+ * synapses still cross the stage. An angular stride (node `i` at slot
+ * `i × g mod n`) was tried first: it lengthens every synapse but multiplies
+ * edge crossings five to ten times (8,000 to 15,000 against 1,300 here), and
+ * the drawing read as a tangle. The numbers are in `test/hero-live-mesh.test.mjs`.
  */
 export function layoutTopology(nodeCount: number): NodeLayout[] {
   const positions: NodeLayout[] = [];
   for (let node = 0; node < nodeCount; node += 1) {
     const angle = (2 * Math.PI * node) / nodeCount - Math.PI / 2;
     const jitter = ((node * 2654435761) % 97) / 97;
-    const radius = 0.92 + jitter * 0.14;
+    const ring = node % 2 === 0 ? LAYOUT_INNER_RADIUS : LAYOUT_OUTER_RADIUS;
+    const radius = ring + jitter * LAYOUT_RADIUS_JITTER;
     positions.push({ x: Math.cos(angle) * radius, y: Math.sin(angle) * radius });
   }
   return positions;
@@ -211,7 +234,7 @@ function toHex(color: Rgb): string {
 const round = (value: number) => Math.round(value * 10_000) / 10_000;
 
 /**
- * The live renderer's first frame as plain SVG geometry: the same ring layout,
+ * The live renderer's first frame as plain SVG geometry: the same two-ring layout,
  * the same camera framing (`viewBox` with the default `xMidYMid meet` behaves
  * like the orthographic camera at any aspect ratio), and the same edge colours
  * (polarity colour mixed toward `--line` by weight). SVG's y axis points

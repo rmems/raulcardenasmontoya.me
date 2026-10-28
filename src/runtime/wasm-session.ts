@@ -2,7 +2,7 @@ import {
   attachTopology,
   DEFAULT_ENCODER_MODE,
   ENCODER_MODES,
-  NEUROMORPHIC_CONTRACT_VERSION_V6,
+  NEUROMORPHIC_LIVE_CONTRACT_VERSION,
   initNeuromorphicAdapter,
   type EncoderModeName,
   type NeuromorphicAdapter,
@@ -32,13 +32,15 @@ import type { PerfProbe } from './perf-probe';
 export const WASM_MODULE_URL = '/wasm/neuromorphic-adapter/neuromorphic_adapter.js';
 
 /**
- * Live demo adapter configuration: contract 6 routes telemetry through
+ * Live demo adapter configuration: contract 7 routes telemetry through
  * `kinetic-signals` before the default `axon-encoder` mode, exactly as
- * contract 5 does, and sends the topology projection once instead of in every
- * snapshot. The worker and the main-thread fallback use the identical options.
+ * contracts 5 and 6 do, sends the topology projection once instead of in
+ * every snapshot like contract 6, and runs the 48-neuron audited topology
+ * (RM-2355). The worker and the main-thread fallback use the identical
+ * options.
  */
 export const LIVE_ADAPTER_OPTIONS = {
-  contractVersion: NEUROMORPHIC_CONTRACT_VERSION_V6,
+  contractVersion: NEUROMORPHIC_LIVE_CONTRACT_VERSION,
   encoderMode: DEFAULT_ENCODER_MODE,
 } as const;
 
@@ -277,8 +279,8 @@ function workerEngine(
           response.type === 'error' ? response.message : 'unexpected worker reply',
         );
       }
-      // Contract 6: the worker sent the topology once with `ready`; every
-      // snapshot shares this copy of it.
+      // Contracts 6 and 7: the worker sent the topology once with `ready`;
+      // every snapshot shares this copy of it.
       return topology ? attachTopology(response.state, topology) : response.state;
     },
     dispose() {

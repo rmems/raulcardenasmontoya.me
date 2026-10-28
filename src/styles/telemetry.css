@@ -121,7 +121,8 @@
 .demo-telemetry-raster canvas {
   display: block;
   width: 100%;
-  height: 10.5rem;
+  /* 48 neuron rows (contract 7) plus the encoder lane: about 4 px per row. */
+  height: 16rem;
   border: 1px solid var(--line);
   background: var(--paper);
 }
@@ -301,7 +302,7 @@
 
 @media (max-width: 480px) {
   .demo-telemetry-facts div { grid-template-columns: minmax(0, 1fr); gap: 0.15rem; }
-  .demo-telemetry-raster canvas { height: 9rem; }
+  .demo-telemetry-raster canvas { height: 14rem; }
 }
 
 /* A narrow block for the text size: the fact rows stack, and each feature

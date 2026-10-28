@@ -23,4 +23,6 @@ The first live frame therefore lands on the drawing it replaces, at rotation 0. 
 
 Without JavaScript the hero is complete: copy, drawing, a `STATIC · diagram` label, and the crate trail that links each layer to its pinned source. With reduced motion the drawing stays until the reader presses Play, and the live view then runs without camera drift or pulses. Without WebGL or WebAssembly, or when either fails, the runtime reports its reason in the status line, the label becomes `STATIC · diagram` or `UNAVAILABLE · Rust/WASM`, and the drawing stays. No JavaScript simulation substitutes for the Rust one.
 
+*Update, 2026-10-28:* the hero now runs 48 neurons and 288 synapses behind a new contract (RM-2355), drawn on two concentric rings so every synapse has visible length. The numbers above describe the 16-neuron network the note was written about; the mechanism is unchanged.
+
 The label is the honest part. `LIVE · Rust/WASM` appears only after a verified adapter-backed runtime is actually running, and the same rule keeps recorded CUDA and FPGA results, which never run in the browser, on their own page.

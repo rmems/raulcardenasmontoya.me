@@ -2,8 +2,8 @@ import {
   cloneTopology,
   detachTopology,
   initNeuromorphicAdapter,
-  NEUROMORPHIC_CONTRACT_VERSION_V6,
   TOPOLOGY_ARRAY_FIELDS,
+  topologySentOnce,
   type NeuromorphicAdapter,
   type NeuromorphicAdapterOptions,
   type NeuromorphicState,
@@ -14,9 +14,9 @@ import {
  * Dedicated simulation worker. Mirrors the adapter's init/input/step/dispose
  * contract: every request carries a tagged id, and each step replies with a
  * fresh snapshot whose typed-array buffers are transferred (never shared) to
- * the main thread. On contract 6 the topology travels once, with `ready`, and
- * each step's snapshot crosses detached (empty topology arrays, digest kept);
- * the main thread re-attaches its copy.
+ * the main thread. On contracts 6 and 7 the topology travels once, with
+ * `ready`, and each step's snapshot crosses detached (empty topology arrays,
+ * digest kept); the main thread re-attaches its copy.
  */
 
 export interface WorkerInitRequest {
@@ -64,7 +64,7 @@ const ctx = self as unknown as {
 let adapter: NeuromorphicAdapter | null = null;
 
 function postState(id: number, state: NeuromorphicState): void {
-  if (state.contractVersion === NEUROMORPHIC_CONTRACT_VERSION_V6) {
+  if (topologySentOnce(state.contractVersion)) {
     // The topology went once with `ready`; a step carries only what changes.
     const detached = detachTopology(state);
     ctx.postMessage({ id, type: 'state', state: detached }, [
@@ -116,7 +116,7 @@ ctx.onmessage = (event) => {
             request.seed,
             request.options,
           );
-          if (request.options?.contractVersion === NEUROMORPHIC_CONTRACT_VERSION_V6) {
+          if (request.options?.contractVersion !== undefined && topologySentOnce(request.options.contractVersion)) {
             // A copy, so transferring its buffers leaves the adapter's own intact.
             const topology = cloneTopology(adapter.topology());
             ctx.postMessage(

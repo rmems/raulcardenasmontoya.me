@@ -144,20 +144,13 @@ async function liveAdapter() {
   );
 }
 
-// Audited canonical projection of the browser topology (see
-// `src/runtime/neuromorphic-adapter.ts`): four outgoing edges per neuron.
-const AUDITED_TARGETS = [
-  1, 2, 12, 14, 3, 8, 12, 15, 0, 1, 3, 4, 2, 4, 5, 8,
-  2, 3, 7, 14, 3, 4, 6, 7, 0, 5, 7, 8, 5, 6, 11, 15,
-  6, 7, 9, 10, 8, 10, 11, 14, 4, 8, 9, 13, 9, 12, 13, 15,
-  10, 11, 13, 14, 11, 12, 14, 15, 0, 9, 12, 15, 0, 5, 13, 14,
-];
-const AUDITED_DELAYS = [
-  3, 1, 1, 4, 1, 4, 1, 1, 1, 2, 1, 2, 3, 1, 3, 3,
-  2, 4, 1, 2, 3, 1, 3, 1, 3, 1, 4, 1, 1, 2, 1, 2,
-  2, 3, 2, 3, 4, 2, 4, 4, 2, 3, 1, 2, 1, 1, 1, 4,
-  1, 2, 1, 2, 2, 3, 2, 3, 3, 3, 3, 2, 2, 1, 3, 1,
-];
+// Audited canonical projection of the live browser topology (see
+// `src/runtime/neuromorphic-adapter.ts`): contract 7, 48 neurons with six
+// outgoing edges each (RM-2355).
+const AUDITED = adapterModule.auditedBrowserTopology();
+const AUDITED_FAN_OUT = AUDITED.edgeSources.length / AUDITED.nodeIds.length;
+const AUDITED_TARGETS = Array.from(AUDITED.edgeTargets);
+const AUDITED_DELAYS = Array.from(AUDITED.edgeDelays);
 
 test('live neuromod spikes become live-wasm propagation events on the real topology', async () => {
   const adapter = await liveAdapter();
@@ -214,7 +207,8 @@ test('live neuromod spikes become live-wasm propagation events on the real topol
   assert.deepEqual(errors, []);
   assert.ok(spikeTotal > 0, 'the scripted path drives real neuromod spikes within 160 ticks');
   const stats = buffer.stats();
-  assert.equal(stats.emitted, spikeTotal * 4, 'every live spike leaves along its four synapses');
+  assert.equal(AUDITED_FAN_OUT, 6);
+  assert.equal(stats.emitted, spikeTotal * AUDITED_FAN_OUT, 'every live spike leaves along its six synapses');
   assert.equal(stats.evicted, 0, 'the default capacity holds the live topology without eviction');
   assert.equal(buffer.size(), 0, 'detaching the feed clears the buffer');
 });
@@ -611,11 +605,15 @@ test('retention and capacity defaults cover the slowed pulses of the audited top
   assert.ok(Number.isInteger(retain) && retain > 0);
   assert.equal(retain, 18);
 
-  // The live topology's delays never exceed the constant the defaults are derived from.
+  // The live topology's delays never exceed the constant the defaults are
+  // derived from, and the synapse count the capacity is sized for is the
+  // audited topology's (contract 7: 48 neurons × 6 synapses, RM-2355).
   const topology = adapterModule.auditedBrowserTopology();
+  assert.equal(maxDelay, 4);
   assert.equal(Math.max(...topology.edgeDelays), maxDelay);
   assert.ok(topology.edgeDelays.every((delay) => delay >= 1 && delay <= maxDelay));
-  assert.equal(topology.edgeSources.length, 64);
+  assert.equal(topology.edgeSources.length, 288);
+  assert.equal(spikes.LIVE_SYNAPSE_COUNT, topology.edgeSources.length);
 
   // Retention outlives the drawn pulse on every live delay, so frames never
   // lose a pulse the buffer has already retired; and it is not wastefully long.
@@ -625,12 +623,16 @@ test('retention and capacity defaults cover the slowed pulses of the audited top
   assert.notEqual(spikes.propagationSpan(maxDelay, (maxDelay + retain - 1) * speed), null, 'one step less would cut the longest pulse short');
 
   // Worst case, every neuron firing every step: every edge carries one event
-  // per step for (delay + retain + 1) steps, all within the ring.
+  // per step for (delay + retain + 1) steps, all within the ring, which is
+  // that worst case rounded up to a power of two.
   const worstCase = topology.edgeSources.length * (maxDelay + retain + 1);
-  assert.equal(worstCase, 1472);
+  assert.equal(worstCase, 6624);
+  assert.equal(spikes.LIVE_SPIKE_EVENT_WORST_CASE, worstCase);
   assert.ok(spikes.DEFAULT_SPIKE_EVENT_CAPACITY >= worstCase);
-  assert.equal(spikes.DEFAULT_SPIKE_EVENT_CAPACITY, 2048);
-  assert.equal(spikes.createSpikeEventBuffer({ provenance: 'fixture' }).capacity, 2048);
+  assert.equal(spikes.DEFAULT_SPIKE_EVENT_CAPACITY, 8192);
+  assert.ok(Number.isInteger(Math.log2(spikes.DEFAULT_SPIKE_EVENT_CAPACITY)));
+  assert.ok(spikes.DEFAULT_SPIKE_EVENT_CAPACITY < 2 * worstCase, 'the smallest power of two that fits');
+  assert.equal(spikes.createSpikeEventBuffer({ provenance: 'fixture' }).capacity, 8192);
 
   // The default buffer really keeps a long-edge event until its slowed tail has landed.
   const buffer = fixtureBuffer();
