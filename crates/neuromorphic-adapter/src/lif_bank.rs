@@ -173,7 +173,12 @@ impl LifBankShaping {
     /// Advance `network` one step from `synaptic-wiring` currents: shape the
     /// stimulus, withhold refractory neurons' weights, run `neuromod`, then
     /// restore the weights and start the refractory period of every neuron that
-    /// fired. The weights are restored even when `neuromod` rejects the step.
+    /// fired.
+    ///
+    /// Atomic like `neuromod`'s own step: when `neuromod` rejects the step
+    /// (wrong current count, non-finite value) the weights are restored and
+    /// neither the dither step nor the refractory counters advance, so a retry
+    /// behaves exactly as if the failed call never happened.
     pub fn step<R: Rng + ?Sized>(
         &mut self,
         network: &mut SpikingNetwork,
@@ -184,16 +189,20 @@ impl LifBankShaping {
         let stimulus = self.stimulus(currents);
         self.enter_step(network);
         let stepped = network.step_with_rng(&stimulus, modulators, rng);
-        let fired = stepped.as_deref().unwrap_or_default();
-        self.leave_step(network, fired);
+        self.restore_weights(network);
+        if let Ok(spikes) = &stepped {
+            self.settle(spikes);
+        }
         stepped
     }
 
     /// Turn `synaptic-wiring` currents into the stimulus handed to `neuromod`:
     /// inhibition clamped to zero, a per-neuron gain, plus background drive.
-    fn stimulus(&mut self, currents: &[f32]) -> Vec<f32> {
+    /// `neuromod` clamps each channel to `[0, 1]` itself, so no clamp here: the
+    /// bank sees exactly this sum, and a non-finite current still reaches
+    /// `neuromod`'s own rejection instead of being masked.
+    fn stimulus(&self, currents: &[f32]) -> Vec<f32> {
         let step = self.steps;
-        self.steps = self.steps.wrapping_add(1);
         currents
             .iter()
             .enumerate()
@@ -201,7 +210,7 @@ impl LifBankShaping {
                 let evoked = current.max(0.0) * self.gain.get(index).copied().unwrap_or(0.0);
                 let dither = 1.0 + TONIC_DITHER * (2.0 * unit_hash(index as u64, step) - 1.0);
                 let background = self.tonic.get(index).copied().unwrap_or(0.0) * dither;
-                (evoked + background).min(1.0)
+                evoked + background
             })
             .collect()
     }
@@ -216,12 +225,17 @@ impl LifBankShaping {
         }
     }
 
-    /// Restore the withheld weights, age the refractory counters, and start
-    /// the refractory period of every neuron that just fired.
-    fn leave_step(&mut self, network: &mut SpikingNetwork, spikes: &[usize]) {
+    /// Restore every neuron's own weights after the step.
+    fn restore_weights(&self, network: &mut SpikingNetwork) {
         for (neuron, home) in network.neurons.iter_mut().zip(&self.home_weights) {
             neuron.weights.clone_from(home);
         }
+    }
+
+    /// Commit a successful step: advance the dither step, age the refractory
+    /// counters, and start the refractory period of every neuron that fired.
+    fn settle(&mut self, spikes: &[usize]) {
+        self.steps = self.steps.wrapping_add(1);
         for left in &mut self.refractory_left {
             *left = left.saturating_sub(1);
         }

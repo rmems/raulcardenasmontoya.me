@@ -22,6 +22,15 @@ enum Input {
     PointerActive,
 }
 
+/// Deterministic jitter in `[-1, 1)`; the same generator as `lcg` in
+/// `examples/stage_bench.rs`, so the pointer-active input is the measured one.
+fn lcg(sequence: u64) -> f64 {
+    let mixed = sequence
+        .wrapping_mul(6_364_136_223_846_793_005)
+        .wrapping_add(1_442_695_040_888_963_407);
+    ((mixed >> 11) as f64 / (1_u64 << 53) as f64) * 2.0 - 1.0
+}
+
 fn packet(input: Input, sequence: u64) -> [f32; 3] {
     let step = sequence as f64;
     match input {
@@ -32,8 +41,7 @@ fn packet(input: Input, sequence: u64) -> [f32; 3] {
             if sequence % 120 < 24 { 0.5 } else { 0.0 },
         ],
         Input::PointerActive => {
-            let jitter = ((sequence.wrapping_mul(2_654_435_761) >> 8) & 0xffff) as f64 / 32_768.0;
-            let jitter = (jitter - 1.0) * 0.03;
+            let jitter = lcg(sequence) * 0.03;
             let sweep = |period: f64| {
                 let phase = (step / period).fract();
                 if phase < 0.5 {
@@ -170,4 +178,53 @@ fn the_same_seed_replays_the_same_spikes() {
     for (_, input, mode) in cases() {
         assert_eq!(trace(input, mode), trace(input, mode));
     }
+}
+
+/// A step `neuromod` rejects must leave the shaping state untouched, like
+/// `neuromod`'s own atomic step: a bank that suffered rejected steps replays
+/// exactly like one that never did.
+#[test]
+fn a_rejected_step_leaves_the_shaping_state_untouched() {
+    use neuromod::{NeuroModulators, SeedableRng, SpikingNetwork, StdRng};
+    use neuromorphic_adapter::lif_bank::LifBankShaping;
+
+    let bank = || {
+        let mut network = SpikingNetwork::with_dimensions(NEURONS, 0, NEURONS);
+        let shaping = LifBankShaping::install(&mut network);
+        (network, shaping, StdRng::seed_from_u64(SEED))
+    };
+    let (mut network_a, mut shaping_a, mut rng_a) = bank();
+    let (mut network_b, mut shaping_b, mut rng_b) = bank();
+    let modulators = NeuroModulators::default();
+    let drive = [0.05_f32; NEURONS];
+
+    let mut spiked = 0;
+    for step in 0..200 {
+        if step % 3 == 1 {
+            // One current short: `neuromod` rejects it before changing anything.
+            assert!(
+                shaping_a
+                    .step(
+                        &mut network_a,
+                        &drive[..NEURONS - 1],
+                        &modulators,
+                        &mut rng_a
+                    )
+                    .is_err()
+            );
+        }
+        let with_failures = shaping_a
+            .step(&mut network_a, &drive, &modulators, &mut rng_a)
+            .expect("valid step");
+        let clean = shaping_b
+            .step(&mut network_b, &drive, &modulators, &mut rng_b)
+            .expect("valid step");
+        assert_eq!(with_failures, clean, "step {step}");
+        spiked += clean.len();
+    }
+    assert!(spiked > 0, "the comparison must exercise spikes");
+    assert_eq!(
+        network_a.get_membrane_potentials(),
+        network_b.get_membrane_potentials()
+    );
 }
