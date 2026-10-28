@@ -119,7 +119,10 @@ test('reduced-motion keeps the static representation until an explicit play acti
   assert.equal(runtime.demoExecutionOrigin(live), 'live-wasm');
   assert.equal(live.cameraMotionEnabled, false);
   assert.equal(live.playLabel, 'Pause animation');
-  assert.match(live.status, /camera motion stays off/i);
+  assert.equal(
+    live.status,
+    'Live visualization is running. The view holds still because your device asks for reduced motion.',
+  );
   assert.deepEqual(wasmCalls, [true]);
 });
 

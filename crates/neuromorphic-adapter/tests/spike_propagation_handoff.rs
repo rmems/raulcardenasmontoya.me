@@ -6,19 +6,21 @@
 //! upstream crate itself instead of trusting the projection's own arrays.
 
 use neuromorphic_adapter::{
-    BrowserRuntime, BrowserTopology, CONTRACT_VERSION_V5, CONTRACT_VERSION_V7, TopologyProjection,
-    TopologySpec, encoder::EncoderMode,
+    BrowserRuntime, BrowserTopology, CONTRACT_VERSION_V5, CONTRACT_VERSION_V7, CONTRACT_VERSION_V8,
+    TopologyProjection, TopologySpec, encoder::EncoderMode,
 };
 use serde_json::Value;
 use synaptic_wiring::{SynapticMesh, topology::generate_small_world};
 
 #[test]
 fn every_projected_outgoing_range_is_upstream_delivery_of_one_source_spike() {
-    // The 16 / 64 topology of contracts 3 to 6 and the 48 / 288 one of
-    // contract 7 (RM-2355), each rebuilt from its own parameters.
+    // The 16 / 64 topology of contracts 3 to 6, the 48 / 288 one of
+    // contract 7 (RM-2355) and the 64 / 512 one of contract 8, each rebuilt
+    // from its own parameters.
     for (contract, spec) in [
         (CONTRACT_VERSION_V5, TopologySpec::LEGACY),
         (CONTRACT_VERSION_V7, TopologySpec::V7),
+        (CONTRACT_VERSION_V8, TopologySpec::V8),
     ] {
         let topology = BrowserRuntime::with_mode(9, EncoderMode::DEFAULT, contract)
             .expect("the browser topology is valid")

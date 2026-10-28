@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { isAbsolute, join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
-import { readAuditedTopologyV7 } from './audited-topology-v7.mjs';
+import { readAuditedTopologyV7, readAuditedTopologyV8 } from './audited-topology-v7.mjs';
 import { replayTraceFixture } from './replay-trace-fixture.mjs';
 
 const repository = resolve(import.meta.dirname, '..');
@@ -28,11 +28,13 @@ const stateContractChecks = [
   "for (let node = 0; node < state.topology_node_ids.length; node += 1) { const start = state.topology_outgoing_edge_offsets[node]; const end = state.topology_outgoing_edge_offsets[node + 1]; if (start > end || state.topology_node_ids[node] !== node) process.exit(1); for (let edge = start; edge < end; edge += 1) { if (state.topology_edge_sources[edge] !== node) process.exit(1); } }",
 ].join(' ');
 const contract7Digest = JSON.stringify((await readAuditedTopologyV7()).digest);
+const contract8Digest = JSON.stringify((await readAuditedTopologyV8()).digest);
 
-// Contracts 6 and 7 send the topology once; the live contract (7) runs 48 neurons.
+// Contracts 6 to 8 send the topology once; the live contract (8) runs 64 neurons.
 const onceSentChecks = [
   "const six = wasm.WasmAdapter.init(9n, new Uint8Array([6])); const topology = six.topology(); if (topology.topology_edge_sources.length !== 64 || topology.topology_node_ids.length !== 16 || topology.topology_rows.length !== 17 || typeof topology.topology_digest !== 'string') process.exit(1); six.input(1n, new Float32Array([0.5, 0.5, 0.5])); const sixState = six.step(); if (sixState.contract_version !== 6 || sixState.completed_step !== 1n || sixState.topology_edge_sources.length !== 0 || sixState.topology_rows.length !== 0 || sixState.topology_digest !== topology.topology_digest || sixState.membrane_potentials.length !== 16 || sixState.encoder_features.length !== 16) process.exit(1); six.dispose();",
   `const seven = wasm.WasmAdapter.init(9n, new Uint8Array([7])); const sevenTopology = seven.topology(); if (sevenTopology.topology_edge_sources.length !== 288 || sevenTopology.topology_node_ids.length !== 48 || sevenTopology.topology_rows.length !== 49 || sevenTopology.topology_outgoing_edge_offsets[48] !== 288 || sevenTopology.topology_digest !== ${contract7Digest} || sevenTopology.topology_digest === topology.topology_digest) process.exit(1); for (let edge = 0; edge < 288; edge += 1) { if (sevenTopology.topology_edge_sources[edge] !== Math.floor(edge / 6) || sevenTopology.topology_edge_targets[edge] >= 48) process.exit(1); } seven.input(1n, new Float32Array([0.5, 0.5, 0.5])); const sevenState = seven.step(); if (sevenState.contract_version !== 7 || sevenState.completed_step !== 1n || sevenState.topology_edge_sources.length !== 0 || sevenState.topology_digest !== sevenTopology.topology_digest || sevenState.membrane_potentials.length !== 48 || sevenState.encoder_features.length !== 16 || sevenState.spike_neurons.some((neuron) => neuron >= 48)) process.exit(1); seven.dispose();`,
+  `const eight = wasm.WasmAdapter.init(9n, new Uint8Array([8])); const eightTopology = eight.topology(); if (eightTopology.topology_edge_sources.length !== 512 || eightTopology.topology_node_ids.length !== 64 || eightTopology.topology_rows.length !== 65 || eightTopology.topology_outgoing_edge_offsets[64] !== 512 || eightTopology.topology_digest !== ${contract8Digest} || eightTopology.topology_digest === topology.topology_digest || eightTopology.topology_digest === sevenTopology.topology_digest) process.exit(1); for (let edge = 0; edge < 512; edge += 1) { if (eightTopology.topology_edge_sources[edge] !== Math.floor(edge / 8) || eightTopology.topology_edge_targets[edge] >= 64) process.exit(1); } eight.input(1n, new Float32Array([0.5, 0.5, 0.5])); const eightState = eight.step(); if (eightState.contract_version !== 8 || eightState.completed_step !== 1n || eightState.topology_edge_sources.length !== 0 || eightState.topology_digest !== eightTopology.topology_digest || eightState.membrane_potentials.length !== 64 || eightState.encoder_features.length !== 16 || eightState.spike_neurons.some((neuron) => neuron >= 64)) process.exit(1); eight.dispose();`,
 ].join(' ');
 
 if (!requestedWasmBindgen || !isAbsolute(requestedWasmBindgen)) {
@@ -73,6 +75,7 @@ const readFixture = async (name) => JSON.stringify(
 const fixtureJson = await readFixture('seed9-trace.json');
 const kineticFixtureJson = await readFixture('kinetic-seed9-trace.json');
 const contract7FixtureJson = await readFixture('contract7-seed9-trace.json');
+const contract8FixtureJson = await readFixture('contract8-seed9-trace.json');
 const traceSource = replayTraceFixture.toString();
 
 try {
@@ -94,8 +97,9 @@ try {
     `const replayTraceFixture = ${traceSource};`,
     `const kineticFixture = ${kineticFixtureJson};`,
     `const contract7Fixture = ${contract7FixtureJson};`,
+    `const contract8Fixture = ${contract8FixtureJson};`,
     "const initAdapter = (seed, config) => wasm.WasmAdapter.init(seed, new Uint8Array(config));",
-    "(async () => { await replayTraceFixture(fixture, initAdapter); await replayTraceFixture(kineticFixture, initAdapter); await replayTraceFixture(contract7Fixture, initAdapter); })().catch((error) => { console.error(error); process.exit(1); });",
+    "(async () => { await replayTraceFixture(fixture, initAdapter); await replayTraceFixture(kineticFixture, initAdapter); await replayTraceFixture(contract7Fixture, initAdapter); await replayTraceFixture(contract8Fixture, initAdapter); })().catch((error) => { console.error(error); process.exit(1); });",
   ].join(' '), join(output, 'neuromorphic_adapter.js')]);
   run(wasmBindgen, ['--target', 'web', '--out-dir', webOutput, wasm]);
   const webModule = join(webOutput, 'neuromorphic_adapter.mjs');
@@ -116,8 +120,9 @@ try {
     `const replayTraceFixture = ${traceSource};`,
     `const kineticFixture = ${kineticFixtureJson};`,
     `const contract7Fixture = ${contract7FixtureJson};`,
+    `const contract8Fixture = ${contract8FixtureJson};`,
     "const initAdapter = (seed, config) => wasm.WasmAdapter.init(seed, new Uint8Array(config));",
-    "(async () => { await replayTraceFixture(fixture, initAdapter); await replayTraceFixture(kineticFixture, initAdapter); await replayTraceFixture(contract7Fixture, initAdapter); })().catch((error) => { console.error(error); process.exit(1); });",
+    "(async () => { await replayTraceFixture(fixture, initAdapter); await replayTraceFixture(kineticFixture, initAdapter); await replayTraceFixture(contract7Fixture, initAdapter); await replayTraceFixture(contract8Fixture, initAdapter); })().catch((error) => { console.error(error); process.exit(1); });",
   ].join(' '), webModule, join(webOutput, 'neuromorphic_adapter_bg.wasm')]);
   process.stdout.write('Generated Rust/WASM adapter smoke test passed.\n');
 } finally {

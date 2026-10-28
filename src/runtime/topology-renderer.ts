@@ -142,7 +142,7 @@ export interface TopologyRendererInspection {
   drawnPulses: number;
   /** Events buffered when that frame was drawn. */
   bufferedEvents: number;
-  /** Whether nonessential motion (camera drift, pulses) is enabled. */
+  /** Whether nonessential camera drift is enabled; pulses do not depend on it. */
   motionEnabled: boolean;
   /** Active presentation quality level name. */
   quality: QualitySettings['name'];
@@ -418,8 +418,10 @@ export function createTopologyRendererSeam(options: TopologyRendererSeamOptions)
       let disposed = false;
       let paused = true;
       let frozen = false;
-      // Governs all nonessential motion: camera drift and propagation pulses.
-      // The runtime turns it off whenever reduced motion is requested.
+      // Governs camera drift only. The runtime turns it off whenever reduced
+      // motion is requested. Pulses are the content, not decoration: under
+      // reduced motion the runtime never starts on its own, so pulses only
+      // travel after the visitor presses Play.
       let motionEnabled = createOptions.cameraMotionEnabled;
       let frame = 0;
       let lastFrameTime = 0;
@@ -526,7 +528,7 @@ export function createTopologyRendererSeam(options: TopologyRendererSeamOptions)
         const latestStep = spikeEvents.latestStep();
         // Quality caps drawing only; every event stays buffered.
         pulseLimit = Math.min(pulseCapacity, settings.maxPulses);
-        if (motionEnabled && pulseLimit > 0 && latestStep !== null && nodeCount > 0) {
+        if (pulseLimit > 0 && latestStep !== null && nodeCount > 0) {
           // Sub-step progress since the latest snapshot, capped at one step
           // so a stalled simulation cannot run pulses ahead of it.
           const fraction = Math.min(1, Math.max(0, (time - latestAt) / SPIKE_EVENT_STEP_MS));

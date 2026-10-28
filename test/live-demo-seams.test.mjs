@@ -297,7 +297,7 @@ test('the session feeds telemetry packets to the adapter and records a replayabl
   assert.equal(last.source, 'scripted');
   const trace = last.trace();
   assert.equal(trace.seed, stimulus.DEMO_SEED.toString());
-  assert.deepEqual(trace.config, [7, 1], 'live sessions use contract 7 with the temporal encoder');
+  assert.deepEqual(trace.config, [8, 1], 'live sessions use contract 8 with the temporal encoder');
   assert.deepEqual(
     trace.operations,
     received.flatMap(([sequence, samples]) => [
@@ -408,7 +408,7 @@ test('failed ticks are not recorded, and exported recordings replay without expe
       step: () => ({ error_status: 'ok' }),
     };
   });
-  assert.deepEqual(seenConfig, [7, 1]);
+  assert.deepEqual(seenConfig, [8, 1]);
   assert.deepEqual(replayed, [
     [1n, Array.from(stimulus.scriptedTelemetry(1n))],
     [2n, Array.from(stimulus.scriptedTelemetry(2n))],
@@ -439,13 +439,13 @@ test('simulation channel delivers the latest snapshot to subscribers', () => {
 });
 
 test('topology layout is deterministic and bounded to the stage', () => {
-  for (const nodeCount of [16, 48]) {
+  for (const nodeCount of [16, 48, 64]) {
     const positions = rendererModule.layoutTopology(nodeCount);
     assert.equal(positions.length, nodeCount);
     assert.deepEqual(positions, rendererModule.layoutTopology(nodeCount));
     for (const { x, y } of positions) {
       const radius = Math.hypot(x, y);
-      assert.ok(radius > 0.5 && radius < 1.2, `radius ${radius} out of range (both rings)`);
+      assert.ok(radius > 0.5 && radius < 1.3, `radius ${radius} out of range (both rings)`);
     }
   }
 });

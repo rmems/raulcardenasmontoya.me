@@ -50,7 +50,7 @@ const report = await runBoundaryBench(
     scriptedTelemetry: stimulus.scriptedTelemetry,
     DEMO_SEED: stimulus.DEMO_SEED,
   },
-  { ticks: option('ticks', 2000), repeats: option('repeats', 7), contract: option('contract', 6) },
+  { ticks: option('ticks', 2000), repeats: option('repeats', 7), contract: option('contract', 8) },
 );
 
 const context = {

@@ -65,21 +65,21 @@ test('the audited topology is returned as fresh copies', () => {
   assert.notEqual(second.edgeTargets[0], 99);
   assert.notEqual(second.weightBits[0], 0);
   assert.notEqual(second.edgeWeights[1], 42);
-  assert.equal(second.nodeIds.length, 48);
-  assert.equal(second.edgeSources.length, 288);
+  assert.equal(second.nodeIds.length, 64);
+  assert.equal(second.edgeSources.length, 512);
 });
 
 test('the static drawing uses the renderer layout and camera framing', () => {
   assert.equal(renderer.layoutTopology, layout.layoutTopology, 'one layout implementation');
   const topology = adapterModule.auditedBrowserTopology();
   const mesh = layout.staticMeshGeometry(topology);
-  const positions = layout.layoutTopology(48);
+  const positions = layout.layoutTopology(64);
 
   assert.equal(mesh.viewBox, '-1.35 -1.35 2.7 2.7');
   assert.equal(mesh.nodeSize, layout.NODE_SIZE_WORLD, 'the node stroke is world (viewBox) units, so it scales with the stage');
   assert.equal(mesh.edgeOpacity, 0.4);
-  assert.equal(mesh.nodes.length, 48);
-  assert.equal(mesh.edges.length, 288);
+  assert.equal(mesh.nodes.length, 64);
+  assert.equal(mesh.edges.length, 512);
   mesh.nodes.forEach((node, index) => {
     assert.equal(node.id, index);
     assert.ok(Math.abs(node.x - positions[index].x) < 1e-4);
@@ -100,13 +100,14 @@ test('the static drawing uses the renderer layout and camera framing', () => {
 test('the two-ring layout gives every synapse visible length and keeps nodes apart (RM-2355)', () => {
   // The goal of RM-2355: more neurons the eye can follow, on a layout where
   // pulses have visible length instead of skirting the rim. A single ring at
-  // 48 nodes put lattice neighbours 7.5° apart (0.13 world units, under two
-  // marker diameters); alternating rings turn them into spokes.
+  // 64 nodes puts lattice neighbours 5.6° apart (0.11 world units, one and a
+  // half marker diameters) and tangles (5,500 crossings); alternating rings
+  // turn them into spokes.
   const topology = adapterModule.auditedBrowserTopology();
   const nodeCount = topology.nodeIds.length;
   const positions = layout.layoutTopology(nodeCount);
   const diameter = layout.NODE_SIZE_WORLD;
-  assert.equal(nodeCount, 48);
+  assert.equal(nodeCount, 64);
   assert.ok(nodeCount >= 32, 'the hero shows at least 32 neurons');
   assert.ok(layout.LAYOUT_INNER_RADIUS < layout.LAYOUT_OUTER_RADIUS);
 
@@ -141,8 +142,8 @@ test('the two-ring layout gives every synapse visible length and keeps nodes apa
   assert.ok(short * 10 <= lengths.length, `${short} of ${lengths.length} synapses are shorter than two marker diameters`);
   assert.ok(lengths[0] > diameter, `the shortest synapse (${lengths[0].toFixed(3)}) clears its markers`);
 
-  // Tangle: edge crossings stay near the old single ring's count (about
-  // 1,500 at 48 nodes) rather than the 8,000+ an angular stride produced.
+  // Tangle: edge crossings stay under the single ring's count (about 5,500
+  // at 64 nodes) rather than the 35,000 an angular stride produced.
   const orientation = (p, q, r) => Math.sign((q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x));
   const crosses = (a, b, c, d) => orientation(a, b, c) !== orientation(a, b, d) && orientation(c, d, a) !== orientation(c, d, b);
   let crossings = 0;
@@ -153,7 +154,7 @@ test('the two-ring layout gives every synapse visible length and keeps nodes apa
       if (crosses(positions[ends[0]], positions[ends[1]], positions[ends[2]], positions[ends[3]])) crossings += 1;
     }
   }
-  assert.ok(crossings < 2000, `${crossings} edge crossings`);
+  assert.ok(crossings < 5000, `${crossings} edge crossings`);
 
   // The layout is still a pure function of the count.
   assert.equal(layout.layoutTopology(16).length, 16);
@@ -296,7 +297,9 @@ test('the visible legend sits under the stage and passes contrast in both scheme
 
   // The three keys, as the caption's first row: directly under the stage on
   // desktop and mobile, beside it on tablet. No mode or scheme hides them.
-  assert.match(island, /<figcaption class="hero-mesh-caption">\s*<ul class="hero-mesh-legend" aria-label="What the colours in the drawing mean">/);
+  // The reduced-motion note (RM-2355) sits above them, hidden unless the
+  // device asks for reduced motion.
+  assert.match(island, /<figcaption class="hero-mesh-caption">\s*<p class="hero-mesh-motion-note">[^<]+<\/p>\s*<ul class="hero-mesh-legend" aria-label="What the colours in the drawing mean">/);
   for (const item of ['Neuron spike', 'Excitatory synapse', 'Inhibitory synapse']) {
     assert.match(island, new RegExp(`>${item}</li>`), item);
   }

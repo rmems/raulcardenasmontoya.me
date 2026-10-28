@@ -145,7 +145,7 @@ async function liveAdapter() {
 }
 
 // Audited canonical projection of the live browser topology (see
-// `src/runtime/neuromorphic-adapter.ts`): contract 7, 48 neurons with six
+// `src/runtime/neuromorphic-adapter.ts`): contract 8, 64 neurons with eight
 // outgoing edges each (RM-2355).
 const AUDITED = adapterModule.auditedBrowserTopology();
 const AUDITED_FAN_OUT = AUDITED.edgeSources.length / AUDITED.nodeIds.length;
@@ -207,8 +207,8 @@ test('live neuromod spikes become live-wasm propagation events on the real topol
   assert.deepEqual(errors, []);
   assert.ok(spikeTotal > 0, 'the scripted path drives real neuromod spikes within 160 ticks');
   const stats = buffer.stats();
-  assert.equal(AUDITED_FAN_OUT, 6);
-  assert.equal(stats.emitted, spikeTotal * AUDITED_FAN_OUT, 'every live spike leaves along its six synapses');
+  assert.equal(AUDITED_FAN_OUT, 8);
+  assert.equal(stats.emitted, spikeTotal * AUDITED_FAN_OUT, 'every live spike leaves along its eight synapses');
   assert.equal(stats.evicted, 0, 'the default capacity holds the live topology without eviction');
   assert.equal(buffer.size(), 0, 'detaching the feed clears the buffer');
 });
@@ -607,12 +607,12 @@ test('retention and capacity defaults cover the slowed pulses of the audited top
 
   // The live topology's delays never exceed the constant the defaults are
   // derived from, and the synapse count the capacity is sized for is the
-  // audited topology's (contract 7: 48 neurons × 6 synapses, RM-2355).
+  // audited topology's (contract 8: 64 neurons × 8 synapses, RM-2355).
   const topology = adapterModule.auditedBrowserTopology();
   assert.equal(maxDelay, 4);
   assert.equal(Math.max(...topology.edgeDelays), maxDelay);
   assert.ok(topology.edgeDelays.every((delay) => delay >= 1 && delay <= maxDelay));
-  assert.equal(topology.edgeSources.length, 288);
+  assert.equal(topology.edgeSources.length, 512);
   assert.equal(spikes.LIVE_SYNAPSE_COUNT, topology.edgeSources.length);
 
   // Retention outlives the drawn pulse on every live delay, so frames never
@@ -626,13 +626,13 @@ test('retention and capacity defaults cover the slowed pulses of the audited top
   // per step for (delay + retain + 1) steps, all within the ring, which is
   // that worst case rounded up to a power of two.
   const worstCase = topology.edgeSources.length * (maxDelay + retain + 1);
-  assert.equal(worstCase, 6624);
+  assert.equal(worstCase, 11776);
   assert.equal(spikes.LIVE_SPIKE_EVENT_WORST_CASE, worstCase);
   assert.ok(spikes.DEFAULT_SPIKE_EVENT_CAPACITY >= worstCase);
-  assert.equal(spikes.DEFAULT_SPIKE_EVENT_CAPACITY, 8192);
+  assert.equal(spikes.DEFAULT_SPIKE_EVENT_CAPACITY, 16384);
   assert.ok(Number.isInteger(Math.log2(spikes.DEFAULT_SPIKE_EVENT_CAPACITY)));
   assert.ok(spikes.DEFAULT_SPIKE_EVENT_CAPACITY < 2 * worstCase, 'the smallest power of two that fits');
-  assert.equal(spikes.createSpikeEventBuffer({ provenance: 'fixture' }).capacity, 8192);
+  assert.equal(spikes.createSpikeEventBuffer({ provenance: 'fixture' }).capacity, 16384);
 
   // The default buffer really keeps a long-edge event until its slowed tail has landed.
   const buffer = fixtureBuffer();
@@ -733,6 +733,16 @@ test('the dev inspector clamps recent(limit) to the buffered events', () => {
   });
   assert.equal(inspector.stats().latestStep, '10');
   assert.equal(inspector.renderer(), null);
+});
+
+test('pulses draw whenever the session runs; the motion flag only gates camera drift', () => {
+  // Under reduced motion the runtime never starts on its own, so a running
+  // session means the visitor pressed Play: pulses are what they asked for.
+  const source = readSource('../src/runtime/topology-renderer.ts');
+  const drawPulses = source.slice(source.indexOf('const drawPulses = '), source.indexOf('const resize = '));
+  assert.match(drawPulses, /if \(pulseLimit > 0 && latestStep !== null && nodeCount > 0\)/);
+  assert.doesNotMatch(drawPulses, /motionEnabled/, 'pulses do not read the camera-motion flag');
+  assert.match(source, /if \(motionEnabled\) \{\s*world\.rotation\.z \+= delta \* 0\.08;/);
 });
 
 test('pulses are layered between the edges and the neuron markers', () => {

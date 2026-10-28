@@ -148,6 +148,25 @@
   line-height: 1.5;
 }
 
+/* Reduced-motion notice. CSS alone decides when it shows, so it is in place at
+   first paint and never shifts the layout. It explains why the hero waits for
+   Play, including to visitors who never knowingly turned the setting on. A
+   fallback island has no Play control, so the note goes away there. */
+.hero-mesh-motion-note {
+  display: none;
+  margin: 0;
+  padding-left: 0.6rem;
+  border-left: 2px solid var(--accent);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 0.82rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-mesh-motion-note { display: block; }
+  .live-hero[data-mode='fallback'] .hero-mesh-motion-note { display: none; }
+}
+
 /* Legend: the colour code the drawing and the live view share, as the
    caption's first row (directly under the stage on desktop and mobile). The
    --muted ring keeps every key at 3:1 against the page in both schemes (light

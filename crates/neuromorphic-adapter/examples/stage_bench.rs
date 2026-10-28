@@ -1,5 +1,6 @@
-//! Native per-stage timing harness for the live (contract-7) pipeline
-//! (GitHub #10 / Linear RM-1646; RM-2355 moved it to the 48-neuron topology).
+//! Native per-stage timing harness for the live (contract-8) pipeline
+//! (GitHub #10 / Linear RM-1646; RM-2355 moved it to the 48-neuron topology,
+//! contract 8 to the 64-neuron one).
 //!
 //! ```text
 //! cargo +1.99.0 run --release --locked \
@@ -22,11 +23,12 @@
 //! calls public APIs, and it checks that its own topology digest equals the
 //! runtime's before it reports anything.
 //!
-//! **Synthetic topologies.** The shipped adapter is fixed at 48 neurons and
-//! 288 synapses (contract 7; contracts 3 to 6 keep 16 / 64). The `scale`
-//! section builds `synaptic-wiring` small-world graphs and `neuromod` LIF
-//! banks of several sizes through the same crates to show how cost grows. Only
-//! the 48 / 6 row is what ships, and it keeps the unshaped bank like the rest.
+//! **Synthetic topologies.** The live adapter runs 64 neurons and 512
+//! synapses (contract 8; contract 7 keeps 48 / 288 and contracts 3 to 6 keep
+//! 16 / 64). The `scale` section builds `synaptic-wiring` small-world graphs
+//! and `neuromod` LIF banks of several sizes through the same crates to show
+//! how cost grows. Only the 64 / 8 row is what ships, and it keeps the
+//! unshaped bank like the rest.
 
 use std::hint::black_box;
 use std::time::{Duration, Instant};
@@ -35,14 +37,14 @@ use neuromod::{NeuroModulators, SeedableRng, SpikingNetwork, StdRng};
 use neuromorphic_adapter::encoder::{ENCODER_CHANNELS, EncoderMode, V1Encoder};
 use neuromorphic_adapter::kinetic::{KineticExtractor, TELEMETRY_PACKET_LEN};
 use neuromorphic_adapter::lif_bank::LifBankShaping;
-use neuromorphic_adapter::{BrowserRuntime, CONTRACT_VERSION_V7, TopologyProjection, TopologySpec};
+use neuromorphic_adapter::{BrowserRuntime, CONTRACT_VERSION_V8, TopologyProjection, TopologySpec};
 use synaptic_wiring::SynapticMesh;
 use synaptic_wiring::topology::generate_small_world;
 
 /// The contract the live demo runs (`LIVE_ADAPTER_OPTIONS` in
-/// `src/runtime/wasm-session.ts`) and its topology (`TopologySpec::V7`).
-const LIVE_CONTRACT: u32 = CONTRACT_VERSION_V7;
-const LIVE_SPEC: TopologySpec = TopologySpec::V7;
+/// `src/runtime/wasm-session.ts`) and its topology (`TopologySpec::V8`).
+const LIVE_CONTRACT: u32 = CONTRACT_VERSION_V8;
+const LIVE_SPEC: TopologySpec = TopologySpec::V8;
 const LIVE_NEURONS: usize = LIVE_SPEC.neurons;
 const LIVE_FAN_OUT: usize = LIVE_SPEC.fan_out;
 const LIVE_REWIRE: f32 = LIVE_SPEC.rewire;
@@ -535,8 +537,8 @@ fn main() {
     let mut scales = Vec::new();
     for (neurons, fan_out) in [
         (16, 4),
+        (48, 6),
         (LIVE_NEURONS, LIVE_FAN_OUT),
-        (64, 8),
         (256, 16),
         (1024, 32),
         (2048, 32),

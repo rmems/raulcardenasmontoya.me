@@ -58,6 +58,10 @@ pub const CONTRACT_VERSION_V6: u32 = 6;
 /// neuron `n` with `n % 16 == c`, which is the identity on the 16-neuron
 /// contracts.
 pub const CONTRACT_VERSION_V7: u32 = 7;
+/// Contract version that runs a 64-neuron audited topology with a fan-out of
+/// 8 (512 synapses). Everything else is contract 7, including the `n % 16`
+/// source rule; contracts 3 to 7 stay frozen.
+pub const CONTRACT_VERSION_V8: u32 = 8;
 const STATUS_OK: &str = "ok";
 
 /// The parameters the adapter hands to `synaptic_wiring::generate_small_world`
@@ -89,11 +93,21 @@ impl TopologySpec {
         max_delay: 4,
         inhibitory_fraction: 0.25,
     };
+    /// The 64-neuron, 512-synapse network of contract 8.
+    pub const V8: Self = Self {
+        neurons: 64,
+        fan_out: 8,
+        rewire: 0.2,
+        max_delay: 4,
+        inhibitory_fraction: 0.25,
+    };
 
     /// The topology a contract runs. Unknown contracts are rejected by
     /// `with_mode` before this is consulted; they map to the legacy spec here.
     pub const fn for_contract(contract: u32) -> Self {
-        if contract >= CONTRACT_VERSION_V7 {
+        if contract >= CONTRACT_VERSION_V8 {
+            Self::V8
+        } else if contract == CONTRACT_VERSION_V7 {
             Self::V7
         } else {
             Self::LEGACY
@@ -107,7 +121,9 @@ impl TopologySpec {
 
     /// The LIF-bank shaping profile tuned for this contract's topology size.
     pub const fn shaping_profile(self) -> ShapingProfile {
-        if self.neurons == Self::V7.neurons {
+        if self.neurons == Self::V8.neurons {
+            ShapingProfile::V8
+        } else if self.neurons == Self::V7.neurons {
             ShapingProfile::V7
         } else {
             ShapingProfile::LEGACY
@@ -267,7 +283,7 @@ pub struct BrowserState {
     pub encoder_features: Vec<f32>,
 }
 
-/// The topology a runtime exports once on contracts 6 and 7, and that every
+/// The topology a runtime exports once on contracts 6 to 8, and that every
 /// contract 3 to 5 snapshot repeats: the routed CSR arrays `synaptic-wiring` exports
 /// plus the adapter's canonical [`TopologyProjection`] and the upstream digest.
 #[derive(Clone, Debug, PartialEq)]
@@ -288,7 +304,7 @@ pub struct BrowserTopology {
 }
 
 /// A per-step copy of a topology array on contracts 3 to 5; nothing on
-/// contracts 6 and 7, where the projection travels once through `topology()`.
+/// contracts 6 to 8, where the projection travels once through `topology()`.
 fn per_step<T: Clone>(include: bool, values: &[T]) -> Vec<T> {
     if include { values.to_vec() } else { Vec::new() }
 }
@@ -371,6 +387,7 @@ impl BrowserRuntime {
             CONTRACT_VERSION_V5,
             CONTRACT_VERSION_V6,
             CONTRACT_VERSION_V7,
+            CONTRACT_VERSION_V8,
         ]
         .contains(&contract)
         {
@@ -468,7 +485,7 @@ impl BrowserRuntime {
             .saturating_add(channels.len() as u64);
         // Channel `c` is the mesh source for every neuron `n` with
         // `n % ENCODER_CHANNELS == c`: the identity on the 16-neuron contracts,
-        // and on contract 7 every neuron can be an evoked source.
+        // and on contracts 7 and 8 every neuron can be an evoked source.
         for (neuron, pending) in self.pending_source_spikes.iter_mut().enumerate() {
             *pending |= channel_spikes[neuron % ENCODER_CHANNELS];
         }
@@ -522,7 +539,7 @@ impl BrowserRuntime {
     }
 
     pub fn state(&self) -> BrowserState {
-        // Contracts 6 and 7 send the projection once (`topology()`); earlier
+        // Contracts 6 to 8 send the projection once (`topology()`); earlier
         // contracts keep repeating it in every snapshot.
         let repeat = self.contract_version < CONTRACT_VERSION_V6;
         let projection = &self.topology_projection;
@@ -563,7 +580,7 @@ impl BrowserRuntime {
     }
 
     /// The topology every snapshot of this runtime belongs to. Identical on
-    /// every step; contract 6 and 7 consumers read it once and attach it to
+    /// every step; contract 6 to 8 consumers read it once and attach it to
     /// each per-step state themselves.
     pub fn topology(&self) -> BrowserTopology {
         let projection = &self.topology_projection;
@@ -795,12 +812,13 @@ impl WasmAdapter {
     /// `[6]` and `[6, mode]` are contract 5 with the topology sent once
     /// through [`WasmAdapter::topology`] instead of in every snapshot. `[7]`
     /// and `[7, mode]` are contract 6 on the larger 48-neuron audited topology
-    /// ([`TopologySpec::V7`]).
+    /// ([`TopologySpec::V7`]); `[8]` and `[8, mode]` on the 64-neuron one
+    /// ([`TopologySpec::V8`]).
     #[wasm_bindgen(js_name = init)]
     pub fn init(seed: u64, config: &[u8]) -> Result<WasmAdapter, JsValue> {
         let invalid = || {
             JsValue::from_str(
-                "adapter config must be [3], [4], [4, mode], [5], [5, mode], [6], [6, mode], [7], or [7, mode]",
+                "adapter config must be [3], [4], [4, mode], [5], [5, mode], [6], [6, mode], [7], [7, mode], [8], or [8, mode]",
             )
         };
         let runtime = match config {
@@ -828,6 +846,12 @@ impl WasmAdapter {
                 let selected =
                     EncoderMode::parse(*mode).map_err(|error| JsValue::from_str(&error))?;
                 BrowserRuntime::with_mode(seed, selected, CONTRACT_VERSION_V7)
+            }
+            [8] => BrowserRuntime::with_mode(seed, EncoderMode::DEFAULT, CONTRACT_VERSION_V8),
+            [8, mode] => {
+                let selected =
+                    EncoderMode::parse(*mode).map_err(|error| JsValue::from_str(&error))?;
+                BrowserRuntime::with_mode(seed, selected, CONTRACT_VERSION_V8)
             }
             _ => return Err(invalid()),
         }
@@ -861,7 +885,7 @@ impl WasmAdapter {
         })
     }
 
-    /// The topology every snapshot belongs to; contracts 6 and 7 read it once.
+    /// The topology every snapshot belongs to; contracts 6 to 8 read it once.
     pub fn topology(&self) -> Result<WasmTopology, JsValue> {
         let runtime = self
             .runtime
