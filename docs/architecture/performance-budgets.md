@@ -741,12 +741,15 @@ the same machine for scale.
 
 The bank fires 5.3 to 8.6 of its 48 neurons per tick (11 to 18 %), inside the
 5 to 20 % band `tests/sparse_firing.rs` holds it to. The `neuromod` step is
-the whole cost, as before, and it is O(neurons × channels): 30 µs here
-against 5.5 µs for the 16-neuron bank on the same machine (next table), so
-about 5.5× for 3× the neurons. `input` + `step` at p95 is under 54 µs, which
-is 0.1 % of the 50 ms tick and 5 times inside S2's desktop budget on a
-machine that is itself about 2.7× slower than the reference desktop (its
-16 / 64 SNN step takes 5.5 µs where the reference took 2.1 µs).
+the whole cost, as before, and it is O(neurons × channels). The 30 µs here is
+the shaped bank on the scripted workload; the like-for-like scaling figure is
+in the next table, where the unshaped 48-neuron bank takes 48.2 µs against
+5.5 µs for the unshaped 16-neuron bank at the same 10 % firing: about 8.7×
+for 3× the neurons, with the fan-out rising from 4 to 6. `input` + `step` at
+p95 is under 54 µs, which is 0.1 % of the 50 ms tick and 5 times inside S2's
+desktop budget on a machine that is itself about 2.7× slower than the
+reference desktop (its 16 / 64 SNN step takes 5.5 µs where the reference took
+2.1 µs).
 
 **Topology sizes through the same crates** (median of 7 runs × 400 ticks, 100
 for ≥ 1024 neurons, µs per tick; the unshaped bank, as in section 2):
@@ -807,30 +810,41 @@ Startup, in ms since navigation start: DOMContentLoaded 46.2, renderer ready 152
 
 WASM linear memory over 5000 synchronous steps: 1,245,184 B → 4,915,200 B without `free()`, +0 B with it (the shipped bridge).
 
-**Render stress through the shipped renderer** (fixture topologies at 50 ms, 25 % of neurons spiking per step, 4 s per case; the 48 / 288 row is the shipped size, the rest are synthetic):
+**Render stress through the shipped renderer** (`npm run perf:browser -- --skip-live --skip-bench`,
+re-run 2026-10-28 06:49 UTC after review: fixture snapshots at 50 ms, 25 % of
+neurons spiking per step, 4 s per case; the 48 / 288 rows draw the audited
+contract-7 edges and delays, the other sizes are synthetic ring lattices; none
+of the spikes come from the live adapter):
 
 | nodes | edges | events/step | level | DPR | pulses per drawn frame | drawn / skipped | frame work (mean / p95 / max) | frame interval (mean / p95) | spike ingest (mean / p95) |
 |---:|---:|---:|---|---:|---:|---|---|---|---|
-| 16 | 64 | 16 | full | 1 | 236 | 240 / 0 | 0.37 / 0.60 / 1.10 | 16.67 / 16.70 | 0.066 / 0.20 |
-| 16 | 64 | 16 | balanced | 1 | 216 | 240 / 0 | 0.41 / 0.60 / 1.80 | 16.67 / 16.80 | 0.068 / 0.10 |
-| 16 | 64 | 16 | reduced | 1 | 96 | 120 / 120 | 0.31 / 0.40 / 2.50 | 16.67 / 16.70 | 0.050 / 0.10 |
-| 16 | 64 | 16 | minimal | 1 | 0 | 80 / 160 | 0.26 / 0.40 / 0.50 | 16.67 / 16.70 | 0.050 / 0.10 |
-| 48 | 288 | 72 | full | 1 | 979 | 169 / 0 | 0.59 / 0.90 / 1.20 | 23.87 / 33.40 | 0.144 / 0.30 |
-| 48 | 288 | 72 | balanced | 1 | 256 | 239 / 0 | 0.39 / 0.60 / 1.10 | 16.74 / 16.80 | 0.131 / 0.20 |
-| 48 | 288 | 72 | reduced | 1 | 96 | 120 / 120 | 0.30 / 0.40 / 0.90 | 16.67 / 16.80 | 0.114 / 0.20 |
-| 48 | 288 | 72 | minimal | 1 | 0 | 80 / 160 | 0.27 / 0.40 / 0.50 | 16.67 / 16.70 | 0.105 / 0.20 |
-| 64 | 512 | 128 | full | 1 | 1929 | 131 / 0 | 0.80 / 1.20 / 1.70 | 30.66 / 33.40 | 0.182 / 0.30 |
-| 64 | 512 | 128 | balanced | 1 | 256 | 240 / 0 | 0.32 / 0.40 / 0.50 | 16.67 / 16.70 | 0.205 / 0.30 |
-| 64 | 512 | 128 | reduced | 1 | 96 | 120 / 120 | 0.33 / 0.40 / 1.60 | 16.67 / 16.70 | 0.194 / 0.30 |
-| 64 | 512 | 128 | minimal | 1 | 0 | 80 / 160 | 0.29 / 0.40 / 1.00 | 16.67 / 16.70 | 0.210 / 0.30 |
-| 256 | 4,096 | 1024 | full | 1 | 10724 | 26 / 0 | 3.32 / 4.50 / 7.60 | 153.84 / 200.10 | 0.983 / 2.10 |
-| 256 | 4,096 | 1024 | balanced | 1 | 256 | 74 / 0 | 0.61 / 0.80 / 1.00 | 54.28 / 66.70 | 1.032 / 2.10 |
-| 256 | 4,096 | 1024 | reduced | 1 | 96 | 76 / 0 | 0.59 / 0.70 / 0.80 | 52.63 / 66.70 | 1.056 / 1.40 |
-| 256 | 4,096 | 1024 | minimal | 1 | 0 | 76 / 0 | 0.38 / 0.50 / 0.70 | 53.29 / 66.70 | 1.056 / 1.80 |
-| 1024 | 32,768 | 8192 | full | 1 | 15631 | 11 / 0 | 5.29 / 8.90 / 8.90 | 413.62 / 450.00 | 2.167 / 3.30 |
-| 1024 | 32,768 | 8192 | balanced | 1 | 256 | 14 / 0 | 1.72 / 2.50 / 2.50 | 305.94 / 349.90 | 2.150 / 4.70 |
-| 1024 | 32,768 | 8192 | reduced | 1 | 96 | 14 / 0 | 1.50 / 2.00 / 2.00 | 311.89 / 350.00 | 2.011 / 3.20 |
-| 1024 | 32,768 | 8192 | minimal | 1 | 0 | 14 / 0 | 1.42 / 2.50 / 2.50 | 314.27 / 333.30 | 1.900 / 2.30 |
+| 16 | 64 | 16 | full | 1 | 238 | 241 / 0 | 0.27 / 0.40 / 1.10 | 16.67 / 16.70 | 0.027 / 0.10 |
+| 16 | 64 | 16 | balanced | 1 | 216 | 240 / 0 | 0.26 / 0.40 / 2.40 | 16.67 / 16.70 | 0.021 / 0.10 |
+| 16 | 64 | 16 | reduced | 1 | 96 | 120 / 120 | 0.22 / 0.30 / 0.60 | 16.67 / 16.80 | 0.036 / 0.10 |
+| 16 | 64 | 16 | minimal | 1 | 0 | 80 / 160 | 0.21 / 0.30 / 0.50 | 16.67 / 16.70 | 0.031 / 0.10 |
+| **48** | **288** | 72 | full | 1 | 1,009 | 240 / 0 | 0.37 / 0.50 / 0.90 | 16.67 / 16.80 | 0.075 / 0.20 |
+| **48** | **288** | 72 | balanced | 1 | 256 | 240 / 0 | 0.20 / 0.30 / 0.50 | 16.67 / 16.70 | 0.070 / 0.10 |
+| **48** | **288** | 72 | reduced | 1 | 96 | 120 / 120 | 0.19 / 0.30 / 0.80 | 16.67 / 16.70 | 0.066 / 0.20 |
+| **48** | **288** | 72 | minimal | 1 | 0 | 80 / 160 | 0.18 / 0.30 / 0.30 | 16.67 / 16.70 | 0.063 / 0.10 |
+| 64 | 512 | 128 | full | 1 | 1,954 | 166 / 0 | 0.51 / 0.60 / 1.00 | 24.10 / 33.40 | 0.096 / 0.20 |
+| 64 | 512 | 128 | balanced | 1 | 256 | 240 / 0 | 0.21 / 0.30 / 0.40 | 16.67 / 16.70 | 0.110 / 0.20 |
+| 64 | 512 | 128 | reduced | 1 | 96 | 120 / 120 | 0.20 / 0.30 / 1.00 | 16.67 / 16.70 | 0.095 / 0.20 |
+| 64 | 512 | 128 | minimal | 1 | 0 | 80 / 160 | 0.16 / 0.20 / 0.30 | 16.67 / 16.70 | 0.123 / 0.20 |
+| 256 | 4,096 | 1,024 | full | 1 | 11,429 | 32 / 0 | 2.68 / 4.20 / 4.40 | 129.16 / 166.70 | 0.600 / 0.90 |
+| 256 | 4,096 | 1,024 | balanced | 1 | 256 | 89 / 0 | 0.37 / 0.50 / 0.50 | 45.32 / 50.10 | 0.715 / 1.20 |
+| 256 | 4,096 | 1,024 | reduced | 1 | 96 | 92 / 0 | 0.33 / 0.50 / 0.50 | 44.02 / 50.10 | 0.529 / 0.80 |
+| 256 | 4,096 | 1,024 | minimal | 1 | 0 | 80 / 81 | 0.25 / 0.30 / 0.40 | 25.05 / 33.40 | 0.564 / 0.70 |
+| 1024 | 32,768 | 8,192 | full | 1 | 15,116 | 13 / 0 | 4.55 / 7.10 / 7.10 | 347.42 / 383.30 | 1.156 / 1.30 |
+| 1024 | 32,768 | 8,192 | balanced | 1 | 256 | 14 / 0 | 1.23 / 1.80 / 1.80 | 285.70 / 349.90 | 1.789 / 2.80 |
+| 1024 | 32,768 | 8,192 | reduced | 1 | 96 | 14 / 0 | 1.37 / 2.40 / 2.40 | 292.85 / 333.30 | 1.490 / 2.00 |
+| 1024 | 32,768 | 8,192 | minimal | 1 | 0 | 15 / 0 | 1.20 / 1.90 / 1.90 | 296.66 / 333.40 | 1.550 / 3.00 |
+
+An earlier run of the same table on the same day, with a synthetic 48 / 6
+lattice instead of the audited edges, measured the 48-node full level at
+0.59 / 0.90 / 1.20 ms frame work with 23.9 / 33.4 ms intervals (169 of about
+240 frames drawn), so the full-level pacing of this size sits near the edge
+of what SwiftShader manages on this machine and varies between runs; the
+capped levels were identical in both runs.
 
 **Payload** (Node zlib, gzip level 9, brotli quality 11, the files the homepage loads):
 
@@ -868,16 +882,18 @@ What the run shows against the targets:
   0.5 to 0.6 ms p95 on the live page with 460 to 620 pulses per frame, and
   0.59 / 0.90 ms in the 25 %-firing stress row (979 pulses per frame). Within
   the 2 ms p95 target at every level.
-- **R1 (frame pacing):** the live page held 16.7 ms p95 at every level. The
-  stress harness at 25 % firing did not, at the full level, for 48 nodes
-  (33.4 ms p95, 169 of about 240 frames drawn) or 64 nodes (33.4 ms), because
-  SwiftShader rasterizes the pulse quads on the CPU; the capped levels held
-  16.7 to 16.8 ms. On the reference desktop's GPU the 64 / 512 stress row drew
-  1,970 pulses per frame at 4.2 ms intervals (section 5), so this is a
-  property of software rendering, not of the topology; it is listed under
-  [Not measured](#not-measured) until a GPU run of the 48 / 288 row exists.
-  The adaptive controller would see this pressure as p90 interval > 22.2 ms
-  and step down, which is its job.
+- **R1 (frame pacing):** the live page held 16.7 ms p95 at every level, and
+  so did the 48 / 288 stress rows with the audited edges, at every level,
+  with 1,009 pulses per frame at full. The 64-node synthetic row at full did
+  not (33.4 ms p95, 166 of about 240 frames drawn), and an earlier 48-node run
+  with a synthetic lattice did not either (see the note under the table),
+  because SwiftShader rasterizes the pulse quads on the CPU that also runs
+  the page. On the reference desktop's GPU the 64 / 512 stress row drew 1,970
+  pulses per frame at 4.2 ms intervals (section 5), so this is a property of
+  software rendering, not of the topology; a GPU-backed run of the 48 / 288
+  row is listed under [Not measured](#not-measured). The adaptive controller
+  would see this pressure as p90 interval > 22.2 ms and step down, which is
+  its job.
 - **R5, R6, R8:** the capped levels drew 256 / 96 / 0 pulses and 240 / 120 / 80
   of about 240 frames in the stress rows, as designed; offscreen and
   minimized windows counted 0 ticks and 0 frames, then resumed.
@@ -894,8 +910,9 @@ only if every budget held with margin. Simulation cost is not the constraint
 (a 64 / 512 step is 86 to 98 µs native here, still 0.2 % of the tick), and
 the capped levels are indifferent to size. What is not established is the
 full level on a real GPU at 48 (this run's GPU is software) and on low-end
-hardware (never measured, below); the full-level stress row at 64 already
-missed R1 on this machine. 48 ships; 64 stays a follow-up gated on a GPU
+hardware (never measured, below); the full-level stress row at 64 missed R1
+on this machine in both runs, and the 48-node row held it only in the run
+with the audited edges. 48 ships; 64 stays a follow-up gated on a GPU
 measurement of the full level and on S7 at 16,384 ring entries (the pulse
 buffers would be 2.75 MB).
 
@@ -1056,8 +1073,9 @@ harness (`test/perf-harness.test.mjs`). Coverage excludes `scripts/perf/**` and
   hero changes neither the renderer's frame path nor the worker path.
 - **Contract 7 on a GPU, headed, and at 64 neurons (RM-2355).** Section 12
   was measured on a Linux VM with SwiftShader (software WebGL) and headless
-  only; its full-level stress rows at 48 and 64 nodes exceed R1 there
-  because rasterization competes with the page for the same CPUs. The
+  only; its full-level stress row at 64 nodes exceeds R1 there (and the
+  48-node row did in one of two runs) because rasterization competes with
+  the page for the same CPUs. The
   reference desktop was not available for this change, so the 48 / 288
   render-stress row has no GPU-backed frame-interval measurement, no headed
   run, and the 64 / 8 topology was not built or measured on the live path.

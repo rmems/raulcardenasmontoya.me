@@ -69,22 +69,31 @@ interface AuditedProjection {
   weightBits: Uint32Array;
 }
 
-function auditedProjectionOf(
-  contractVersions: readonly number[],
-  digest: string,
-  neurons: number,
-  fanOut: number,
-  edgeTargets: readonly number[],
-  edgeDelays: readonly number[],
-  polarities: readonly number[],
-  weightBits: readonly number[],
-): AuditedProjection {
+/** The hand-typed or generated inputs of an {@link AuditedProjection}: the per-edge arrays in canonical order. */
+interface AuditedProjectionSource {
+  contractVersions: readonly number[];
+  digest: string;
+  neurons: number;
+  fanOut: number;
+  edgeTargets: readonly number[];
+  edgeDelays: readonly number[];
+  polarities: readonly number[];
+  weightBits: readonly number[];
+}
+
+/** `0, 1, …, count − 1` as a `Uint32Array`. */
+function nodeRange(count: number): Uint32Array {
+  return Uint32Array.from({ length: count }, (_, index) => index);
+}
+
+function auditedProjectionOf(source: AuditedProjectionSource): AuditedProjection {
+  const { contractVersions, digest, neurons, fanOut } = source;
   const edgeCount = neurons * fanOut;
   if (
-    edgeTargets.length !== edgeCount ||
-    edgeDelays.length !== edgeCount ||
-    polarities.length !== edgeCount ||
-    weightBits.length !== edgeCount
+    source.edgeTargets.length !== edgeCount ||
+    source.edgeDelays.length !== edgeCount ||
+    source.polarities.length !== edgeCount ||
+    source.weightBits.length !== edgeCount
   ) {
     throw new RangeError(`audited projection for contract ${contractVersions.join('/')} is inconsistent`);
   }
@@ -93,41 +102,42 @@ function auditedProjectionOf(
     digest,
     neurons,
     fanOut,
-    nodeIds: new Uint32Array([...Array(neurons).keys()]),
-    outgoingEdgeOffsets: new Uint32Array([...Array(neurons + 1).keys()].map((index) => index * fanOut)),
-    edgeSources: new Uint32Array([...Array(neurons).keys()].flatMap((source) => Array(fanOut).fill(source))),
-    edgeTargets: new Uint32Array(edgeTargets),
-    edgeDelays: new Uint16Array(edgeDelays),
-    polarities: new Uint8Array(polarities),
-    weightBits: new Uint32Array(weightBits),
+    nodeIds: nodeRange(neurons),
+    outgoingEdgeOffsets: Uint32Array.from({ length: neurons + 1 }, (_, index) => index * fanOut),
+    edgeSources: Uint32Array.from({ length: edgeCount }, (_, edge) => Math.floor(edge / fanOut)),
+    edgeTargets: Uint32Array.from(source.edgeTargets),
+    edgeDelays: Uint16Array.from(source.edgeDelays),
+    polarities: Uint8Array.from(source.polarities),
+    weightBits: Uint32Array.from(source.weightBits),
   };
 }
 
 /** The fixed 16-neuron, 64-synapse topology of contracts 3 to 6. */
-const LEGACY_PROJECTION = auditedProjectionOf(
-  [
+const LEGACY_PROJECTION = auditedProjectionOf({
+  contractVersions: [
     NEUROMORPHIC_CONTRACT_VERSION,
     NEUROMORPHIC_CONTRACT_VERSION_V4,
     NEUROMORPHIC_CONTRACT_VERSION_V5,
     NEUROMORPHIC_CONTRACT_VERSION_V6,
   ],
-  'synaptic-wiring.topology.digest.v1:sha256:26875faf05121b9afda27a533760369da67ba9110599fb61533f08961ff6e971',
-  16,
-  4,
-  [
+  digest: 'synaptic-wiring.topology.digest.v1:sha256:26875faf05121b9afda27a533760369da67ba9110599fb61533f08961ff6e971',
+  neurons: 16,
+  fanOut: 4,
+  edgeTargets: [
     1, 2, 12, 14, 3, 8, 12, 15, 0, 1, 3, 4, 2, 4, 5, 8,
     2, 3, 7, 14, 3, 4, 6, 7, 0, 5, 7, 8, 5, 6, 11, 15,
     6, 7, 9, 10, 8, 10, 11, 14, 4, 8, 9, 13, 9, 12, 13, 15,
     10, 11, 13, 14, 11, 12, 14, 15, 0, 9, 12, 15, 0, 5, 13, 14,
   ],
-  [
+  edgeDelays: [
     3, 1, 1, 4, 1, 4, 1, 1, 1, 2, 1, 2, 3, 1, 3, 3,
     2, 4, 1, 2, 3, 1, 3, 1, 3, 1, 4, 1, 1, 2, 1, 2,
     2, 3, 2, 3, 4, 2, 4, 4, 2, 3, 1, 2, 1, 1, 1, 4,
     1, 2, 1, 2, 2, 3, 2, 3, 3, 3, 3, 2, 2, 1, 3, 1,
   ],
-  [...Array(16).fill(1), ...Array(48).fill(0)],
-  [
+  // The first 16 canonical edges (neurons 0 to 3) are inhibitory.
+  polarities: Array.from({ length: 64 }, (_, edge) => (edge < 16 ? 1 : 0)),
+  weightBits: [
     3210213374, 3209821784, 3205905881, 3205122701, 3209004865, 3207046914, 3205480553, 3204163308,
     3209754308, 3209362717, 3208579536, 3208187946, 3208545798, 3207762618, 3207371028, 3206196257,
     1060636822, 1060245232, 1058678871, 1054910871, 1059819904, 1059428314, 1058645133, 1058253543,
@@ -137,22 +147,22 @@ const LEGACY_PROJECTION = auditedProjectionOf(
     1062490082, 1062098491, 1061315310, 1060923720, 1061673163, 1061281572, 1060498392, 1060106802,
     1057166719, 1062031015, 1060856244, 1059681474, 1056518174, 1063172048, 1060039326, 1059647736,
   ],
-);
+});
 
 /**
  * The 48-neuron, 288-synapse topology of contract 7, generated from the crate
  * (`audited-topology-v7.ts`; `tests/audited_topology.rs` fails on drift).
  */
-const V7_PROJECTION = auditedProjectionOf(
-  [NEUROMORPHIC_CONTRACT_VERSION_V7],
-  AUDITED_TOPOLOGY_V7.digest,
-  AUDITED_TOPOLOGY_V7.neurons,
-  AUDITED_TOPOLOGY_V7.fanOut,
-  AUDITED_TOPOLOGY_V7.edgeTargets,
-  AUDITED_TOPOLOGY_V7.edgeDelays,
-  AUDITED_TOPOLOGY_V7.polarities,
-  AUDITED_TOPOLOGY_V7.weightBits,
-);
+const V7_PROJECTION = auditedProjectionOf({
+  contractVersions: [NEUROMORPHIC_CONTRACT_VERSION_V7],
+  digest: AUDITED_TOPOLOGY_V7.digest,
+  neurons: AUDITED_TOPOLOGY_V7.neurons,
+  fanOut: AUDITED_TOPOLOGY_V7.fanOut,
+  edgeTargets: AUDITED_TOPOLOGY_V7.edgeTargets,
+  edgeDelays: AUDITED_TOPOLOGY_V7.edgeDelays,
+  polarities: AUDITED_TOPOLOGY_V7.polarities,
+  weightBits: AUDITED_TOPOLOGY_V7.weightBits,
+});
 
 const AUDITED_PROJECTIONS = [LEGACY_PROJECTION, V7_PROJECTION];
 

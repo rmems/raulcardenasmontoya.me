@@ -525,29 +525,110 @@ fn contract_7_init_configs_and_encoder_modes() {
 
 #[test]
 fn contract_7_fans_each_encoder_channel_into_every_neuron_of_its_residue_class() {
-    // A delta encoder fires channel `c` when feature `c` jumps. Feed a packet
-    // that moves `x` (feature 0) alone after a resting packet and the mesh
-    // sources are neurons 0, 16 and 32: all three `n % 16 == 0` neurons see
-    // the evoked current, so their targets charge where the rest do not.
-    let evoked = |contract: u32| -> Vec<f32> {
-        let mut runtime =
-            BrowserRuntime::with_mode(9, EncoderMode::Delta, contract).expect("valid");
-        runtime.input(1, &[0.0, 0.0, 0.0]).expect("rest");
-        runtime.step().expect("step");
-        runtime.input(2, &[1.0, 0.0, 0.0]).expect("jump in x");
-        runtime.step().expect("step");
-        runtime.state().membrane_potentials
+    // Rebuild the contract-7 pipeline from the public crate surfaces with an
+    // explicit channel-to-neuron mapping, and compare its spikes and
+    // potentials with the runtime's, step by step. The residue-class mapping
+    // (channel `c` drives every neuron `n` with `n % 16 == c`) reproduces the
+    // runtime exactly; a one-to-one mapping onto neurons 0 to 15 does not, so
+    // the test fails if `input` ever reverts to it.
+    use neuromod::{NeuroModulators, SeedableRng, SpikingNetwork, StdRng};
+    use neuromorphic_adapter::encoder::{ENCODER_CHANNELS, V1Encoder};
+    use neuromorphic_adapter::kinetic::KineticExtractor;
+    use neuromorphic_adapter::lif_bank::LifBankShaping;
+    use synaptic_wiring::{SynapticMesh, topology::generate_small_world};
+
+    const SEED: u64 = 9;
+    const STEPS: u64 = 120;
+    let spec = TopologySpec::V7;
+    let packet = |sequence: u64| -> [f32; 3] {
+        let step = sequence as f32;
+        [
+            0.5 + 0.4 * (step * 0.21).sin(),
+            0.5 + 0.3 * (step * 0.17).cos(),
+            if sequence % 10 < 6 { 0.6 } else { 0.0 },
+        ]
     };
-    let with_input = evoked(CONTRACT_VERSION_V7);
-    let topology = BrowserRuntime::with_mode(9, EncoderMode::Delta, CONTRACT_VERSION_V7)
-        .expect("valid")
-        .topology();
-    assert_eq!(with_input.len(), 48);
-    // Every residue-class source has outgoing edges, so the mapping reaches
-    // targets of neurons 16 and 32, not only of neurons 0..16.
-    for source in [0_usize, 16, 32] {
-        let start = topology.topology_outgoing_edge_offsets[source] as usize;
-        let end = topology.topology_outgoing_edge_offsets[source + 1] as usize;
-        assert_eq!(end - start, 6, "neuron {source} has six synapses");
-    }
+
+    let mut runtime =
+        BrowserRuntime::with_mode(SEED, EncoderMode::Temporal, CONTRACT_VERSION_V7).expect("valid");
+    let actual: Vec<(Vec<u32>, Vec<u32>)> = (1..=STEPS)
+        .map(|sequence| {
+            runtime.input(sequence, &packet(sequence)).expect("input");
+            let state = runtime.step().expect("step");
+            (
+                state.spike_neurons,
+                state
+                    .membrane_potentials
+                    .iter()
+                    .map(|p| p.to_bits())
+                    .collect(),
+            )
+        })
+        .collect();
+
+    let pipeline = |map: &dyn Fn(usize, usize) -> bool| -> Vec<(Vec<u32>, Vec<u32>)> {
+        let graph = generate_small_world(
+            spec.neurons,
+            spec.fan_out,
+            spec.rewire,
+            spec.max_delay,
+            spec.inhibitory_fraction,
+        )
+        .expect("valid");
+        let mut mesh = SynapticMesh::new(graph);
+        let mut network = SpikingNetwork::with_dimensions(spec.neurons, 0, spec.neurons);
+        for neuron in &mut network.neurons {
+            neuron.weights = vec![2.0 / spec.neurons as f32; spec.neurons];
+        }
+        let mut shaping = LifBankShaping::install_with(&mut network, spec.shaping_profile());
+        let mut rng = StdRng::seed_from_u64(SEED);
+        let mut extractor = KineticExtractor::new();
+        let mut encoder = V1Encoder::for_mode(EncoderMode::Temporal);
+        (1..=STEPS)
+            .map(|sequence| {
+                let features = extractor.extract(&packet(sequence));
+                let channels = encoder.encode_step(&features);
+                let mut sources = vec![false; spec.neurons];
+                for channel in &channels {
+                    for (neuron, source) in sources.iter_mut().enumerate() {
+                        *source |= map(neuron, usize::from(*channel));
+                    }
+                }
+                let currents = mesh.propagate(&sources).expect("propagate");
+                let spikes = shaping
+                    .step(
+                        &mut network,
+                        &currents,
+                        &NeuroModulators::default(),
+                        &mut rng,
+                    )
+                    .expect("step");
+                (
+                    spikes.into_iter().map(|n| n as u32).collect(),
+                    network
+                        .get_membrane_potentials()
+                        .iter()
+                        .map(|p| p.to_bits())
+                        .collect(),
+                )
+            })
+            .collect()
+    };
+
+    let residue = pipeline(&|neuron, channel| neuron % ENCODER_CHANNELS == channel);
+    let first_sixteen_only = pipeline(&|neuron, channel| neuron == channel);
+    assert_eq!(
+        actual, residue,
+        "the runtime drives neuron n from channel n % 16, bit for bit"
+    );
+    assert_ne!(
+        actual, first_sixteen_only,
+        "a mapping onto neurons 0..16 alone would give a different trace"
+    );
+    assert!(
+        actual
+            .iter()
+            .any(|(spikes, _)| spikes.iter().any(|n| *n >= 16)),
+        "neurons above 15 fire in the comparison window"
+    );
 }

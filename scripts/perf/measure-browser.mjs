@@ -30,6 +30,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { pathToFileURL } from 'node:url';
 import { brotliCompressSync, gzipSync } from 'node:zlib';
 
+import { readAuditedTopologyV7 } from '../audited-topology-v7.mjs';
 import { pointerActivePacket } from './boundary-bench.mjs';
 import { launchChrome, openPage } from './cdp.mjs';
 import * as tasks from './page-tasks.mjs';
@@ -259,9 +260,12 @@ async function measureRenderStress(page, report, windowMs) {
   await page.navigate(`${origin}/about/`);
   report.environment ??= await page.evaluate(call(tasks.environment));
   const cases = [];
-  // 48 / 6 is the shipped topology (contract 7, RM-2355); the rest are synthetic sizes.
-  for (const [nodes, fanOut] of [[16, 4], [48, 6], [64, 8], [256, 16], [1024, 32]]) {
-    for (const level of [0, 1, 2, 3]) cases.push({ nodes, fanOut, firing: 0.25, level });
+  // 48 / 6 is the shipped topology (contract 7, RM-2355), drawn with its
+  // audited edges; the rest are synthetic ring lattices of those sizes.
+  const shipped = await readAuditedTopologyV7();
+  for (const [nodes, fanOut] of [[16, 4], [shipped.neurons, shipped.fanOut], [64, 8], [256, 16], [1024, 32]]) {
+    const audited = nodes === shipped.neurons && fanOut === shipped.fanOut ? shipped : undefined;
+    for (const level of [0, 1, 2, 3]) cases.push({ nodes, fanOut, firing: 0.25, level, audited });
   }
   report.renderStress = await page.evaluate(
     call(tasks.renderStress, {

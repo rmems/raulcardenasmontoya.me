@@ -243,7 +243,26 @@ export async function renderStress({ rendererUrl, channelUrl, spikesUrl, quality
     };
   }
 
-  function topology(nodes, fanOut) {
+  /**
+   * A case's topology: the audited arrays when the case carries them (the
+   * shipped 48 / 288 graph, still driven by synthetic spikes), otherwise a
+   * synthetic ring lattice of `nodes` × `fanOut` edges.
+   */
+  function topology(nodes, fanOut, audited) {
+    if (audited) {
+      const edges = nodes * fanOut;
+      const weightBits = Uint32Array.from(audited.weightBits);
+      return {
+        topologyDigest: `fixture-audited-${nodes}-${fanOut}`,
+        topologyNodeIds: Uint32Array.from({ length: nodes }, (_, node) => node),
+        topologyEdgeSources: Uint32Array.from({ length: edges }, (_, edge) => Math.floor(edge / fanOut)),
+        topologyEdgeTargets: Uint32Array.from(audited.edgeTargets),
+        topologyEdgeWeights: new Float32Array(weightBits.buffer),
+        topologyEdgeDelays: Uint16Array.from(audited.edgeDelays),
+        topologyPolarities: Uint8Array.from(audited.polarities),
+        topologyOutgoingEdgeOffsets: Uint32Array.from({ length: nodes + 1 }, (_, node) => node * fanOut),
+      };
+    }
     const sources = [];
     const targets = [];
     const weights = [];
@@ -280,8 +299,8 @@ export async function renderStress({ rendererUrl, channelUrl, spikesUrl, quality
   }
 
   const results = [];
-  for (const { nodes, fanOut, firing, level } of cases) {
-    const fixture = topology(nodes, fanOut);
+  for (const { nodes, fanOut, firing, level, audited } of cases) {
+    const fixture = topology(nodes, fanOut, audited);
     const channel = channelModule.createSimulationChannel();
     const buffer = spikes.createSpikeEventBuffer({ provenance: 'fixture', capacity: 16384 });
     const quality = qualityModule.createAdaptiveQuality();
