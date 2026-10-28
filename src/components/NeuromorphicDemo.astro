@@ -42,12 +42,17 @@ const pulseSpeedLabel = `1/${Math.round(1 / PULSE_DISPLAY_SPEED)}`;
           <g class="hero-mesh-edges hero-mesh-edges-dark" stroke-opacity={meshDark.edgeOpacity}>
             {meshDark.edges.map((edge) => <line x1={edge.x1} y1={edge.y1} x2={edge.x2} y2={edge.y2} stroke={edge.stroke} />)}
           </g>
-          <path class="hero-mesh-nodes" d={nodePath} stroke={mesh.nodeFill} stroke-width={mesh.nodeSizePx} />
+          <path class="hero-mesh-nodes" d={nodePath} stroke={mesh.nodeFill} stroke-width={mesh.nodeSize} />
         </svg>
         <p class="hero-mesh-input"><span data-input="scripted">input: scripted path</span><span data-input="pointer">input: your pointer</span></p>
         <button type="button" class="button button-secondary hero-mesh-play" data-demo-play hidden>Play animation</button>
       </div>
       <figcaption class="hero-mesh-caption">
+        <ul class="hero-mesh-legend" aria-label="What the colours in the drawing mean">
+          <li><span class="hero-mesh-legend-key" aria-hidden="true"></span>Neuron spike</li>
+          <li><span class="hero-mesh-legend-key hero-mesh-legend-synapse hero-mesh-legend-excitatory" aria-hidden="true"></span>Excitatory synapse</li>
+          <li><span class="hero-mesh-legend-key hero-mesh-legend-synapse hero-mesh-legend-inhibitory" aria-hidden="true"></span>Inhibitory synapse</li>
+        </ul>
         <div class="hero-mesh-meta">
           <ExecutionOrigin origin="static-diagram" runtimeBound />
           <span class="hero-mesh-mode">
