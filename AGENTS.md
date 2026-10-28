@@ -64,6 +64,28 @@ Two things still depend on the machine:
 | Symlink creation (Windows: Developer Mode or admin) | `test/native-evidence.test.mjs`: dangling symlink, symlink rejection. Skipped with a reason when unavailable, never when `CI` is set (`test/platform-capabilities.mjs`). |
 | Rust 1.99.0 via `CARGO_HOME/bin/cargo` (`cargo.exe` on Windows) | `test/verify-browser-dependencies.test.mjs`: resolved adapter graph. Skipped when absent, never when `CI` is set. |
 
+## Base44 sandbox environment
+
+`docker-compose.base44.yml` runs the site for the Base44 preview (host port 3000):
+
+```bash
+docker compose -f docker-compose.base44.yml up -d --build
+curl -s -o /dev/null -w '%{http_code}\n' http://localhost:3000/
+```
+
+- One `web` service: `node:22-bookworm`, repo bind-mounted at `/app`, `node_modules` in a named volume.
+  Startup runs `npm ci --ignore-scripts` from the committed lockfile, then `astro dev --host 0.0.0.0 --port 3000`.
+- Nothing else is needed: the site is fully static, has no database or API, needs no secrets, and the
+  browser WASM packages under `public/wasm/` are committed. Rust, `wasm-bindgen` and Chrome are only
+  required for `npm run validate`, never for the dev server.
+- Astro dev serves the cloned source (unhashed `/src/*` modules), so edits hot-reload. Host-header
+  acceptance comes from `__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS`, passed bare under the service's
+  `environment:`; `astro.config.mjs` is unchanged. `BASE44_PREVIEW_MODE` is passed through but no code
+  branches on it.
+- Checks run inside the container: `docker compose -f docker-compose.base44.yml exec -T web npm test`
+  (same for `lint`, `typecheck`, `build`).
+- The GitHub Pages deploy workflow is unchanged; this compose file is sandbox-only.
+
 ## Conventions visible in the repo
 
 - The site deploys to GitHub Pages from `main` through `.github/workflows/deploy.yml` (#63), at
