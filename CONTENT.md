@@ -2,7 +2,7 @@
 
 Before publishing, update `src/data/site.ts`:
 
-- `email` and `resumePath` (`/resume.pdf`) are set; keep `src/data/site.ts` free of `null` placeholders.
+- `email` and the résumé (`resumePath`, `/resume.pdf`) are set; keep `src/data/site.ts` free of `null` placeholders.
 - Profile links in `site.social` are live and are the source of truth for every external profile:
   - LinkedIn is `https://www.linkedin.com/in/raul-cardenas-montoya` (verified to load).
   - Instagram, X and Threads all use `KeepOnSpiking`.
