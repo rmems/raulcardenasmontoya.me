@@ -71,7 +71,11 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
+      # Install only where the build is allowed (non-PR events); on PR events the
+      # checkout is the PR ref, whose lockfile could make `npm ci` fail and block
+      # Claude from replying.
       - name: Use Node.js
+        if: github.event_name == 'issues' || (github.event_name == 'issue_comment' && !github.event.issue.pull_request)
         # v4.4.0
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
@@ -81,6 +85,7 @@ jobs:
       # --ignore-scripts keeps dependency install scripts from running with the
       # subscription token in scope.
       - name: Install dependencies
+        if: github.event_name == 'issues' || (github.event_name == 'issue_comment' && !github.event.issue.pull_request)
         run: npm ci --ignore-scripts
 
       - name: Run Claude
