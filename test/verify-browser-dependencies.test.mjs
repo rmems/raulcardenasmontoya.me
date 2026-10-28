@@ -5,11 +5,12 @@ import process from 'node:process';
 import test from 'node:test';
 
 import { browserDependencyViolations } from '../scripts/verify-browser-dependencies.mjs';
+import { skipWithoutCargo } from './platform-capabilities.mjs';
 import { WASM_PROFILES, profileFeatureArgs } from '../scripts/wasm-profiles.mjs';
 
 const profile = (name) => WASM_PROFILES.find((candidate) => candidate.name === name);
 
-test('the resolved browser adapter graph excludes native-only execution paths', () => {
+test('the resolved browser adapter graph excludes native-only execution paths', { skip: skipWithoutCargo }, () => {
   const result = spawnSync(process.execPath, ['scripts/verify-browser-dependencies.mjs'], {
     cwd: process.cwd(),
     encoding: 'utf8',

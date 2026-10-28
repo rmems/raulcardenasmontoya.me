@@ -52,6 +52,18 @@ npm run validate:rust       # cargo +1.99.0 fmt/clippy/test/check (wasm32) on cr
 npm run test:layout         # built pages at 320–1024 px, 100%/200% text, site + wide fonts: no horizontal scroll (needs dist/, BROWSER_BIN)
 ```
 
+### Platform notes for `npm test`
+
+The suite runs the same on Linux and Windows. Permission, read and FIFO failures are injected through
+`test/fs-faults.mjs` (a scoped `node:fs` wrapper) instead of `chmod`/`mkfifo`, so they work on any OS and as root.
+
+Two things still depend on the machine:
+
+| Needs | Tests |
+|---|---|
+| Symlink creation (Windows: Developer Mode or admin) | `test/native-evidence.test.mjs`: dangling symlink, symlink rejection. Skipped with a reason when unavailable, never when `CI` is set (`test/platform-capabilities.mjs`). |
+| Rust 1.99.0 via `CARGO_HOME/bin/cargo` (`cargo.exe` on Windows) | `test/verify-browser-dependencies.test.mjs`: resolved adapter graph. Skipped when absent, never when `CI` is set. |
+
 ## Conventions visible in the repo
 
 - The site deploys to GitHub Pages from `main` through `.github/workflows/deploy.yml` (#63), at

@@ -1,9 +1,10 @@
-import { execFileSync } from 'node:child_process';
-import { chmodSync, mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { fsError, withFsFaults } from './fs-faults.mjs';
+import { skipWithoutSymlinks } from './platform-capabilities.mjs';
 import { loadTsModule, readSource } from './load-ts-module.mjs';
 
 const evidence = await loadTsModule('../src/native-evidence/parse.ts');
@@ -381,7 +382,7 @@ test('sourcePath rejects `.` and `..` segments so provenance links a precise fil
   }
 });
 
-test('filesystem listing, stat, and read failures become fail-closed catalog issues', () => {
+test('a dangling symlink in the catalog becomes a fail-closed catalog issue', { skip: skipWithoutSymlinks }, () => {
   const dangling = withTempCatalog({}, (directory) => {
     symlinkSync(join(directory, 'missing-target.json'), join(directory, 'broken.json'));
     return load.loadNativeEvidenceDirectory(directory);
@@ -391,19 +392,24 @@ test('filesystem listing, stat, and read failures become fail-closed catalog iss
   assert.equal(dangling.issues.length, 1);
   assert.equal(dangling.issues[0].code, 'catalog-io-error');
   assert.match(dangling.issues[0].message, /regular files/);
+});
 
+test('filesystem listing, stat, and read failures become fail-closed catalog issues', () => {
   const sibling = cloneFixture('valid-cuda-synthetic.json');
   sibling.recordStatus = 'measured';
   sibling.id = 'visible-measured';
   const listing = withTempCatalog({ 'visible-measured.json': JSON.stringify(sibling) }, (directory) => {
     const nested = join(directory, 'nested');
     mkdirSync(nested);
-    chmodSync(nested, 0);
-    try {
-      return load.loadNativeEvidenceDirectory(directory);
-    } finally {
-      chmodSync(nested, 0o755);
-    }
+    return withFsFaults(
+      {
+        readdirSync: (original) => (path, ...args) => {
+          if (path === nested) throw fsError('EACCES', 'scandir', path);
+          return original(path, ...args);
+        },
+      },
+      () => load.loadNativeEvidenceDirectory(directory),
+    );
   });
   assert.equal(listing.status, 'invalid');
   assert.deepEqual(listing.artifacts, []);
@@ -413,12 +419,15 @@ test('filesystem listing, stat, and read failures become fail-closed catalog iss
 
   const statDenied = withTempCatalog({ 'nested/secret.json': '{"schema":1}' }, (directory) => {
     const nested = join(directory, 'nested');
-    chmodSync(nested, 0o400);
-    try {
-      return load.loadNativeEvidenceDirectory(directory);
-    } finally {
-      chmodSync(nested, 0o755);
-    }
+    return withFsFaults(
+      {
+        lstatSync: (original) => (path, ...args) => {
+          if (path === join(nested, 'secret.json')) throw fsError('EACCES', 'lstat', path);
+          return original(path, ...args);
+        },
+      },
+      () => load.loadNativeEvidenceDirectory(directory),
+    );
   });
   assert.equal(statDenied.status, 'invalid');
   assert.deepEqual(statDenied.artifacts, []);
@@ -426,12 +435,16 @@ test('filesystem listing, stat, and read failures become fail-closed catalog iss
   assert.match(statDenied.issues[0].message, /stat/);
 
   const unread = withTempCatalog({ 'secret.json': '{"schema":1}' }, (directory) => {
-    chmodSync(join(directory, 'secret.json'), 0);
-    try {
-      return load.loadNativeEvidenceDirectory(directory);
-    } finally {
-      chmodSync(join(directory, 'secret.json'), 0o644);
-    }
+    const secret = join(directory, 'secret.json');
+    return withFsFaults(
+      {
+        readFileSync: (original) => (path, ...args) => {
+          if (path === secret) throw fsError('EACCES', 'open', path);
+          return original(path, ...args);
+        },
+      },
+      () => load.loadNativeEvidenceDirectory(directory),
+    );
   });
   assert.equal(unread.status, 'invalid');
   assert.deepEqual(unread.artifacts, []);
@@ -439,7 +452,7 @@ test('filesystem listing, stat, and read failures become fail-closed catalog iss
   assert.match(unread.issues[0].message, /read/);
 });
 
-test('catalog discovery rejects symlinks and does not follow them outside the catalog', () => {
+test('catalog discovery rejects symlinks and does not follow them outside the catalog', { skip: skipWithoutSymlinks }, () => {
   const measured = cloneFixture('valid-cuda-synthetic.json');
   measured.recordStatus = 'measured';
   measured.id = 'valid-cuda-measured';
@@ -459,15 +472,6 @@ test('catalog discovery rejects symlinks and does not follow them outside the ca
     assert.deepEqual(escaped.artifacts, []);
     assert.equal(escaped.issues[0].code, 'catalog-io-error');
     assert.match(escaped.issues[0].message, /regular files/);
-
-    const fifo = withTempCatalog({}, (directory) => {
-      execFileSync('mkfifo', [join(directory, 'pipe.json')]);
-      return load.loadNativeEvidenceDirectory(directory);
-    });
-    assert.equal(fifo.status, 'invalid');
-    assert.deepEqual(fifo.artifacts, []);
-    assert.equal(fifo.issues[0].code, 'catalog-io-error');
-    assert.match(fifo.issues[0].message, /regular files/);
 
     writeFileSync(join(realCatalog, 'valid-cuda-measured.json'), payload);
     const linkedRoot = join(parent, 'catalog');
@@ -503,6 +507,27 @@ test('catalog discovery rejects symlinks and does not follow them outside the ca
     rmSync(realCatalog, { recursive: true, force: true });
     rmSync(parent, { recursive: true, force: true });
   }
+});
+
+test('catalog discovery rejects FIFOs as non-regular files', () => {
+  const fifo = withTempCatalog({}, (directory) => {
+    // A FIFO is neither a symlink nor a regular file; lstat is stubbed because Windows cannot create one.
+    const pipe = join(directory, 'pipe.json');
+    writeFileSync(pipe, '');
+    return withFsFaults(
+      {
+        lstatSync: (original) => (path, ...args) =>
+          path === pipe
+            ? { size: 0, isSymbolicLink: () => false, isFile: () => false, isDirectory: () => false }
+            : original(path, ...args),
+      },
+      () => load.loadNativeEvidenceDirectory(directory),
+    );
+  });
+  assert.equal(fifo.status, 'invalid');
+  assert.deepEqual(fifo.artifacts, []);
+  assert.equal(fifo.issues[0].code, 'catalog-io-error');
+  assert.match(fifo.issues[0].message, /regular files/);
 });
 
 test('execution origin labels distinguish live WASM from recorded CUDA/FPGA', () => {
