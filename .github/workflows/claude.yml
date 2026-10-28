@@ -93,6 +93,11 @@ jobs:
           # execute that branch's astro config, loaders and npm scripts with the
           # subscription token in scope. On issue events it works from the
           # default branch. cargo stays disallowed (build.rs, test binaries).
+          # The action runs with acceptEdits, so Claude could otherwise rewrite
+          # package.json or astro.config.mjs and then run the allowed build;
+          # the edit tools are denied (this job has contents: read and nothing
+          # to edit), which leaves the build running the default-branch tree.
           claude_args: |
             --model claude-sonnet-5-5
+            --disallowedTools "Edit,MultiEdit,Write,NotebookEdit"
             --allowedTools "Bash(gh issue create:*),Bash(gh issue list:*),Bash(gh issue view:*),Bash(gh issue comment:*)${{ (github.event_name == 'issues' || (github.event_name == 'issue_comment' && !github.event.issue.pull_request)) && ',Bash(npm run build)' || '' }}"
