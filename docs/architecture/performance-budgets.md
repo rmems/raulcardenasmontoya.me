@@ -1064,10 +1064,14 @@ What the run shows against the targets:
   no `tick-overrun` was counted. The main thread's view of a tick was 0.35 to
   0.51 ms mean, 0.8 to 1.1 ms p95 (one 4.3 ms sample in the headed
   pointer-active window).
-- **S2, S3, S4:** raw `input` + `step` is 34.75 to 44.25 µs median in
-  Chrome (31.6 to 45.3 µs in Node, 19.1 to 26.0 µs native), the bridge's
-  `state()` is 3.45 to 4.55 µs, and the worker round trip 113 to 153 µs. All
-  inside their budgets with an order of magnitude to spare.
+- **S2, S3, S4:** the boundary bench reports one average per 2000-tick batch,
+  so it carries no per-tick p95; a browser-side S2 p95 is not measured. Raw
+  `input` + `step` is 34.75 to 44.25 µs median in Chrome (31.6 to 45.3 µs in
+  Node, 19.1 to 26.0 µs native), and the per-tick p95s that are measured —
+  20.7 to 36.4 µs native, 32.9 to 55.0 µs under WASI — keep the worst case
+  4.5× under S2's 0.25 ms desktop ceiling. The bridge's `state()` is 3.45 to
+  4.55 µs against S3's 50 µs, and the worker round trip 113 to 153 µs median
+  against S4's 1 ms p95.
 - **S7:** the ring is 16,384 and the live windows ended with 684 to 1,416
   events buffered and `evicted: 0` everywhere; the bank fired 4.7 to 10.4
   neurons per tick, 38 to 83 events per tick. Spike ingestion costs 11.9 to
@@ -1080,9 +1084,10 @@ What the run shows against the targets:
   0.19 to 0.23 ms mean and 0.3 to 0.4 ms p95 on the live page (512 to 1,000
   pulses per drawn frame) and 0.36 / 0.5 / 0.7 ms in the 25 %-firing stress
   row (1,807 pulses per frame) at the shipped size.
-- **R5, R6, R8:** the capped levels drew 256 / 96 / 0 pulses and 240 / 120
-  / 80 frames per second as designed; offscreen and minimized windows
-  counted 0 ticks and 0 frames, then resumed.
+- **R5, R6, R8:** the capped levels drew 256 / 96 / 0 pulses, and the frame
+  caps held: balanced (uncapped) kept the display's ~240 fps, reduced drew
+  120 frames in its 4 s window (30 fps), minimal 80 (20 fps); offscreen and
+  minimized windows counted 0 ticks and 0 frames, then resumed.
 - **R9, R10:** the homepage payload with the panel closed is 245,415 bytes
   brotli (the limit is 250 KB; it was 241,248 at contract 7 and 235,253 at
   16 / 64): the spike-events chunk gained 2,011 bytes brotli (it imports the

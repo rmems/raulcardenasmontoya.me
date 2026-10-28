@@ -456,8 +456,9 @@ test('the homepage hero hosts the live demo static-first and traces it to its cr
   assert.match(island, /const simulationHz = 1000 \/ DEMO_TICK_MS;/);
   assert.match(island, /const pulseSpeedLabel = `1\/\$\{Math\.round\(1 \/ PULSE_DISPLAY_SPEED\)\}`;/);
   assert.match(island, /<span data-when="live">[^<]*simulating in this browser at \{simulationHz\} Hz · pulses shown at \{pulseSpeedLabel\} speed<\/span>/);
-  // Reduced motion holds the camera still after Play; pulses still travel.
-  assert.match(island, /<span data-when="live-still">[^<]*simulating in this browser at \{simulationHz\} Hz · pulses shown at \{pulseSpeedLabel\} speed · view held still<\/span>/);
+  // Reduced motion holds the camera still after Play; pulses still travel,
+  // except in the lightest quality mode, which hides them.
+  assert.match(island, /<span data-when="live-still">[^<]*simulating in this browser at \{simulationHz\} Hz · pulses shown at \{pulseSpeedLabel\} speed \(none in the lightest quality mode\) · view held still<\/span>/);
   assert.doesNotMatch(island, /pulses off/);
   // The reduced-motion notice appears with the Play control: the media query
   // lets it show, and `data-mode` — set only when the runtime initializes —
