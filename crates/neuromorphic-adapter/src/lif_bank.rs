@@ -63,16 +63,65 @@ const LEAK: f32 = 0.15;
 const THRESHOLD_FLOOR: f32 = 0.15;
 const THRESHOLD_SPREAD: f32 = 0.20;
 
-/// Evoked-input gain: mean and relative spread across the bank.
-const EVOKED_GAIN: f32 = 0.09;
+/// Relative spread of the evoked-input gain across the bank.
 const EVOKED_GAIN_SPREAD: f32 = 0.8;
 
-/// Tonic drive as a multiple of each neuron's rheobase (the constant stimulus
-/// whose steady-state membrane equals its threshold), plus a per-neuron
-/// spread. Above 1 so every neuron fires on its own, close enough to 1 that
-/// the periods are long (about 15 to 30 steps) and differ.
-const TONIC_RHEOBASE_MULTIPLE: f32 = 1.2;
+/// Per-neuron spread of the tonic drive, as a fraction of rheobase, on top
+/// of the profile's multiple.
 const TONIC_RHEOBASE_SPREAD: f32 = 0.5;
+
+/// The two shaping constants that set the bank's firing rate, chosen per
+/// contract (the topology size they were tuned for). Everything else in this
+/// module (spreads, refractory period, dither, thresholds) is shared.
+///
+/// `neuromod`'s lateral inhibition is global: every non-firing neuron is
+/// pushed down whenever any neuron fires. A larger bank fires on more steps,
+/// so each neuron is inhibited more often and the same drive yields a lower
+/// per-neuron rate; the larger topology's profile compensates with a stronger
+/// tonic drive. The legacy profile is frozen: it is part of what the
+/// contract-3 to -6 goldens pin.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ShapingProfile {
+    /// Tonic drive as a multiple of each neuron's rheobase (the constant
+    /// stimulus whose steady-state membrane equals its threshold). Above 1 so
+    /// every neuron fires on its own, close enough to 1 that the periods are
+    /// long and differ.
+    pub tonic_rheobase_multiple: f32,
+    /// Mean evoked-input gain: how much of the routed synaptic current reaches
+    /// `neuromod`.
+    pub evoked_gain: f32,
+    /// Relative step-to-step modulation of the background drive. Lateral
+    /// inhibition couples every neuron's phase, which locks a uniform bank
+    /// onto shared periods; a deterministic dither keeps the phases apart.
+    pub tonic_dither: f32,
+}
+
+impl ShapingProfile {
+    /// The 16-neuron bank of contracts 3 to 6 (RM-2352).
+    pub const LEGACY: Self = Self {
+        tonic_rheobase_multiple: 1.2,
+        evoked_gain: 0.09,
+        tonic_dither: 0.3,
+    };
+    /// The 48-neuron bank of contract 7 (RM-2355). With the legacy profile a
+    /// 48-neuron bank fired 60 to 99 spikes per 40-step window in the default
+    /// mode (the floor is 96) and left up to 19 neurons silent: with three
+    /// times the neurons, some neuron fires on nearly every step, so the
+    /// global inhibition lands on every step and a tonic drive 1.2× rheobase
+    /// never gets a quiet step to climb through. A 2.1× drive climbs through
+    /// the inhibition on its own; the evoked gain is lowered so pointer input
+    /// raises the rate without saturating the band; and a stronger dither
+    /// keeps the larger bank from bunching (at 0.3 one idle step in 2,400
+    /// recruited 25 of 48 neurons, at 0.6 the peak is 19). `tests/sparse_firing.rs`
+    /// holds the result to 96 to 384 spikes per window (5 to 20 % of 48
+    /// neurons per step); the sweep that chose these values is recorded in
+    /// `docs/architecture/browser-runtime.md`.
+    pub const V7: Self = Self {
+        tonic_rheobase_multiple: 2.1,
+        evoked_gain: 0.04,
+        tonic_dither: 0.6,
+    };
+}
 
 /// Fractional parts of multiples of these irrationals are well spread and
 /// need no RNG.
@@ -84,11 +133,6 @@ const GOLDEN_PHASE: f32 = 0.569_840;
 /// Largest starting membrane potential as a fraction of the neuron's own
 /// threshold.
 const INITIAL_PHASE: f32 = 0.9;
-
-/// Relative step-to-step modulation of the background drive. Lateral
-/// inhibition couples every neuron's phase, which locks a uniform bank onto
-/// shared periods; a deterministic dither keeps the phases apart.
-const TONIC_DITHER: f32 = 0.3;
 
 /// A deterministic `[0, 1)` value for a (neuron, step) pair (splitmix64).
 fn unit_hash(index: u64, step: u64) -> f32 {
@@ -115,6 +159,8 @@ pub struct LifBankShaping {
     tonic: Vec<f32>,
     /// Per-neuron multiplier on the routed synaptic current.
     gain: Vec<f32>,
+    /// The profile's background-drive dither.
+    tonic_dither: f32,
     /// Remaining silent steps per neuron.
     refractory_left: Vec<u8>,
     /// Steps `stimulus` has been called for; seeds the background dither.
@@ -122,9 +168,15 @@ pub struct LifBankShaping {
 }
 
 impl LifBankShaping {
-    /// Wire `network` (one synapse per neuron, spread thresholds) and return
-    /// the shaping state that drives it.
+    /// Wire `network` (one synapse per neuron, spread thresholds) with the
+    /// legacy 16-neuron profile and return the shaping state that drives it.
     pub fn install(network: &mut SpikingNetwork) -> Self {
+        Self::install_with(network, ShapingProfile::LEGACY)
+    }
+
+    /// Wire `network` (one synapse per neuron, spread thresholds) with
+    /// `profile` and return the shaping state that drives it.
+    pub fn install_with(network: &mut SpikingNetwork, profile: ShapingProfile) -> Self {
         let neurons = network.neurons.len();
         let channels = network.num_channels;
         let mut home_weights = Vec::with_capacity(neurons);
@@ -151,12 +203,12 @@ impl LifBankShaping {
             // Steady state of a constant stimulus `s` is
             // `s * WEIGHT_BUDGET * INTEGRATION_GAIN * (1 - LEAK) / LEAK`.
             let per_unit_stimulus = WEIGHT_BUDGET * INTEGRATION_GAIN * (1.0 - LEAK) / LEAK;
-            let multiple =
-                TONIC_RHEOBASE_MULTIPLE + TONIC_RHEOBASE_SPREAD * spread(index, GOLDEN_TONIC, 0.1);
+            let multiple = profile.tonic_rheobase_multiple
+                + TONIC_RHEOBASE_SPREAD * spread(index, GOLDEN_TONIC, 0.1);
             tonic.push(multiple * threshold / per_unit_stimulus);
 
             gain.push(
-                EVOKED_GAIN
+                profile.evoked_gain
                     * (1.0 - EVOKED_GAIN_SPREAD
                         + 2.0 * EVOKED_GAIN_SPREAD * spread(index, GOLDEN_GAIN, 0.2)),
             );
@@ -165,6 +217,7 @@ impl LifBankShaping {
             home_weights,
             tonic,
             gain,
+            tonic_dither: profile.tonic_dither,
             refractory_left: vec![0; neurons],
             steps: 0,
         }
@@ -216,7 +269,7 @@ impl LifBankShaping {
                     *current
                 };
                 let evoked = current * self.gain.get(index).copied().unwrap_or(0.0);
-                let dither = 1.0 + TONIC_DITHER * (2.0 * unit_hash(index as u64, step) - 1.0);
+                let dither = 1.0 + self.tonic_dither * (2.0 * unit_hash(index as u64, step) - 1.0);
                 let background = self.tonic.get(index).copied().unwrap_or(0.0) * dither;
                 evoked + background
             })

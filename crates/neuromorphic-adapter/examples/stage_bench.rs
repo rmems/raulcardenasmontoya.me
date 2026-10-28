@@ -1,5 +1,5 @@
-//! Native per-stage timing harness for the contract-5 pipeline
-//! (GitHub #10 / Linear RM-1646).
+//! Native per-stage timing harness for the live (contract-7) pipeline
+//! (GitHub #10 / Linear RM-1646; RM-2355 moved it to the 48-neuron topology).
 //!
 //! ```text
 //! cargo +1.99.0 run --release --locked \
@@ -22,10 +22,11 @@
 //! calls public APIs, and it checks that its own topology digest equals the
 //! runtime's before it reports anything.
 //!
-//! **Synthetic topologies.** The shipped adapter is fixed at 16 neurons and 64
-//! synapses. The `scale` section builds larger `synaptic-wiring` small-world
-//! graphs and `neuromod` LIF banks through the same crates to show how cost
-//! grows. Those sizes are *not* what ships.
+//! **Synthetic topologies.** The shipped adapter is fixed at 48 neurons and
+//! 288 synapses (contract 7; contracts 3 to 6 keep 16 / 64). The `scale`
+//! section builds `synaptic-wiring` small-world graphs and `neuromod` LIF
+//! banks of several sizes through the same crates to show how cost grows. Only
+//! the 48 / 6 row is what ships, and it keeps the unshaped bank like the rest.
 
 use std::hint::black_box;
 use std::time::{Duration, Instant};
@@ -34,16 +35,19 @@ use neuromod::{NeuroModulators, SeedableRng, SpikingNetwork, StdRng};
 use neuromorphic_adapter::encoder::{ENCODER_CHANNELS, EncoderMode, V1Encoder};
 use neuromorphic_adapter::kinetic::{KineticExtractor, TELEMETRY_PACKET_LEN};
 use neuromorphic_adapter::lif_bank::LifBankShaping;
-use neuromorphic_adapter::{BrowserRuntime, CONTRACT_VERSION_V5, TopologyProjection};
+use neuromorphic_adapter::{BrowserRuntime, CONTRACT_VERSION_V7, TopologyProjection, TopologySpec};
 use synaptic_wiring::SynapticMesh;
 use synaptic_wiring::topology::generate_small_world;
 
-/// The adapter's fixed browser topology parameters (`BrowserRuntime::with_mode`).
-const LIVE_NEURONS: usize = 16;
-const LIVE_FAN_OUT: usize = 4;
-const LIVE_REWIRE: f32 = 0.2;
-const LIVE_MAX_DELAY: u16 = 4;
-const LIVE_INHIBITORY: f32 = 0.25;
+/// The contract the live demo runs (`LIVE_ADAPTER_OPTIONS` in
+/// `src/runtime/wasm-session.ts`) and its topology (`TopologySpec::V7`).
+const LIVE_CONTRACT: u32 = CONTRACT_VERSION_V7;
+const LIVE_SPEC: TopologySpec = TopologySpec::V7;
+const LIVE_NEURONS: usize = LIVE_SPEC.neurons;
+const LIVE_FAN_OUT: usize = LIVE_SPEC.fan_out;
+const LIVE_REWIRE: f32 = LIVE_SPEC.rewire;
+const LIVE_MAX_DELAY: u16 = LIVE_SPEC.max_delay;
+const LIVE_INHIBITORY: f32 = LIVE_SPEC.inhibitory_fraction;
 /// Same seed as `DEMO_SEED` in `src/runtime/demo-stimulus.ts`.
 const DEMO_SEED: u64 = 20_260_916;
 
@@ -129,8 +133,8 @@ fn lif_network(neurons: usize, channels: usize) -> SpikingNetwork {
 /// `BrowserRuntime` builds it. The scale section below deliberately keeps the
 /// unshaped bank; those sizes are not what ships.
 fn live_bank() -> (SpikingNetwork, LifBankShaping) {
-    let mut network = lif_network(LIVE_NEURONS, ENCODER_CHANNELS);
-    let shaping = LifBankShaping::install(&mut network);
+    let mut network = lif_network(LIVE_NEURONS, LIVE_NEURONS);
+    let shaping = LifBankShaping::install_with(&mut network, LIVE_SPEC.shaping_profile());
     (network, shaping)
 }
 
@@ -175,9 +179,15 @@ fn record(source: InputSource, mode: EncoderMode, ticks: u64) -> Recording {
         let packet = source.packet(sequence);
         let features = extractor.extract(&packet);
         let channels = encoder.encode_step(&features);
+        // Encoder channel `c` is the mesh source for every neuron `n` with
+        // `n % ENCODER_CHANNELS == c` (the adapter's `input`).
         let mut spikes = vec![false; LIVE_NEURONS];
         for channel in &channels {
-            spikes[usize::from(*channel)] = true;
+            for (neuron, spike) in spikes.iter_mut().enumerate() {
+                if neuron % ENCODER_CHANNELS == usize::from(*channel) {
+                    *spike = true;
+                }
+            }
         }
         let currents = mesh.propagate(&spikes).expect("live propagation succeeds");
         let fired = shaping
@@ -307,7 +317,7 @@ fn bench_workload(
     // `state()` is what `step()` returns and what the WASM getters copy from:
     // it clones the potentials, spikes, features, and the full topology
     // projection every tick.
-    let mut runtime = BrowserRuntime::with_mode(DEMO_SEED, mode, CONTRACT_VERSION_V5)
+    let mut runtime = BrowserRuntime::with_mode(DEMO_SEED, mode, LIVE_CONTRACT)
         .expect("the live runtime constructs");
     for (index, packet) in recording.packets.iter().take(64).enumerate() {
         runtime
@@ -324,7 +334,7 @@ fn bench_workload(
     });
 
     let end_to_end = batch(runs, ticks, || {
-        let mut runtime = BrowserRuntime::with_mode(DEMO_SEED, mode, CONTRACT_VERSION_V5)
+        let mut runtime = BrowserRuntime::with_mode(DEMO_SEED, mode, LIVE_CONTRACT)
             .expect("the live runtime constructs");
         let mut checksum = 0_u64;
         for (index, packet) in recording.packets.iter().enumerate() {
@@ -336,7 +346,7 @@ fn bench_workload(
         checksum
     });
 
-    let mut runtime = BrowserRuntime::with_mode(DEMO_SEED, mode, CONTRACT_VERSION_V5)
+    let mut runtime = BrowserRuntime::with_mode(DEMO_SEED, mode, LIVE_CONTRACT)
         .expect("the live runtime constructs");
     let mut samples = Vec::with_capacity(recording.packets.len());
     for (index, packet) in recording.packets.iter().enumerate() {
@@ -504,9 +514,9 @@ fn main() {
     };
 
     // Guard: the harness must time the topology the adapter actually ships.
-    let shipped = BrowserRuntime::with_mode(DEMO_SEED, EncoderMode::DEFAULT, CONTRACT_VERSION_V5)
+    let shipped = BrowserRuntime::with_mode(DEMO_SEED, EncoderMode::DEFAULT, LIVE_CONTRACT)
         .expect("the live runtime constructs")
-        .state()
+        .topology()
         .topology_digest;
     let harness = TopologyProjection::from_graph(live_mesh().graph()).topology_digest;
     assert_eq!(
@@ -523,7 +533,14 @@ fn main() {
     }
 
     let mut scales = Vec::new();
-    for (neurons, fan_out) in [(16, 4), (64, 8), (256, 16), (1024, 32), (2048, 32)] {
+    for (neurons, fan_out) in [
+        (16, 4),
+        (LIVE_NEURONS, LIVE_FAN_OUT),
+        (64, 8),
+        (256, 16),
+        (1024, 32),
+        (2048, 32),
+    ] {
         // The LIF bank costs O(neurons x channels) per step; keep large sizes
         // to a bounded wall-clock budget.
         let ticks = if neurons >= 1024 {
@@ -593,7 +610,7 @@ fn main() {
         format!("native {}-{}", std::env::consts::ARCH, std::env::consts::OS)
     };
     println!(
-        "# Contract-5 stage timing ({target}, release; median of {runs} runs x {ticks} ticks)"
+        "# Contract-{LIVE_CONTRACT} stage timing ({target}, release; median of {runs} runs x {ticks} ticks)"
     );
     println!(
         "| input | mode | enc spikes/tick | LIF spikes/tick | extract us | encode us | propagate us | SNN step us | materialize us | input+step us | input+step p95 us | p99 us | max us |"
@@ -619,7 +636,7 @@ fn main() {
     }
     println!();
     println!(
-        "# Synthetic topologies (NOT shipped; median of {scale_runs} runs x {scale_ticks} ticks, {} for >= 1024 neurons)",
+        "# Topology sizes (only {LIVE_NEURONS} / {LIVE_FAN_OUT} ships; median of {scale_runs} runs x {scale_ticks} ticks, {} for >= 1024 neurons)",
         scale_ticks / 4
     );
     println!(

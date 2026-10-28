@@ -531,7 +531,7 @@ test('a selected neuron exposes only runtime-provided fields from the live WASM 
     for (let tick = 0; tick < 160; tick += 1) {
       state = rig.step();
     }
-    const spiking = [...Array(16).keys()].find((neuron) => raster.recentSpikeSteps(neuron).length > 0);
+    const spiking = [...state.topologyNodeIds].find((neuron) => raster.recentSpikeSteps(neuron).length > 0);
     assert.notEqual(spiking, undefined, 'the scripted path drives real spikes');
 
     for (let neuron = 0; neuron < state.topologyNodeIds.length; neuron += 1) {
@@ -582,7 +582,7 @@ test('a selected neuron exposes only runtime-provided fields from the live WASM 
       assert.ok(recent[index] < recent[index - 1], 'recent spike steps are newest first');
     }
 
-    assert.equal(telemetry.inspectNeuron(state, raster, 16), null, 'outside the topology there is nothing to show');
+    assert.equal(telemetry.inspectNeuron(state, raster, state.topologyNodeIds.length), null, 'outside the topology there is nothing to show');
     assert.equal(telemetry.inspectNeuron(state, raster, -1), null);
     const unsampled = telemetry.inspectNeuron(state, null, spiking);
     assert.equal(unsampled.spikedAtStep, null, 'without a raster, spike state is unknown rather than false');
@@ -605,7 +605,7 @@ test('encoder inspection shows the active axon-encoder mode and the exported kin
       Object.keys(encoder).sort(),
       ['contractVersion', 'encodedSpikeChannels', 'encodedSpikeCount', 'encodedSpikeTotal', 'features', 'inputSource', 'mode', 'name', 'step'],
     );
-    assert.equal(encoder.contractVersion, 6, 'the live rig runs contract 6');
+    assert.equal(encoder.contractVersion, 7, 'the live rig runs contract 7');
     assert.equal(encoder.name, 'temporal');
     assert.equal(encoder.mode, adapterModule.ENCODER_MODES.temporal);
     assert.equal(encoder.encodedSpikeCount, state.encodedSpikeCount);
@@ -782,7 +782,7 @@ test('only live-wasm data is labeled as the live Rust/WASM runtime', async () =>
     assert.match(live.status, /live Rust\/WASM runtime/);
     assert.match(live.rasterSummary, /neuromod/);
     assert.match(live.rasterSummary, /axon-encoder/);
-    assert.equal(live.snapshot.contractVersion, 6, 'the live rig runs contract 6');
+    assert.equal(live.snapshot.contractVersion, 7, 'the live rig runs contract 7');
     assert.equal(live.encoder.inputSource, 'pointer');
 
     livePanel.setMode('awaiting-play');
@@ -867,7 +867,7 @@ test('the committed WASM package drives the raster and inspector through the rea
       'the encoder lane is the runtime count per step',
     );
     for (const entry of kept) {
-      for (let neuron = 0; neuron < 16; neuron += 1) {
+      for (let neuron = 0; neuron < state.topologyNodeIds.length; neuron += 1) {
         assert.equal(model.raster.spiked(entry.completedStep, neuron), entry.spikeNeurons.includes(neuron));
       }
     }

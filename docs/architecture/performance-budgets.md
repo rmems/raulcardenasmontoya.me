@@ -51,6 +51,14 @@ This document keeps two kinds of numbers apart:
   largest contentful paint.
 - Offscreen and hidden pages do no simulation or render work: 0 ticks and 0
   frames over 3 s, in both headless and headed Chrome, measured live.
+- RM-2355 (contract 7) moved the shipped topology from 16 neurons / 64
+  synapses to 48 / 288. Measured on a different, slower machine
+  ([section 12](#12-contract-7-48-neurons-rm-2355)): one native `input` +
+  `step` takes 30 to 34 µs median (the 16-neuron bank takes 5.5 µs on the same
+  machine), every live window in headless Chrome held its 50 ms cadence with
+  no overrun and no eviction, and frame work at the full level stayed inside
+  R2 at every quality level. Sections 1 to 11 keep their reference-desktop
+  numbers for the 16 / 64 topology.
 
 ## Targets
 
@@ -68,9 +76,9 @@ measured](#not-measured).
 | S4 | Worker tick round trip (input + step messages, transfer) | ≤ 1 ms p95 | 66.5–72.2 µs median (microbench); live `tick` p95 0.4–0.6 ms |
 | S5 | Tick overruns (a tick still running when the next is due) | 0 per minute | 0 in every live window (no `tick-overrun` count) |
 | S6 | Main-thread work per published step (renderer latch, spike ingestion, listeners, telemetry hook) | ≤ 0.25 ms p95 | `publish` p95 ≤ 0.1 ms (timer floor) |
-| S7 | Spike-event throughput | ≤ 64 events per step (every neuron × 4 synapses) = 1,280 per second, within the 2,048-event ring (worst case 64 × (4 + 18 + 1) = 1,472 buffered with the 18-step retention the 1/4-speed display clock needs) | ≤ 63.97 events per step; 0 evictions in every run. With the 18-step retention, the pointer-active window ended with 1,289 buffered of 2,048 and `evicted: 0` ([section 4](#4-live-page-in-chrome-real-worker-real-renderer)) |
+| S7 | Spike-event throughput | ≤ 288 events per step (every neuron × 6 synapses, contract 7) = 5,760 per second, within the 8,192-event ring (worst case 288 × (4 + 18 + 1) = 6,624 buffered with the 18-step retention the 1/4-speed display clock needs; the ring is that worst case rounded up to a power of two, derived in `spike-events.ts`). On the 16 / 64 contracts the bound was 64 per step within 2,048 | 16 / 64: ≤ 63.97 events per step; 0 evictions in every run; the pointer-active window ended with 1,289 buffered of 2,048 ([section 4](#4-live-page-in-chrome-real-worker-real-renderer)). 48 / 288: see [section 12](#12-contract-7-48-neurons-rm-2355) |
 | S8 | Memory | WASM linear memory flat per step; every JS buffer fixed-size (see [audit](#buffer-audit)) | Flat (5000 steps: +0 bytes with the fix) |
-| S9 | Topology size | 16 / 64 ships. A new contract that grows it must keep S2 within budget on low-end devices: ≤ 256 neurons | 256 neurons: 0.48 ms native, 0.80–0.90 ms WASI per SNN step |
+| S9 | Topology size | 48 / 288 ships (contract 7, RM-2355); contracts 3 to 6 keep 16 / 64. A new contract that grows it further must keep S2 within budget on low-end devices: ≤ 256 neurons, and must re-check the full level's pulse count against R2 and the ring against S7 | 256 neurons: 0.48 ms native, 0.80–0.90 ms WASI per SNN step (reference desktop). 48 neurons: 30–34 µs native `input` + `step` on the slower RM-2355 machine ([section 12](#12-contract-7-48-neurons-rm-2355)) |
 
 ### Rendering
 
@@ -180,10 +188,12 @@ re-run on Node 24.20.0 (V8 13.6) and Rust 1.99.0, not the Node 22.12.0 and Rust
 
 These are larger `synaptic-wiring` small-world graphs and `neuromod` LIF banks,
 built through the same crates. Source spikes come from a deterministic hash at
-10% or 50% of neurons per tick. The shipped adapter is fixed at 16 / 64. Cells
-are in µs per tick: the median of 7 runs × 400 ticks, or × 100 ticks for ≥ 1024
-neurons. "Snapshot bytes" is what the contract-5 state would carry per step at
-that size.
+10% or 50% of neurons per tick. When this was measured the shipped adapter was
+fixed at 16 / 64; since RM-2355 it ships 48 / 288 (contract 7), and the
+harness's scale list gained that row ([section 12](#12-contract-7-48-neurons-rm-2355)
+has it, on a different machine). Cells are in µs per tick: the median of 7
+runs × 400 ticks, or × 100 ticks for ≥ 1024 neurons. "Snapshot bytes" is what
+the contract-5 state would carry per step at that size.
 
 | neurons | fan-out | synapses | firing | events/tick | snapshot bytes | propagate (native) | SNN step (native) | materialize (native) | propagate (WASI) | SNN step (WASI) | materialize (WASI) |
 |---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -695,9 +705,203 @@ profile, so nothing else moves. The generated `.d.ts` files change only in
 the order of four `bigint` getters, which follows the linker's function
 order.
 
+### 12. Contract 7: 48 neurons (RM-2355)
+
+RM-2355 moved the live demo to contract 7: 48 neurons with six synapses each
+(288), on two rings. These numbers come from a different machine than the
+reference desktop above, so they are not comparable row for row with
+sections 1 to 11; the 16 / 64 rows in the native table below were re-run on
+the same machine for scale.
+
+| Item | Value |
+| --- | --- |
+| Machine | Linux virtual machine, 8 vCPUs of an Intel Xeon at 2.60 GHz, 15 GB RAM, no GPU |
+| OS | Debian GNU/Linux 13 (trixie) |
+| Browser | Chrome 156.0.8078.73 (Chrome for Testing), `--headless=new`, fresh profile, WebGL through SwiftShader (software rendering) |
+| Node | 22.14.0 |
+| Rust | 1.99.0, `--release` (the crate's profile: `opt-level = 2`, fat LTO) |
+| Site build | `npm run build`, served by the harness's static server |
+| Recorded | 2026-10-28 |
+
+**Native pipeline, per stage** (`npm run perf:stages`, median of 15 runs ×
+2000 ticks, µs per tick; the shipped `LifBankShaping` with
+`ShapingProfile::V7`):
+
+| input | mode | encoded spikes/tick | LIF spikes/tick | extract | encode | propagate | SNN step | materialize | input+step | p95 | p99 | max |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| scripted | delta | 2.88 | 7.06 | 0.071 | 0.087 | 0.404 | 30.554 | 0.100 | 32.885 | 52.979 | 69.160 | 132.761 |
+| scripted | temporal | 0.05 | 5.31 | 0.071 | 0.197 | 0.150 | 30.700 | 0.089 | 31.496 | 51.678 | 66.683 | 150.968 |
+| scripted | rate | 3.82 | 7.46 | 0.071 | 0.323 | 0.495 | 31.933 | 0.090 | 32.668 | 53.878 | 69.520 | 106.999 |
+| pointer-active | delta | 6.83 | 8.18 | 0.073 | 0.121 | 0.671 | 31.689 | 0.089 | 32.923 | 46.460 | 64.891 | 187.526 |
+| pointer-active | temporal | 4.39 | 7.07 | 0.071 | 0.275 | 0.454 | 31.013 | 0.089 | 31.984 | 36.710 | 53.343 | 88.032 |
+| pointer-active | rate | 8.98 | 8.61 | 0.073 | 0.458 | 0.819 | 31.895 | 0.090 | 33.981 | 43.187 | 56.244 | 81.190 |
+| pointer-idle | delta | 0.00 | 5.29 | 0.047 | 0.020 | 0.138 | 29.383 | 0.089 | 29.702 | 33.257 | 49.360 | 66.923 |
+| pointer-idle | temporal | 0.00 | 5.29 | 0.047 | 0.182 | 0.138 | 29.313 | 0.089 | 30.200 | 34.024 | 47.894 | 69.314 |
+| pointer-idle | rate | 2.00 | 6.57 | 0.047 | 0.145 | 0.289 | 30.174 | 0.089 | 31.248 | 50.940 | 60.352 | 134.519 |
+
+The bank fires 5.3 to 8.6 of its 48 neurons per tick (11 to 18 %), inside the
+5 to 20 % band `tests/sparse_firing.rs` holds it to. The `neuromod` step is
+the whole cost, as before, and it is O(neurons × channels): 30 µs here
+against 5.5 µs for the 16-neuron bank on the same machine (next table), so
+about 5.5× for 3× the neurons. `input` + `step` at p95 is under 54 µs, which
+is 0.1 % of the 50 ms tick and 5 times inside S2's desktop budget on a
+machine that is itself about 2.7× slower than the reference desktop (its
+16 / 64 SNN step takes 5.5 µs where the reference took 2.1 µs).
+
+**Topology sizes through the same crates** (median of 7 runs × 400 ticks, 100
+for ≥ 1024 neurons, µs per tick; the unshaped bank, as in section 2):
+
+| neurons | fan-out | synapses | firing | events/tick | snapshot bytes | propagate | SNN step | materialize |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 16 | 4 | 64 | 10% | 6.4 | 2,192 | 0.074 | 5.538 | 0.158 |
+| 16 | 4 | 64 | 50% | 32.1 | 2,216 | 0.166 | 5.915 | 0.154 |
+| **48** | **6** | **288** | 10% | 28.9 | 9,212 | 0.219 | 48.202 | 0.376 |
+| **48** | **6** | **288** | 50% | 144.3 | 9,288 | 0.692 | 48.242 | 0.382 |
+| 64 | 8 | 512 | 10% | 51.3 | 15,968 | 0.338 | 85.567 | 0.451 |
+| 64 | 8 | 512 | 50% | 256.3 | 16,072 | 1.237 | 98.319 | 0.443 |
+| 256 | 16 | 4,096 | 10% | 409.7 | 123,056 | 2.149 | 1,378.909 | 3.180 |
+| 256 | 16 | 4,096 | 50% | 2,048.5 | 123,464 | 8.151 | 1,378.385 | 3.237 |
+| 1024 | 32 | 32,768 | 10% | 3,277.4 | 967,136 | 14.805 | 22,320.885 | 59.251 |
+| 1024 | 32 | 32,768 | 50% | 16,384.0 | 968,776 | 62.305 | 22,399.453 | 64.799 |
+| 2048 | 32 | 65,536 | 10% | 6,554.9 | 1,934,204 | 29.649 | 88,034.821 | 142.385 |
+| 2048 | 32 | 65,536 | 50% | 32,769.9 | 1,937,480 | 126.012 | 90,423.080 | 136.293 |
+
+"Snapshot bytes" is the contract-5 shape (the projection in every step); on
+contract 7 the projection crosses once (about 9.2 KB) and a per-step snapshot
+carries 256 to 448 bytes (48 potentials, 16 features, up to 48 spikes).
+
+**Headless Chrome** (`npm run build && npm run perf:browser -- --browser <chrome> --seconds 8`,
+2026-10-28 06:16 UTC, Chrome 156.0.8078.73 `--headless=new`, DPR 1, viewport
+1280×757). WebGL ran on SwiftShader (`ANGLE (Google, Vulkan 1.3.0 (SwiftShader
+Device (Subzero)))`), that is software rasterization on the same 8 vCPUs that
+run the page and the worker, and headless Chrome paced frames at 60 Hz
+(16.7 ms), unlike the 170 to 240 Hz of the reference desktop. Read the frame
+numbers with that in mind: "frame work" is the main thread's draw time, as
+before, but on this machine the rasterization cost also shows up as frame
+interval.
+
+**Live page** (`/?neuromorphic-perf` on the production build, 8 s windows after a 0.4 s settle, the real worker and renderer; mean / p95 / max in ms, quantized at 0.1 ms):
+
+| scenario | level | DPR | ticks | tick | tick-step | publish | spike ingest | frames drawn / skipped | frame work | frame interval | pulses per drawn frame | buffered at end / evicted |
+|---|---|---:|---:|---|---|---|---|---|---|---|---:|---|
+| scripted-adaptive | full (adaptive) | 1 | 160 | 0.97 / 1.10 / 9.60 | 0.56 / 0.60 / 8.90 | 0.08 / 0.20 / 0.20 | 0.06 / 0.10 / 0.20 | 481 / 0 | 0.40 / 0.60 / 1.70 | 16.67 / 16.70 / 16.80 | 461.6 | 632 / 0 |
+| scripted | full | 1 | 161 | 6.47 / 33.20 / 63.30 | 4.61 / 16.70 / 44.70 | 0.09 / 0.20 / 0.20 | 0.08 / 0.20 / 0.20 | 481 / 0 | 0.37 / 0.50 / 1.30 | 16.84 / 16.70 / 50.00 | 469.7 | 656 / 0 |
+| scripted | balanced | 1 | 161 | 8.41 / 11.90 / 17.20 | 5.34 / 11.00 / 16.80 | 0.09 / 0.20 / 0.30 | 0.08 / 0.20 / 0.20 | 482 / 0 | 0.29 / 0.40 / 0.50 | 16.67 / 16.80 / 16.80 | 256.0 | 655 / 0 |
+| scripted | reduced | 1 | 161 | 3.27 / 7.90 / 10.10 | 0.46 / 0.50 / 6.60 | 0.09 / 0.20 / 0.30 | 0.08 / 0.20 / 0.30 | 240 / 241 | 0.29 / 0.40 / 0.60 | 16.67 / 16.70 / 16.80 | 96.0 | 612 / 0 |
+| scripted | minimal | 1 | 160 | 0.78 / 1.00 / 1.30 | 0.35 / 0.50 / 0.60 | 0.09 / 0.20 / 0.30 | 0.08 / 0.20 / 0.20 | 160 / 320 | 0.25 / 0.40 / 0.50 | 16.67 / 16.70 / 16.80 | 0.0 | 638 / 0 |
+| pointer-active | full | 1 | 160 | 0.92 / 1.00 / 14.50 | 0.44 / 0.50 / 14.20 | 0.08 / 0.20 / 0.20 | 0.07 / 0.20 / 0.20 | 479 / 0 | 0.39 / 0.50 / 1.20 | 16.70 / 16.70 / 33.30 | 623.3 | 872 / 0 |
+| pointer-active | minimal | 1 | 160 | 0.77 / 1.00 / 1.20 | 0.36 / 0.50 / 0.60 | 0.11 / 0.20 / 0.30 | 0.09 / 0.20 / 0.20 | 160 / 321 | 0.24 / 0.30 / 0.40 | 16.67 / 16.80 / 16.80 | 0.0 | 845 / 0 |
+
+Startup, in ms since navigation start: DOMContentLoaded 46.2, renderer ready 152.8, first frame 185.8, first snapshot 215.4. Offscreen: {} then 54 ticks / 165 frames after returning; hidden (minimized): {} then 41 ticks / 120 frames. Page errors: 0.
+
+**WASM ↔ JS boundary** (`boundary-bench.mjs` in the page, contract 7, median of 7 runs × 2000 ticks, µs per tick):
+
+| input | mode | raw input | raw input+step | raw state() | getters | bridge state() | bridge tick | worker tick | spike ingest | LIF spikes/tick | events/tick | snapshot bytes |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| scripted | delta | 1.1 | 58.05 | 0.5 | 4.15 | 8.7 | 60 | 288.55 | 46.7 | 7.06 | 42.36 | 292 |
+| scripted | temporal | 0.8 | 47.4 | 0.45 | 5 | 7.8 | 55.45 | 291.15 | 31.75 | 5.31 | 31.84 | 292 |
+| scripted | rate | 0.75 | 49.6 | 0.45 | 3.5 | 7.25 | 57.5 | 289.05 | 44.65 | 7.46 | 44.75 | 288 |
+| pointer-active | delta | 0.65 | 51.35 | 0.45 | 3.65 | 7.65 | 60.75 | 286.6 | 50.15 | 8.18 | 49.05 | 296 |
+| pointer-active | temporal | 0.85 | 50 | 0.4 | 3.75 | 7.55 | 59 | 292.1 | 42.95 | 7.07 | 42.43 | 304 |
+| pointer-active | rate | 0.95 | 52 | 0.4 | 3.7 | 7.9 | 61.3 | 305.1 | 53.5 | 8.61 | 51.65 | 300 |
+
+WASM linear memory over 5000 synchronous steps: 1,245,184 B → 4,915,200 B without `free()`, +0 B with it (the shipped bridge).
+
+**Render stress through the shipped renderer** (fixture topologies at 50 ms, 25 % of neurons spiking per step, 4 s per case; the 48 / 288 row is the shipped size, the rest are synthetic):
+
+| nodes | edges | events/step | level | DPR | pulses per drawn frame | drawn / skipped | frame work (mean / p95 / max) | frame interval (mean / p95) | spike ingest (mean / p95) |
+|---:|---:|---:|---|---:|---:|---|---|---|---|
+| 16 | 64 | 16 | full | 1 | 236 | 240 / 0 | 0.37 / 0.60 / 1.10 | 16.67 / 16.70 | 0.066 / 0.20 |
+| 16 | 64 | 16 | balanced | 1 | 216 | 240 / 0 | 0.41 / 0.60 / 1.80 | 16.67 / 16.80 | 0.068 / 0.10 |
+| 16 | 64 | 16 | reduced | 1 | 96 | 120 / 120 | 0.31 / 0.40 / 2.50 | 16.67 / 16.70 | 0.050 / 0.10 |
+| 16 | 64 | 16 | minimal | 1 | 0 | 80 / 160 | 0.26 / 0.40 / 0.50 | 16.67 / 16.70 | 0.050 / 0.10 |
+| 48 | 288 | 72 | full | 1 | 979 | 169 / 0 | 0.59 / 0.90 / 1.20 | 23.87 / 33.40 | 0.144 / 0.30 |
+| 48 | 288 | 72 | balanced | 1 | 256 | 239 / 0 | 0.39 / 0.60 / 1.10 | 16.74 / 16.80 | 0.131 / 0.20 |
+| 48 | 288 | 72 | reduced | 1 | 96 | 120 / 120 | 0.30 / 0.40 / 0.90 | 16.67 / 16.80 | 0.114 / 0.20 |
+| 48 | 288 | 72 | minimal | 1 | 0 | 80 / 160 | 0.27 / 0.40 / 0.50 | 16.67 / 16.70 | 0.105 / 0.20 |
+| 64 | 512 | 128 | full | 1 | 1929 | 131 / 0 | 0.80 / 1.20 / 1.70 | 30.66 / 33.40 | 0.182 / 0.30 |
+| 64 | 512 | 128 | balanced | 1 | 256 | 240 / 0 | 0.32 / 0.40 / 0.50 | 16.67 / 16.70 | 0.205 / 0.30 |
+| 64 | 512 | 128 | reduced | 1 | 96 | 120 / 120 | 0.33 / 0.40 / 1.60 | 16.67 / 16.70 | 0.194 / 0.30 |
+| 64 | 512 | 128 | minimal | 1 | 0 | 80 / 160 | 0.29 / 0.40 / 1.00 | 16.67 / 16.70 | 0.210 / 0.30 |
+| 256 | 4,096 | 1024 | full | 1 | 10724 | 26 / 0 | 3.32 / 4.50 / 7.60 | 153.84 / 200.10 | 0.983 / 2.10 |
+| 256 | 4,096 | 1024 | balanced | 1 | 256 | 74 / 0 | 0.61 / 0.80 / 1.00 | 54.28 / 66.70 | 1.032 / 2.10 |
+| 256 | 4,096 | 1024 | reduced | 1 | 96 | 76 / 0 | 0.59 / 0.70 / 0.80 | 52.63 / 66.70 | 1.056 / 1.40 |
+| 256 | 4,096 | 1024 | minimal | 1 | 0 | 76 / 0 | 0.38 / 0.50 / 0.70 | 53.29 / 66.70 | 1.056 / 1.80 |
+| 1024 | 32,768 | 8192 | full | 1 | 15631 | 11 / 0 | 5.29 / 8.90 / 8.90 | 413.62 / 450.00 | 2.167 / 3.30 |
+| 1024 | 32,768 | 8192 | balanced | 1 | 256 | 14 / 0 | 1.72 / 2.50 / 2.50 | 305.94 / 349.90 | 2.150 / 4.70 |
+| 1024 | 32,768 | 8192 | reduced | 1 | 96 | 14 / 0 | 1.50 / 2.00 / 2.00 | 311.89 / 350.00 | 2.011 / 3.20 |
+| 1024 | 32,768 | 8192 | minimal | 1 | 0 | 14 / 0 | 1.42 / 2.50 / 2.50 | 314.27 / 333.30 | 1.900 / 2.30 |
+
+**Payload** (Node zlib, gzip level 9, brotli quality 11, the files the homepage loads):
+
+| file | bytes | gzip | brotli |
+| --- | ---: | ---: | ---: |
+| `NeuromorphicDemo.astro_astro_type_script_index_0_lang.CMuTh_eJ.js` | 47,933 | 15,105 | 13,620 |
+| `neuromorphic-worker-BTrRuev1.js` | 22,705 | 6,625 | 5,555 |
+| `spike-events.D_Zdeicz.js` | 25,473 | 8,213 | 6,908 |
+| `three.module.iOYB3rD4.js` | 746,881 | 191,104 | 155,725 |
+| `neuromorphic_adapter.js` | 20,750 | 3,520 | 3,081 |
+| `neuromorphic_adapter_bg.wasm` | 189,488 | 67,892 | 56,359 |
+| **total, panel closed** | 1,053,230 | 292,459 | 241,248 |
+
+What the run shows against the targets:
+
+- **S1, S5 (cadence, overruns):** every 8 s window held 160 or 161 ticks and
+  no `tick-overrun` was counted. The main thread's view of a tick (`tick`,
+  two worker round trips plus publish) varied between windows, 0.8 to 8.4 ms
+  mean and up to 63 ms max in the pinned `scripted / full` window, where the
+  worker's reply waited behind SwiftShader frames on the shared CPUs; the
+  adaptive and pointer windows sat at about 1 ms mean / 1.1 ms p95. None of
+  that moved the 50 ms simulation clock.
+- **S2, S3, S4:** raw `input` + `step` is 47 to 58 µs median in Chrome (about
+  12× the 16-neuron figure on the reference desktop, on a machine whose
+  native step is 2.7× slower), the bridge's `state()` is 7.3 to 8.7 µs, and
+  the worker round trip 287 to 305 µs. All inside their budgets.
+- **S7:** the ring is 8,192 and the live windows ended with 612 to 872 events
+  buffered and `evicted: 0` everywhere; the bank fired 5.3 to 8.6 neurons per
+  tick, 32 to 52 events per tick. Spike ingestion costs 32 to 54 µs per tick
+  in the microbenchmark (0.06 to 0.09 ms mean on the live page), main-thread
+  work that quality cannot reduce.
+- **S8:** WASM linear memory flat with `free()` (+0 B over 5000 steps);
+  `usedJSHeapSize` 7.5 MB at the end of the first window.
+- **R2 (draw time, shipped topology, full):** 0.37 to 0.40 ms mean and
+  0.5 to 0.6 ms p95 on the live page with 460 to 620 pulses per frame, and
+  0.59 / 0.90 ms in the 25 %-firing stress row (979 pulses per frame). Within
+  the 2 ms p95 target at every level.
+- **R1 (frame pacing):** the live page held 16.7 ms p95 at every level. The
+  stress harness at 25 % firing did not, at the full level, for 48 nodes
+  (33.4 ms p95, 169 of about 240 frames drawn) or 64 nodes (33.4 ms), because
+  SwiftShader rasterizes the pulse quads on the CPU; the capped levels held
+  16.7 to 16.8 ms. On the reference desktop's GPU the 64 / 512 stress row drew
+  1,970 pulses per frame at 4.2 ms intervals (section 5), so this is a
+  property of software rendering, not of the topology; it is listed under
+  [Not measured](#not-measured) until a GPU run of the 48 / 288 row exists.
+  The adaptive controller would see this pressure as p90 interval > 22.2 ms
+  and step down, which is its job.
+- **R5, R6, R8:** the capped levels drew 256 / 96 / 0 pulses and 240 / 120 / 80
+  of about 240 frames in the stress rows, as designed; offscreen and
+  minimized windows counted 0 ticks and 0 frames, then resumed.
+- **R9, R10:** the homepage payload with the panel closed is 241,248 bytes
+  brotli (the limit is 250 KB; it was 235,253): the island entry grew by
+  1,355 bytes brotli with the contract-7 projection constants and the
+  per-contract bridge, the spike-events chunk by 2,193 (it now imports the
+  generated projection to size the ring), and the `.wasm` by 1,876 bytes raw
+  (both topology specs are compiled in). First snapshot at 215 ms after
+  navigation start, headless, from localhost.
+
+**Deciding 48 or 64.** The plan said to start at 48, measure, and go to 64
+only if every budget held with margin. Simulation cost is not the constraint
+(a 64 / 512 step is 86 to 98 µs native here, still 0.2 % of the tick), and
+the capped levels are indifferent to size. What is not established is the
+full level on a real GPU at 48 (this run's GPU is software) and on low-end
+hardware (never measured, below); the full-level stress row at 64 already
+missed R1 on this machine. 48 ships; 64 stays a follow-up gated on a GPU
+measurement of the full level and on S7 at 16,384 ring entries (the pulse
+buffers would be 2.75 MB).
+
 ## Simulation versus rendering
 
-- **At the shipped size (16 / 64), neither is a bottleneck.** The largest
+- **At the shipped size (16 / 64 when measured; 48 / 288 since RM-2355, see section 12), neither is a bottleneck.** The largest
   per-step cost is messaging: the worker round trip takes 66.5 to 72.2 µs, and
   the bridge 12 to 13 µs, both of which happen off the render path. Inside WASM,
   when at least 15 LIF neurons fire per tick, the `neuromod` step is 68 to 73% of
@@ -778,12 +982,12 @@ its bound:
 
 | Path | Buffer | Bound | Status |
 | --- | --- | --- | --- |
-| Rust adapter | `pending_source_spikes`, `last_spikes`, `encoder_features` | 16 entries each, replaced every step | bounded |
-| Rust adapter | topology arrays and `TopologyProjection` | fixed at construction (17 offsets, 64 edges) | bounded |
+| Rust adapter | `pending_source_spikes`, `last_spikes`, `encoder_features` | 48, 48 and 16 entries (16, 16 and 16 on contracts 3 to 6), replaced every step | bounded |
+| Rust adapter | topology arrays and `TopologyProjection` | fixed at construction (49 offsets, 288 edges on contract 7; 17 and 64 before) | bounded |
 | `kinetic-signals` | `KineticExtractor` EMAs and `VolEstimator` | scalars, plus one 16-slot ring | bounded |
 | `axon-encoder` | delta `last_values`, temporal `history`, rate `phases` and `pending_spikes` | 16 per channel; temporal pops at depth 6; the rate backlog is a saturating counter with capped emission per step | bounded |
-| `synaptic-wiring` | `SpikeDelayBuffer` | ring of neurons × (max delay + 1) = 16 × 5 | bounded |
-| `neuromod` | weights, eligibility, `predictive_state`, `input_spike_times` | 16 × 16 and 16; no history kept | bounded |
+| `synaptic-wiring` | `SpikeDelayBuffer` | ring of neurons × (max delay + 1) = 48 × 5 (16 × 5 on contracts 3 to 6) | bounded |
+| `neuromod` | weights, eligibility, `predictive_state`, `input_spike_times` | 48 × 48 and 48 (16 × 16 and 16 before); no history kept | bounded |
 | WASM ↔ JS | `WasmState` handle per step | was freed only by `FinalizationRegistry`, growing until a GC ran: 13.6 MB per 5000 steps, 477 MB in a long benchmark | **fixed:** freed right after reading (+0 B per 5000 steps) |
 | Bridge | routed-topology verification cache | one entry (8 small arrays) | bounded |
 | Worker engine | `pending` request map | at most one tick in flight (the driver's `inFlight` guard); cleared on failure | bounded |
@@ -792,8 +996,8 @@ its bound:
 | Telemetry | pointer telemetry, `latestFrame`, dev inspectors | latest packet or frame only; `recent(limit)` slices | bounded |
 | Probe (opt-in) | per-stage samples, counters, marks | `Float64Array(2048)` ring per stage; fixed names | bounded |
 | Adaptive quality | window samples, listeners | `Float64Array(512)`; one listener per subscriber | bounded |
-| Spike events | `SpikeEventBuffer` ring | 2,048 events (was 512), retired 18 steps after arrival (the slowed pulse's lifetime on a 4-step edge; was 1), cleared on pause and dispose | bounded |
-| Renderer | pulse vertex attributes | preallocated: 2,048 × 6 vertices × 7 floats ≈ 344 KB (was 86 KB) | bounded |
+| Spike events | `SpikeEventBuffer` ring | 8,192 events since RM-2355 (2,048 for 16 / 64, 512 before that), derived from the live topology's worst case of 288 × (4 + 18 + 1) = 6,624; retired 18 steps after arrival (the slowed pulse's lifetime on a 4-step edge; was 1), cleared on pause and dispose | bounded |
+| Renderer | pulse vertex attributes | preallocated: 8,192 × 6 vertices × 7 floats ≈ 1.38 MB (344 KB at 2,048, 86 KB at 512) | bounded |
 | Renderer | landing-glow levels | one `Float32Array(nodeCount)`, replaced on topology rebuild, zeroed per frame | bounded |
 | Renderer | node and edge geometry | were appended to `disposables` on every topology rebuild | **fixed:** only the current pair is held |
 | Renderer | `spikeFlash` map | keyed by neuron id; now cleared on rebuild | **fixed** (was bounded only by the largest topology seen) |
@@ -850,6 +1054,13 @@ harness (`test/perf-harness.test.mjs`). Coverage excludes `scripts/perf/**` and
 - **Headed run of the homepage hero (#13).** Section 10 is headless only; a
   headed run would have opened a visible window on a shared desktop. The
   hero changes neither the renderer's frame path nor the worker path.
+- **Contract 7 on a GPU, headed, and at 64 neurons (RM-2355).** Section 12
+  was measured on a Linux VM with SwiftShader (software WebGL) and headless
+  only; its full-level stress rows at 48 and 64 nodes exceed R1 there
+  because rasterization competes with the page for the same CPUs. The
+  reference desktop was not available for this change, so the 48 / 288
+  render-stress row has no GPU-backed frame-interval measurement, no headed
+  run, and the 64 / 8 topology was not built or measured on the live path.
 - **GPU time.** `EXT_disjoint_timer_query_webgl2` is present. In an earlier
   headless run on this machine (before rebasing onto the current #45 head),
   per-frame values from a wrapped animation frame did not track the workload:
@@ -881,6 +1092,9 @@ harness (`test/perf-harness.test.mjs`). Coverage excludes `scripts/perf/**` and
   WASM boundary and the worker boundary once, every snapshot shares it, and a
   per-step snapshot carries 128 to 192 bytes instead of 2,184 to 2,248, with
   identical spikes step for step (`tests/trace_fixture.rs`).
-- Before shipping more than ~256 neurons, the spike-event ring capacity
-  (sized for 64 edges × 5 steps) and main-thread ingestion need their own
-  budget; quality cannot reduce either.
+- Before shipping more than ~256 neurons, the spike-event ring capacity (now
+  derived from the shipped topology, `LIVE_SPIKE_EVENT_WORST_CASE`) and
+  main-thread ingestion need their own budget; quality cannot reduce either.
+- RM-2355 shipped 48 neurons and did not try 64. The plan's rule stands: go
+  to 64 / 8 only if R2 holds at every level and S7 shows no eviction; at 64
+  the ring would be 16,384 and the pulse buffers 2.75 MB.

@@ -12,14 +12,16 @@ export class WasmAdapter {
      * (`0 = delta`, `1 = temporal`, `2 = rate`). `[5]` and `[5, mode]` select
      * the same encoder modes behind `kinetic-signals` telemetry extraction.
      * `[6]` and `[6, mode]` are contract 5 with the topology sent once
-     * through [`WasmAdapter::topology`] instead of in every snapshot.
+     * through [`WasmAdapter::topology`] instead of in every snapshot. `[7]`
+     * and `[7, mode]` are contract 6 on the larger 48-neuron audited topology
+     * ([`TopologySpec::V7`]).
      */
     static init(seed: bigint, config: Uint8Array): WasmAdapter;
     input(sequence: bigint, samples: Float32Array): void;
     state(): WasmState;
     step(): WasmState;
     /**
-     * The topology every snapshot belongs to; contract 6 reads it once.
+     * The topology every snapshot belongs to; contracts 6 and 7 read it once.
      */
     topology(): WasmTopology;
 }
@@ -205,7 +207,7 @@ export class WasmState {
 }
 
 /**
- * The topology a contract-6 session sends once (`WasmAdapter.topology()`).
+ * The topology a contract-6 or -7 session sends once (`WasmAdapter.topology()`).
  * Getters mirror the `topology_*` fields of [`WasmState`].
  */
 export class WasmTopology {

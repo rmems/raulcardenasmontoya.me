@@ -6,22 +6,40 @@
 //! upstream crate itself instead of trusting the projection's own arrays.
 
 use neuromorphic_adapter::{
-    BrowserRuntime, CONTRACT_VERSION_V5, TopologyProjection, encoder::EncoderMode,
+    BrowserRuntime, BrowserTopology, CONTRACT_VERSION_V5, CONTRACT_VERSION_V7, TopologyProjection,
+    TopologySpec, encoder::EncoderMode,
 };
 use serde_json::Value;
 use synaptic_wiring::{SynapticMesh, topology::generate_small_world};
 
-fn runtime() -> BrowserRuntime {
-    BrowserRuntime::with_mode(9, EncoderMode::DEFAULT, CONTRACT_VERSION_V5)
-        .expect("the fixed browser topology is valid")
-}
-
 #[test]
 fn every_projected_outgoing_range_is_upstream_delivery_of_one_source_spike() {
-    let state = runtime().state();
+    // The 16 / 64 topology of contracts 3 to 6 and the 48 / 288 one of
+    // contract 7 (RM-2355), each rebuilt from its own parameters.
+    for (contract, spec) in [
+        (CONTRACT_VERSION_V5, TopologySpec::LEGACY),
+        (CONTRACT_VERSION_V7, TopologySpec::V7),
+    ] {
+        let topology = BrowserRuntime::with_mode(9, EncoderMode::DEFAULT, contract)
+            .expect("the browser topology is valid")
+            .topology();
+        assert_eq!(topology.topology_node_ids.len(), spec.neurons);
+        assert_eq!(topology.topology_edge_sources.len(), spec.synapses());
+        check_outgoing_ranges(&topology, spec);
+    }
+}
+
+fn check_outgoing_ranges(state: &BrowserTopology, spec: TopologySpec) {
     // Rebuild the adapter's upstream graph and prove it is the same topology
     // through the upstream digest, so the comparison below is not circular.
-    let graph = generate_small_world(16, 4, 0.2, 4, 0.25).expect("browser topology");
+    let graph = generate_small_world(
+        spec.neurons,
+        spec.fan_out,
+        spec.rewire,
+        spec.max_delay,
+        spec.inhibitory_fraction,
+    )
+    .expect("browser topology");
     assert_eq!(
         TopologyProjection::from_graph(&graph).topology_digest,
         state.topology_digest

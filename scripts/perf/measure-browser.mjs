@@ -231,7 +231,7 @@ async function measureBoundary(page, report) {
       stimulusUrl: dataUrl(runtimeModuleSource('demo-stimulus')),
       workerSource: runtimeModuleSource('neuromorphic-worker'),
       ticks: Number(option('ticks', 2000)),
-      contract: Number(option('contract', 6)),
+      contract: Number(option('contract', 7)),
       repeats: Number(option('repeats', 7)),
     }),
     { timeoutMs: 900_000 },
@@ -259,7 +259,8 @@ async function measureRenderStress(page, report, windowMs) {
   await page.navigate(`${origin}/about/`);
   report.environment ??= await page.evaluate(call(tasks.environment));
   const cases = [];
-  for (const [nodes, fanOut] of [[16, 4], [64, 8], [256, 16], [1024, 32]]) {
+  // 48 / 6 is the shipped topology (contract 7, RM-2355); the rest are synthetic sizes.
+  for (const [nodes, fanOut] of [[16, 4], [48, 6], [64, 8], [256, 16], [1024, 32]]) {
     for (const level of [0, 1, 2, 3]) cases.push({ nodes, fanOut, firing: 0.25, level });
   }
   report.renderStress = await page.evaluate(

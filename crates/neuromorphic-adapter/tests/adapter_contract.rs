@@ -1,6 +1,9 @@
 use neuromorphic_adapter::{
-    BrowserRuntime, CONTRACT_VERSION_V5, CONTRACT_VERSION_V6, encoder::EncoderMode,
+    BrowserRuntime, CONTRACT_VERSION_V5, CONTRACT_VERSION_V6, CONTRACT_VERSION_V7, TopologySpec,
+    WasmAdapter, encoder::EncoderMode,
 };
+
+const LEGACY_DIGEST: &str = "synaptic-wiring.topology.digest.v1:sha256:26875faf05121b9afda27a533760369da67ba9110599fb61533f08961ff6e971";
 
 #[test]
 fn a_seeded_runtime_preserves_topology_provenance_and_advances_deterministically() {
@@ -52,10 +55,7 @@ fn a_seeded_runtime_preserves_topology_provenance_and_advances_deterministically
         left_state.membrane_potentials,
         right_state.membrane_potentials
     );
-    assert_eq!(
-        left_state.topology_digest,
-        "synaptic-wiring.topology.digest.v1:sha256:26875faf05121b9afda27a533760369da67ba9110599fb61533f08961ff6e971",
-    );
+    assert_eq!(left_state.topology_digest, LEGACY_DIGEST);
     // The background drive starts the bank part-way to threshold, so a few
     // neurons may fire on step 1, but never the whole population, and every
     // membrane is below the highest threshold `neuromod` allows (0.50).
@@ -389,5 +389,165 @@ fn contract_6_accepts_every_encoder_mode_and_only_known_contracts() {
         assert!(state.topology_node_ids.is_empty());
     }
     assert!(BrowserRuntime::with_mode(3, EncoderMode::Temporal, 3).is_err());
-    assert!(BrowserRuntime::with_mode(3, EncoderMode::Temporal, 7).is_err());
+    assert!(BrowserRuntime::with_mode(3, EncoderMode::Temporal, 8).is_err());
+}
+
+#[test]
+fn contract_7_runs_the_48_neuron_topology_and_leaves_contracts_3_to_6_on_16() {
+    let spec = TopologySpec::V7;
+    assert_eq!((spec.neurons, spec.fan_out, spec.synapses()), (48, 6, 288));
+    assert_eq!(spec.max_delay, TopologySpec::LEGACY.max_delay);
+    for contract in [3, 4, CONTRACT_VERSION_V5, CONTRACT_VERSION_V6] {
+        assert_eq!(TopologySpec::for_contract(contract), TopologySpec::LEGACY);
+    }
+    assert_eq!(TopologySpec::for_contract(CONTRACT_VERSION_V7), spec);
+
+    let mut seven = BrowserRuntime::with_mode(9, EncoderMode::DEFAULT, CONTRACT_VERSION_V7)
+        .expect("the contract-7 topology is valid");
+    let topology = seven.topology();
+    let neurons = spec.neurons as u32;
+    assert_eq!(topology.topology_node_ids, (0..neurons).collect::<Vec<_>>());
+    assert_eq!(topology.topology_edge_sources.len(), spec.synapses());
+    assert_eq!(topology.topology_edge_targets.len(), spec.synapses());
+    assert_eq!(topology.topology_rows.len(), spec.neurons + 1);
+    assert!(topology.topology_edge_targets.iter().all(|t| *t < neurons));
+    assert!(topology.topology_targets.iter().all(|t| *t < neurons));
+    // Every neuron keeps exactly `fan_out` outgoing synapses (rewiring moves
+    // targets, never sources), so the canonical offsets are a fixed stride.
+    assert_eq!(
+        topology.topology_outgoing_edge_offsets,
+        (0..=spec.neurons)
+            .map(|n| (n * spec.fan_out) as u32)
+            .collect::<Vec<_>>()
+    );
+    assert!(
+        topology
+            .topology_edge_sources
+            .iter()
+            .enumerate()
+            .all(|(edge, source)| *source as usize == edge / spec.fan_out)
+    );
+    assert!(
+        topology
+            .topology_edge_delays
+            .iter()
+            .all(|delay| (1..=spec.max_delay).contains(delay))
+    );
+    assert_eq!(
+        topology
+            .topology_polarities
+            .iter()
+            .filter(|p| **p == 1)
+            .count(),
+        (spec.synapses() as f32 * spec.inhibitory_fraction) as usize
+    );
+    assert_ne!(topology.topology_digest, LEGACY_DIGEST);
+    assert!(
+        topology
+            .topology_digest
+            .starts_with("synaptic-wiring.topology.digest.v1:sha256:")
+    );
+
+    // The seed is provenance, not topology: every contract-7 runtime shares
+    // one projection, and contract 6 still ships the legacy one.
+    let other = BrowserRuntime::with_mode(99, EncoderMode::Rate, CONTRACT_VERSION_V7)
+        .expect("valid")
+        .topology();
+    assert_eq!(other, topology);
+    let six = BrowserRuntime::with_mode(9, EncoderMode::DEFAULT, CONTRACT_VERSION_V6)
+        .expect("valid")
+        .topology();
+    assert_eq!(six.topology_digest, LEGACY_DIGEST);
+    assert_eq!(six.topology_edge_sources.len(), 64);
+
+    // Per-step state: 48 potentials, spikes inside the topology, the topology
+    // sent once (empty arrays, digest kept) and contract 5's feature vector.
+    for step in 1..=24u64 {
+        let packet = [
+            0.5 + step as f32 * 0.017,
+            0.4 - step as f32 * 0.011,
+            0.6 + (step % 3) as f32 * 0.1,
+        ];
+        seven.input(step, &packet).expect("input is accepted");
+        let state = seven.step().expect("contract 7 advances");
+        assert_eq!(state.contract_version, CONTRACT_VERSION_V7);
+        assert_eq!(state.completed_step, step);
+        assert_eq!(state.membrane_potentials.len(), spec.neurons);
+        assert!(state.spike_neurons.iter().all(|n| *n < neurons));
+        assert!(state.spike_neurons.len() < spec.neurons);
+        assert_eq!(state.encoder_features.len(), 16);
+        assert_eq!(state.topology_digest, topology.topology_digest);
+        assert!(state.topology_rows.is_empty());
+        assert!(state.topology_node_ids.is_empty());
+        assert!(state.topology_edge_sources.is_empty());
+        assert!(state.topology_outgoing_edge_offsets.is_empty());
+        assert_eq!(seven.topology(), topology, "the projection never changes");
+    }
+}
+
+#[test]
+fn contract_7_init_configs_and_encoder_modes() {
+    for (config, mode) in [
+        (&[7_u8][..], EncoderMode::DEFAULT),
+        (&[7, 0][..], EncoderMode::Delta),
+        (&[7, 1][..], EncoderMode::Temporal),
+        (&[7, 2][..], EncoderMode::Rate),
+    ] {
+        let mut adapter = WasmAdapter::init(9, config).expect("contract 7 config is accepted");
+        // `WasmTopology`'s getters build `js_sys` arrays, which only exist on
+        // wasm32; the native test reads the state through `browser_state`.
+        adapter
+            .input(1, &[0.5, 0.5, 0.5])
+            .expect("telemetry packet");
+        let state = adapter.step().expect("step");
+        let state = state.browser_state();
+        assert_eq!(state.contract_version, CONTRACT_VERSION_V7);
+        assert_eq!(state.encoder_mode, mode as u8);
+        assert_eq!(state.membrane_potentials.len(), 48);
+        assert!(state.topology_edge_sources.is_empty());
+        adapter.dispose();
+    }
+    // Rejections build a `JsValue`, which only exists on wasm32; the native
+    // test checks the same rules on `BrowserRuntime` and `EncoderMode`.
+    assert!(
+        EncoderMode::parse(3).is_err(),
+        "reserved modes stay rejected"
+    );
+    assert!(BrowserRuntime::with_mode(9, EncoderMode::DEFAULT, 8).is_err());
+    assert!(
+        BrowserRuntime::with_mode(9, EncoderMode::DEFAULT, CONTRACT_VERSION_V7)
+            .expect("valid")
+            .input(1, &[0.5, 0.5])
+            .is_err(),
+        "contract 7 input is one [x, y, pressure] packet, like contracts 5 and 6"
+    );
+}
+
+#[test]
+fn contract_7_fans_each_encoder_channel_into_every_neuron_of_its_residue_class() {
+    // A delta encoder fires channel `c` when feature `c` jumps. Feed a packet
+    // that moves `x` (feature 0) alone after a resting packet and the mesh
+    // sources are neurons 0, 16 and 32: all three `n % 16 == 0` neurons see
+    // the evoked current, so their targets charge where the rest do not.
+    let evoked = |contract: u32| -> Vec<f32> {
+        let mut runtime =
+            BrowserRuntime::with_mode(9, EncoderMode::Delta, contract).expect("valid");
+        runtime.input(1, &[0.0, 0.0, 0.0]).expect("rest");
+        runtime.step().expect("step");
+        runtime.input(2, &[1.0, 0.0, 0.0]).expect("jump in x");
+        runtime.step().expect("step");
+        runtime.state().membrane_potentials
+    };
+    let with_input = evoked(CONTRACT_VERSION_V7);
+    let topology = BrowserRuntime::with_mode(9, EncoderMode::Delta, CONTRACT_VERSION_V7)
+        .expect("valid")
+        .topology();
+    assert_eq!(with_input.len(), 48);
+    // Every residue-class source has outgoing edges, so the mapping reaches
+    // targets of neurons 16 and 32, not only of neurons 0..16.
+    for source in [0_usize, 16, 32] {
+        let start = topology.topology_outgoing_edge_offsets[source] as usize;
+        let end = topology.topology_outgoing_edge_offsets[source + 1] as usize;
+        assert_eq!(end - start, 6, "neuron {source} has six synapses");
+    }
 }
