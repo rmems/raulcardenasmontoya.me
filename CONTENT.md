@@ -7,7 +7,7 @@ Before publishing, update `src/data/site.ts`:
   - LinkedIn is `https://www.linkedin.com/in/raul-cardenas-montoya` (verified to load).
   - Instagram, X and Threads all use `KeepOnSpiking`.
   - Never link Facebook; there is no Facebook account.
-- Every external profile (GitHub, X, LinkedIn, Hugging Face, Instagram, Threads) should show "Raul Cardenas Montoya" and link `https://raulcardenasmontoya.me`.
+- Every external profile (GitHub, X, LinkedIn, Hugging Face, Instagram, Threads, crates.io) should show "Raul Cardenas Montoya" and link `https://raulcardenasmontoya.me`.
 
 For project cards, edit `src/data/projects.ts`. Add public links only when each repository, case study, or demo is ready to share. The included summaries intentionally avoid performance claims and invented outcomes.
 
