@@ -71,14 +71,28 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
+      - name: Use Node.js
+        # v4.4.0
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22.12.0
+          cache: npm
+
+      # --ignore-scripts keeps dependency install scripts from running with the
+      # subscription token in scope.
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
       - name: Run Claude
         uses: anthropics/claude-code-action@c3d45e8e941e1b2ad7b278c57482d9c5bf1f35b3 # v1.0.99
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          # Only issue commands. npm and cargo are deliberately not allowed:
-          # they run scripts / build.rs / test binaries from the checked-out
-          # code, which would execute untrusted PR code with the subscription
-          # token in scope. No Node or Rust toolchain step for the same reason.
+          # Issue commands plus the exact `npm run build`. Other npm scripts and
+          # cargo stay disallowed: cargo runs build.rs / test binaries, and the
+          # build executes the checked-out code (astro config, content loaders),
+          # so this is only safe because the triggers above are limited to
+          # OWNER/MEMBER/COLLABORATOR and checkout is the default ref, not a
+          # fork's PR head. No Rust toolchain step.
           claude_args: |
             --model claude-sonnet-5-5
-            --allowedTools "Bash(gh issue create:*),Bash(gh issue list:*),Bash(gh issue view:*),Bash(gh issue comment:*)"
+            --allowedTools "Bash(gh issue create:*),Bash(gh issue list:*),Bash(gh issue view:*),Bash(gh issue comment:*),Bash(npm run build)"
