@@ -71,14 +71,38 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
+      # Install only where the build is allowed (non-PR events); on PR events the
+      # checkout is the PR ref, whose lockfile could make `npm ci` fail and block
+      # Claude from replying.
+      - name: Use Node.js
+        if: github.event_name == 'issues' || (github.event_name == 'issue_comment' && !github.event.issue.pull_request)
+        # v4.4.0
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22.12.0
+          cache: npm
+
+      # --ignore-scripts keeps dependency install scripts from running with the
+      # subscription token in scope.
+      - name: Install dependencies
+        if: github.event_name == 'issues' || (github.event_name == 'issue_comment' && !github.event.issue.pull_request)
+        run: npm ci --ignore-scripts
+
       - name: Run Claude
         uses: anthropics/claude-code-action@c3d45e8e941e1b2ad7b278c57482d9c5bf1f35b3 # v1.0.99
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          # Only issue commands. npm and cargo are deliberately not allowed:
-          # they run scripts / build.rs / test binaries from the checked-out
-          # code, which would execute untrusted PR code with the subscription
-          # token in scope. No Node or Rust toolchain step for the same reason.
+          # Issue commands, plus the exact `npm run build` but only outside pull
+          # requests. For PR events claude-code-action checks out the PR branch
+          # (a fork's head included) before Claude runs, so a build there would
+          # execute that branch's astro config, loaders and npm scripts with the
+          # subscription token in scope. On issue events it works from the
+          # default branch. cargo stays disallowed (build.rs, test binaries).
+          # The action runs with acceptEdits, so Claude could otherwise rewrite
+          # package.json or astro.config.mjs and then run the allowed build;
+          # the edit tools are denied (this job has contents: read and nothing
+          # to edit), which leaves the build running the default-branch tree.
           claude_args: |
             --model claude-sonnet-5-5
-            --allowedTools "Bash(gh issue create:*),Bash(gh issue list:*),Bash(gh issue view:*),Bash(gh issue comment:*)"
+            --disallowedTools "Edit,MultiEdit,Write,NotebookEdit"
+            --allowedTools "Bash(gh issue create:*),Bash(gh issue list:*),Bash(gh issue view:*),Bash(gh issue comment:*)${{ (github.event_name == 'issues' || (github.event_name == 'issue_comment' && !github.event.issue.pull_request)) && ',Bash(npm run build)' || '' }}"
