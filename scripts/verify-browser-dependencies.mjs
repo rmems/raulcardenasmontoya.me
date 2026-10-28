@@ -166,9 +166,11 @@ export function browserDependencyViolations(
 
 async function main() {
   const cargoHome = process.env.CARGO_HOME || join(homedir(), '.cargo');
-  const cargo = join(cargoHome, 'bin', 'cargo');
+  const windows = process.platform === 'win32';
+  const cargo = join(cargoHome, 'bin', windows ? 'cargo.exe' : 'cargo');
   const cargoMetadata = await stat(cargo);
-  if (!cargoMetadata.isFile() || (cargoMetadata.mode & 0o111) === 0) {
+  // Windows has no execute bits; the .exe suffix is what makes it executable there.
+  if (!cargoMetadata.isFile() || (!windows && (cargoMetadata.mode & 0o111) === 0)) {
     throw new Error(`expected an executable cargo binary at ${cargo}`);
   }
 
