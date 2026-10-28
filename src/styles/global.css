@@ -393,6 +393,7 @@ button.button {
 
 .project-card h3 a { text-decoration: none; }
 .project-card > p:not(.project-category) { margin: 0; font-size: 0.9rem; line-height: 1.65; }
+.project-card .project-evidence { margin-top: 0.8rem; color: var(--muted); font-size: 0.83rem; }
 
 .technology-list {
   display: flex;

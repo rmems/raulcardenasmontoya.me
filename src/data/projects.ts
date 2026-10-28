@@ -18,6 +18,13 @@ export interface Project {
   shippedLabel?: string;
   /** Where the work is going, stated as plainly as its status. Never a result. */
   next?: string;
+  /**
+   * Snapshot-backed public evidence, in one sentence. Every number comes from
+   * a `{{token}}` filled from the dated snapshots, never typed by hand.
+   */
+  evidence?: string;
+  /** One plain-language sentence saying why the work matters. No numbers, no outcome claims. */
+  whyItMatters?: string;
   links: { label: string; href: string }[];
   featured: boolean;
 }
@@ -30,6 +37,8 @@ interface ProjectExtras {
   shipped?: string;
   shippedLabel?: string;
   next?: string;
+  evidence?: string;
+  whyItMatters?: string;
 }
 
 const project = (
@@ -40,27 +49,10 @@ const project = (
   technologies: string[],
   summary: string,
   questions: string[],
-  { links = [], featured = true, shipped, shippedLabel, next }: ProjectExtras = {},
-): Project => ({ name, slug, status, category, technologies, summary, questions, shipped, shippedLabel, next, links, featured });
+  { links = [], featured = true, shipped, shippedLabel, next, evidence, whyItMatters }: ProjectExtras = {},
+): Project => ({ name, slug, status, category, technologies, summary, questions, shipped, shippedLabel, next, evidence, whyItMatters, links, featured });
 
 export const projects: Project[] = [
-  project(
-    'Ship of Theseus Workstation',
-    'ship-of-theseus-workstation',
-    'Active research',
-    'Research infrastructure',
-    ['Linux', 'GPU compute', 'Self-hosting', 'Reproducible systems'],
-    'An AI/HPC research node and self-hosted engineering environment designed for hands-on systems work, experiments, and durable local workflows.',
-    [
-      'How can a local research environment make experiments easier to inspect and repeat?',
-      'Which parts of the system should be reproducible rather than dependent on workstation state?',
-    ],
-    {
-      links: repository('https://github.com/rmems/Ship-of-Theseus-Workstation'),
-      shipped:
-        'The node itself, documented as infrastructure: a Ryzen 9 9950X, an RTX 5080 with 16 GB, 64 GB of DDR5-6000 and two NVMe drives on Fedora Linux, used as a self-hosted GitHub Actions runner for GPU and RTL workloads.',
-    },
-  ),
   project(
     'engram-parser',
     'engram-parser',
@@ -76,23 +68,52 @@ export const projects: Project[] = [
       links: repository('https://github.com/rmems/engram-parser'),
       shipped:
         'On crates.io. GGUF v3 parsing, the format-independent Checkpoint API, packed K-quant dequantization (Q8_0, Q5_K, Q6_K, IQ3_M) and MoE per-expert extraction on the default build; the Safetensors and mmap readers sit behind features.',
+      evidence:
+        'Evidence: engram-parser {{engramParserVersion}} on crates.io with {{engramParserDownloads}} downloads as of {{cratesAsOf}} (CI and mirror traffic included).',
+      next: 'Next milestone: widen MoE per-expert extraction coverage and keep the Safetensors and mmap paths behind features while holding wire compatibility with checked-in fixtures.',
+      whyItMatters: 'Why it matters: checkpoints arrive in different formats, and one careful reader means less glue code before research can start.',
     },
   ),
   project(
-    'nir-rs',
-    'nir-rs',
-    'In development',
-    'Neuromorphic tooling',
-    ['Rust', 'NIR', 'HDF5', 'Spiking neural networks'],
-    'A pure-Rust implementation of the Neuromorphic Intermediate Representation: typed NIR graphs with opt-in HDF5 read and write that follows the official Python wire format.',
+    'Neuromorphic crate stack',
+    'neuromorphic-crate-stack',
+    'Active research',
+    'Limen Neural',
+    ['Rust', 'Spiking neural networks', 'NIR', 'CUDA', 'FPGA export'],
+    'A solo research organization of small Rust crates for spiking neural networks, one concern per repository: sensory encoding, neuron dynamics, wiring and delays, NIR interchange, reward-modulated training loops, transport, and CUDA kernels.',
     [
-      'How closely can a Rust graph model track the reference implementation on the wire?',
-      'Which dependencies, such as native HDF5, should stay opt-in?',
+      'Which crate boundaries hold when a real pipeline, like the browser demo, composes them?',
+      'What must each layer expose for a network to move between a simulator and hardware?',
     ],
     {
-      links: repository('https://github.com/Limen-Neural/nir-rs'),
+      links: [{ label: 'Organization', href: 'https://github.com/Limen-Neural/' }],
       shipped:
-        'On crates.io. The NIR graph model with the standard node types, HDF5 .nir read and write behind the hdf5 feature, and compatibility claims against the Python reference that are backed by checked-in fixtures.',
+        'The homepage demo runs axon-encoder, neuromod, synaptic-wiring and kinetic-signals in the browser, and the plasticity lab runs limbic-critic and plasticity-lab.',
+      evidence:
+        'Evidence: {{crates}} crates on crates.io with {{cratesTotalDownloads}} total downloads as of {{cratesAsOf}} (CI and mirror traffic included).',
+      next: 'Next milestone: hold the crate boundaries through the browser demo and plasticity lab compositions, and carry a network from simulator toward hardware export.',
+      whyItMatters: 'Why it matters: small crates with one concern each are easier to test, replace, and carry from a laptop demo to hardware.',
+    },
+  ),
+  project(
+    'Synthetic Factory',
+    'synthetic-factory',
+    'In development',
+    'Data systems',
+    ['Python', 'Deterministic pipelines', 'Provenance', 'Validation'],
+    'Deterministic infrastructure for building provenance-focused synthetic engineering data, with an emphasis on executable sources and inspectable generation paths.',
+    [
+      'How can generated engineering data retain a clear path back to executable sources?',
+      'What validation makes a deterministic pipeline easier to inspect and revise?',
+    ],
+    {
+      links: repository('https://github.com/rmems/synthetic-factory'),
+      shipped:
+        'A reviewed generator registry, a fail-closed rights policy in which unknown provenance resolves to blocked, and append-only raw JSONL with deterministic compose and export gates.',
+      evidence:
+        'Evidence: {{factoryDatasets}} datasets across {{factoryCollections}} Synthetic Factory collections, of {{datasets}} public datasets as of {{datasetsAsOf}}.',
+      next: 'Next milestone: keep the generator registry reviewed and the fail-closed rights policy, and extend deterministic curation with auditable compose and export gates.',
+      whyItMatters: 'Why it matters: training data is easier to trust when every line points back to the executable source that made it.',
     },
   ),
   project(
@@ -110,40 +131,52 @@ export const projects: Project[] = [
       links: repository('https://github.com/rmems/agoge-forger'),
       shipped:
         'Every training run records a reproducibility manifest, GPU telemetry and artifact digests. The CLI reports resume and export readiness per run, runs a held-out base-versus-SFT canary, and verifies a reproducibility bundle offline.',
+      evidence:
+        'Evidence: trains against {{factoryDatasets}} Synthetic Factory datasets across {{factoryCollections}} collections as of {{datasetsAsOf}}; no separate crate or dataset published as of {{cratesAsOf}}.',
+      next: 'Next milestone: keep every run sealed with manifest, telemetry digests and frozen split, and keep the held-out base-versus-SFT canary the gate before any capability claim.',
+      whyItMatters: 'Why it matters: post-training is easier to trust when every run can be rechecked from its manifest instead of its log line.',
     },
   ),
   project(
-    'Synthetic Factory',
-    'synthetic-factory',
+    'nir-rs',
+    'nir-rs',
     'In development',
-    'Data systems',
-    ['Python', 'Deterministic pipelines', 'Provenance', 'Validation'],
-    'Deterministic infrastructure for building provenance-focused synthetic engineering data, with an emphasis on executable sources and inspectable generation paths.',
+    'Neuromorphic tooling',
+    ['Rust', 'NIR', 'HDF5', 'Spiking neural networks'],
+    'A pure-Rust implementation of the Neuromorphic Intermediate Representation: typed NIR graphs with opt-in HDF5 read and write that follows the official Python wire format.',
     [
-      'How can generated engineering data retain a clear path back to executable sources?',
-      'What validation makes a deterministic pipeline easier to inspect and revise?',
+      'How closely can a Rust graph model track the reference implementation on the wire?',
+      'Which dependencies, such as native HDF5, should stay opt-in?',
     ],
     {
-      links: repository('https://github.com/rmems/synthetic-factory'),
+      links: repository('https://github.com/Limen-Neural/nir-rs'),
       shipped:
-        'A reviewed generator registry, a fail-closed rights policy in which unknown provenance resolves to blocked, append-only raw JSONL, and {{factoryDatasets}} of my {{datasets}} public datasets on Hugging Face, across {{factoryCollections}} collections, as of {{datasetsAsOf}}.',
+        'On crates.io. The NIR graph model with the standard node types, HDF5 .nir read and write behind the hdf5 feature, and compatibility claims against the Python reference that are backed by checked-in fixtures.',
+      evidence:
+        'Evidence: nir-rs {{nirVersion}} on crates.io with {{nirDownloads}} downloads as of {{cratesAsOf}} (CI and mirror traffic included).',
+      next: 'Next milestone: track the reference implementation on the wire for the standard node types, keeping native HDF5 opt-in.',
+      whyItMatters: 'Why it matters: a shared interchange format lets a network move between simulators and hardware without being rewritten.',
     },
   ),
   project(
-    'Neuromorphic crate stack',
-    'neuromorphic-crate-stack',
+    'Ship of Theseus Workstation',
+    'ship-of-theseus-workstation',
     'Active research',
-    'Limen Neural',
-    ['Rust', 'Spiking neural networks', 'NIR', 'CUDA', 'FPGA export'],
-    'A solo research organization of small Rust crates for spiking neural networks, one concern per repository: sensory encoding, neuron dynamics, wiring and delays, NIR interchange, reward-modulated training loops, transport, and CUDA kernels.',
+    'Research infrastructure',
+    ['Linux', 'GPU compute', 'Self-hosting', 'Reproducible systems'],
+    'An AI/HPC research node and self-hosted engineering environment designed for hands-on systems work, experiments, and durable local workflows.',
     [
-      'Which crate boundaries hold when a real pipeline, like the browser demo, composes them?',
-      'What must each layer expose for a network to move between a simulator and hardware?',
+      'How can a local research environment make experiments easier to inspect and repeat?',
+      'Which parts of the system should be reproducible rather than dependent on workstation state?',
     ],
     {
-      links: [{ label: 'Organization', href: 'https://github.com/Limen-Neural/' }],
+      links: repository('https://github.com/rmems/Ship-of-Theseus-Workstation'),
       shipped:
-        '{{crates}} crates on crates.io as of {{cratesAsOf}}. The homepage demo runs axon-encoder, neuromod, synaptic-wiring and kinetic-signals in the browser, and the plasticity lab runs limbic-critic and plasticity-lab.',
+        'The node itself, documented as infrastructure: a Ryzen 9 9950X, an RTX 5080 with 16 GB, 64 GB of DDR5-6000 and two NVMe drives on Fedora Linux, used as a self-hosted GitHub Actions runner for GPU and RTL workloads.',
+      evidence:
+        'Evidence: no published crate or dataset ships from this brief; the documented node supports {{crates}} crates as of {{cratesAsOf}} and {{datasets}} datasets as of {{datasetsAsOf}} as a self-hosted runner.',
+      next: 'Next milestone: keep the node reproducible from versioned configuration and keep the GPU and RTL runner paths inspectable.',
+      whyItMatters: 'Why it matters: durable local workflows make experiments easier to inspect and repeat without depending on workstation state.',
     },
   ),
   project(
@@ -162,8 +195,11 @@ export const projects: Project[] = [
       shippedLabel: 'What exists today',
       shipped:
         'The Grok-1 dissection collection on Hugging Face (the structural parse inventory, the ternary quantization experiment reports and the GOZ1 packs) and the repositories: corinth-canal, the Rust hybrid MoE/SNN runner; xai-dissect, a Rust CLI for raw Grok-1 shards; magere-brug, the artifact registry with recipes and manifests; and combine-for-AI, a neutral benchmark harness.',
+      evidence:
+        'Evidence: {{grokDatasets}} datasets in the Grok-1 dissection collection across {{grokCollections}} collection as of {{datasetsAsOf}}, plus {{mergedPrs}} merged upstream pull requests verified {{mergedPrsVerifiedAt}}.',
       next:
         'The formulation is still being searched for. There is no trusted run artifact to cite yet, and the brief will name a result only once a run is published with its manifest.',
+      whyItMatters: 'Why it matters: the cost of inference decides whether open-weight models can run on premises or at the edge.',
       links: [
         { label: 'Hugging Face collection', href: 'https://huggingface.co/collections/rmems/grok-1-dissection-and-ternary-packing-6a7927095f6a7ca444f003af' },
         { label: 'corinth-canal', href: 'https://github.com/rmems/corinth-canal' },

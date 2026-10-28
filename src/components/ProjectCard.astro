@@ -1,11 +1,13 @@
 ---
 import type { Project } from '../data/projects';
-const { project, index } = Astro.props as { project: Project; index: number };
+import { fillCounts, type SiteCounts } from '../artifacts/counts';
+const { project, index, counts } = Astro.props as { project: Project; index: number; counts?: SiteCounts };
 ---
 <article class="project-card">
   <div class="project-topline"><span class="status"><i aria-hidden="true"></i>{project.status}</span><span>{String(index + 1).padStart(2, '0')}</span></div>
   <p class="project-category">{project.category}</p>
   <h3><a href={`/work/#${project.slug}`}>{project.name}</a></h3><p>{project.summary}</p>
+  {project.evidence && counts ? <p class="project-evidence">{fillCounts(project.evidence, counts)}</p> : null}
   <ul class="technology-list" aria-label={`${project.name} technologies`}>{project.technologies.map((technology) => <li>{technology}</li>)}</ul>
   <a class="project-detail-link" href={`/work/#${project.slug}`}>Read the project brief <span aria-hidden="true">→</span></a>
   {project.links.map((link) => <a class="project-external-link" href={link.href} target="_blank" rel="noreferrer">{link.label} <span aria-hidden="true">↗</span></a>)}
