@@ -41,7 +41,7 @@ steps need `CODECOV_TOKEN`, `QLTY_COVERAGE_TOKEN` or OIDC and are not local gate
 - Do not hand-edit `public/wasm/**`; `test:wasm-web-pkg` fails on drift from the locked toolchain.
 - The browser dependency policy in `scripts/verify-browser-dependencies.mjs` is enforced by `validate:rust`; do not loosen it to pass.
 - `src/data/site.ts` carries no `null` placeholders (a contract test enforces it): the public email is `montoyaraul34@gmail.com` and the résumé is `public/resume.pdf` (`resumePath: '/resume.pdf'`). Keep the résumé single column with a real text layer; check it with `pdftotext public/resume.pdf -`.
-- `site.title` is `AI Engineer`; page titles and descriptions lead with the full name, and `BaseLayout.astro` emits Person JSON-LD whose `sameAs` is every value in `site.social`. Add new profiles to `social` only.
+- `site.title` is `AI Engineer`; the homepage title and description lead with the full name while inner pages lead with their own name (`Labs · Raul Cardenas Montoya`) so search cards differ; favicon rasters must stay multiples of 48px for Google (`npm run build:brand`); and `BaseLayout.astro` emits Person JSON-LD whose `sameAs` is every value in `site.social`. Add new profiles to `social` only.
 - Source files here have no SPDX headers (no `.astro`, `.ts`, `.mjs` or `.rs` file carries one); do not add them.
 
 ## Gotchas

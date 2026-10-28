@@ -5,8 +5,10 @@ import { site } from '../data/site';
 interface Props { title?: string; description?: string; /** Pages whose heading uses the serif italic preload it, so the headline does not reflow. */ preloadSerif?: boolean; }
 const { title, description = site.description, preloadSerif = false } = Astro.props;
 const brandTitle = `${site.fullName} — ${site.title}`;
-const pageTitle = title ? `${brandTitle} · ${title}` : brandTitle;
-const metaDescription = description.startsWith(site.fullName) ? description : `${site.fullName} — ${site.title}. ${description}`;
+// Inner pages lead with their own name: search cards truncate a long shared prefix, which made every page read "Raul Cardenas Montoya — AI Engineer".
+const pageTitle = title ? `${title} · ${site.fullName}` : brandTitle;
+// Only the homepage (no title) carries the identity prefix; inner pages keep their own description so snippets differ per page.
+const metaDescription = title || description.startsWith(site.fullName) ? description : `${site.fullName} — ${site.title}. ${description}`;
 const personJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'Person',
@@ -44,8 +46,11 @@ const socialImage = new URL('/assets/social-card.png', Astro.site);
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={pageTitle} />
     <meta name="twitter:description" content={metaDescription} />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+    <link rel="icon" href="/favicon-48.png" type="image/png" sizes="48x48" />
+    <link rel="icon" href="/favicon-192.png" type="image/png" sizes="192x192" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="canonical" href={canonicalUrl} />
     <title>{pageTitle}</title>

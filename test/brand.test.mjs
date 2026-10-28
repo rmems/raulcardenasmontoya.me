@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { MARK_DARK, MARK_LIGHT, markShapes, renderFavicon } from '../src/brand/mark-source.mjs';
-import { BRAND_RASTERS, renderRaster } from '../src/brand/render.mjs';
+import { BRAND_RASTERS, ICO_SIZES, renderIco, renderRaster } from '../src/brand/render.mjs';
 
 // Normalise line endings so a CRLF checkout on Windows compares equal to the LF render.
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
@@ -20,6 +20,15 @@ test('every committed raster export is the render of the brand source at its siz
     const fresh = await renderRaster(raster);
     assert.ok(committed.equals(fresh), `${raster.file} drifted from the source; regenerate with: npm run build:brand`);
   }
+});
+
+test('Google Search gets a favicon whose side is a multiple of 48px, and /favicon.ico ships', async () => {
+  assert.ok(BRAND_RASTERS.some(({ size }) => size > 0 && size % 48 === 0), 'no 48px-multiple raster');
+  const ico = readBytes('public/favicon.ico');
+  assert.equal(ico.readUInt16LE(2), 1, 'ico type');
+  assert.equal(ico.readUInt16LE(4), ICO_SIZES.length, 'ico image count');
+  assert.ok(ico.equals(await renderIco()), 'favicon.ico drifted from the source; regenerate with: npm run build:brand');
+  assert.match(read('src/layouts/BaseLayout.astro'), /rel="icon" href="\/favicon\.ico"/);
 });
 
 test('the mark palettes match the site tokens', () => {
