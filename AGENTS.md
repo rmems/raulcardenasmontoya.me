@@ -52,6 +52,18 @@ npm run validate:rust       # cargo +1.99.0 fmt/clippy/test/check (wasm32) on cr
 npm run test:layout         # built pages at 320–1024 px, 100%/200% text, site + wide fonts: no horizontal scroll (needs dist/, BROWSER_BIN)
 ```
 
+### Environment-dependent `npm test` cases
+
+`test/platform-capabilities.mjs` probes the machine and reports these cases as skipped, with the reason, when it
+cannot run them. Nothing is skipped when `CI` is set, so CI still enforces all of them.
+
+| Needs | Tests |
+|---|---|
+| Symlinks (Windows: Developer Mode or admin) | `test/native-evidence.test.mjs`: dangling symlink, symlink rejection |
+| POSIX permissions (not Windows, not root) | `test/native-evidence.test.mjs`: listing, stat and read failures |
+| `mkfifo` creating a real FIFO | `test/native-evidence.test.mjs`: FIFO rejection |
+| `cargo` in `CARGO_HOME/bin` with the 1.99.0 toolchain | `test/verify-browser-dependencies.test.mjs`: resolved adapter graph |
+
 ## Conventions visible in the repo
 
 - The site deploys to GitHub Pages from `main` through `.github/workflows/deploy.yml` (#63), at
