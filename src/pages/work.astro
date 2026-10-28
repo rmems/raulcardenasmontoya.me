@@ -17,7 +17,7 @@ const githubSourceNote =
   <section class="page-intro work-intro" aria-labelledby="work-title">
     <p class="eyebrow">Selected work · {String(projects.length).padStart(2, '0')}</p>
     <h1 id="work-title">Systems work,<br /><em>shown in context.</em></h1>
-    <p>Each brief states its status, the questions I'm working on, and the areas it covers. Where the linked repository already shows a result, the brief says what has shipped; I add links once there is something public to point at.</p>
+    <p>Each brief leads with its public evidence, states its status and why it matters, the questions in view, and the areas it covers. Numbers come from the dated snapshots; where the linked repository already shows a result, the brief says what has shipped.</p>
   </section>
 
   <nav class="work-index" aria-label="On this page">
@@ -42,6 +42,12 @@ const githubSourceNote =
         <div class="case-study-body">
           <p class="case-study-summary">{project.summary}</p>
           <div class="case-study-detail">
+            {project.evidence ? (
+              <section class="case-study-shipped" aria-labelledby={`${project.slug}-evidence`}>
+                <p class="detail-label" id={`${project.slug}-evidence`}>Evidence</p>
+                <p>{fillCounts(project.evidence, counts)}</p>
+              </section>
+            ) : null}
             {project.shipped ? (
               <section class="case-study-shipped" aria-labelledby={`${project.slug}-shipped`}>
                 <p class="detail-label" id={`${project.slug}-shipped`}>{project.shippedLabel ?? 'Shipped'}</p>
@@ -50,8 +56,14 @@ const githubSourceNote =
             ) : null}
             {project.next ? (
               <section class="case-study-shipped" aria-labelledby={`${project.slug}-next`}>
-                <p class="detail-label" id={`${project.slug}-next`}>Where it is going</p>
+                <p class="detail-label" id={`${project.slug}-next`}>Next milestone</p>
                 <p>{fillCounts(project.next, counts)}</p>
+              </section>
+            ) : null}
+            {project.whyItMatters ? (
+              <section class="case-study-shipped" aria-labelledby={`${project.slug}-why`}>
+                <p class="detail-label" id={`${project.slug}-why`}>Why it matters</p>
+                <p>{project.whyItMatters}</p>
               </section>
             ) : null}
             <section aria-labelledby={`${project.slug}-questions`}>

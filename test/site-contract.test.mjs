@@ -211,12 +211,53 @@ test('the work page expands existing project data without unsupported outcomes o
   assert.match(work, /projects\.map/);
   assert.match(work, /Questions in view/);
   assert.match(work, /Working areas/);
+  assert.match(work, /Evidence/);
+  assert.match(work, /Next milestone/);
+  assert.match(work, /Why it matters/);
   assert.match(projects, /questions: string\[\]/);
-  assert.match(work, /Each brief states its status, the questions I'm working on, and the areas it covers\./);
+  assert.match(projects, /evidence\?: string/);
+  assert.match(projects, /whyItMatters\?: string/);
+  assert.match(work, /Each brief leads with its public evidence/);
   assert.doesNotMatch(projects, /https?:\/\/(?!github\.com\/(?:rmems|Limen-Neural)\/|huggingface\.co\/collections\/rmems\/)/);
-  assert.match(work, /Where it is going/);
-  assert.match(work, /\{project\.next \? \(/);
+  assert.match(work, /<p>\{fillCounts\(project\.evidence, counts\)\}<\/p>/);
   assert.match(work, /<p>\{fillCounts\(project\.next, counts\)\}<\/p>/);
+  assert.match(read('src/components/ProjectCard.astro'), /fillCounts\(project\.evidence, counts\)/);
+
+  // Evidence order: strongest public artifacts first, workstation then Grok-1 last.
+  const order = [
+    "'engram-parser'",
+    "'Neuromorphic crate stack'",
+    "'Synthetic Factory'",
+    "'agoge-forger'",
+    "'nir-rs'",
+    "'Ship of Theseus Workstation'",
+    "'Grok-1/SAAQ research'",
+  ];
+  let last = -1;
+  for (const name of order) {
+    const at = projects.indexOf(name);
+    assert.ok(at > last, `${name} is in evidence order`);
+    last = at;
+  }
+
+  // Every brief carries an evidence line, a next milestone and a why-it-matters line.
+  // Headings carry the labels, so the strings themselves carry no "Evidence:" prefix.
+  assert.doesNotMatch(projects, /(evidence|next|whyItMatters):\s*'(Evidence|Next milestone|Why it matters):/);
+  const starts = order.map((name) => projects.indexOf(name));
+  for (let i = 0; i < order.length; i++) {
+    const block = projects.slice(starts[i], i + 1 < starts.length ? starts[i + 1] : undefined);
+    assert.match(block, /evidence:/, `${order[i]} has an evidence line`);
+    assert.match(block, /next:/, `${order[i]} has a next milestone`);
+    assert.match(block, /whyItMatters:/, `${order[i]} has a why-it-matters line`);
+  }
+
+  // Evidence numbers come from dated-snapshot tokens, never typed digits.
+  // (The "Grok-1" name carries a digit; strip it before checking for counts.)
+  for (const match of projects.matchAll(/evidence:\s*'([^']+)'/g)) {
+    const line = match[1].replace(/Grok-1/g, 'Grok-one');
+    assert.match(line, /\{\{\w+\}\}/, `evidence line is token-backed: ${line.slice(0, 60)}`);
+    assert.doesNotMatch(line, /\b\d+\b/, `evidence line types no number by hand: ${line.slice(0, 60)}`);
+  }
 });
 
 test('the Grok-1/SAAQ brief is a long-term programme with public links and no claimed result', () => {
@@ -230,8 +271,8 @@ test('the Grok-1/SAAQ brief is a long-term programme with public links and no cl
   }
   assert.match(brief, /href: 'https:\/\/huggingface\.co\/collections\/rmems\/grok-1-dissection-and-ternary-packing-/);
   assert.match(brief, /featured: false/);
-  // The Synthetic Factory brief names its share of the hero's dataset count, so the two read as one number set.
-  assert.match(projects, /\{\{factoryDatasets\}\} of my \{\{datasets\}\} public datasets/);
+  // The Synthetic Factory evidence line names its share of the hero's dataset count, so the two read as one number set.
+  assert.match(projects, /\{\{factoryDatasets\}\} datasets across \{\{factoryCollections\}\} Synthetic Factory collections, of \{\{datasets\}\} public datasets/);
 });
 
 test('public identity links use the verified profile destinations', () => {
