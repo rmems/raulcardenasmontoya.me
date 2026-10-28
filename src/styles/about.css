@@ -9,6 +9,10 @@
 
 .about-profile figure { margin: 0; }
 
+.about-profile .prose h2 { margin: 2.5rem 0 0.75rem; }
+
+.about-profile .prose h2:first-child { margin-top: 0; }
+
 .about-profile img {
   display: block;
   width: 100%;
