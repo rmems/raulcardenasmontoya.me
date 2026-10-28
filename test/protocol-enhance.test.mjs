@@ -98,7 +98,11 @@ test('a successful enhancement renders every fixture through the adapter', async
   const stimuli = card(root, 'Stimuli').querySelector('[data-protocol-decoded]');
   const rows = stimuli.children.find((child) => child.className === 'protocol-table-wrap').children[0].children[2].children;
   assert.equal(rows.length, 16);
-  assert.deepEqual(rows[1].children.map((cell) => cell.textContent), ['1', '0.22', 'yes']);
+  // Row 1 is channel 1 of the recorded feature vector, read from the fixture
+  // itself rather than typed here, so a regenerated fixture cannot drift.
+  const stimuliEntry = manifest.fixtures.find((entry) => entry.variant === 'Stimuli');
+  const recorded = JSON.parse(new TextDecoder().decode(fixtureBytes(stimuliEntry))).payload.Stimuli.values;
+  assert.deepEqual(rows[1].children.map((cell) => cell.textContent), ['1', String(recorded[1]), 'yes']);
   assert.equal(root.querySelector('[data-protocol-checks]').hidden, false);
 
   // Enhancement is one-shot: a second call leaves the verified view alone.
@@ -160,7 +164,7 @@ test('both tamper buttons replay a modified copy through the adapter and fail cl
 
   await root.querySelector('[data-protocol-check="flip-byte"]').dispatch('click');
   assert.equal(output.dataset.protocolCheckCode, 'digest-mismatch');
-  assert.match(output.textContent, /^kinetic-seed9-step7-stimuli: rejected · digest-mismatch\./);
+  assert.match(output.textContent, /^kinetic-seed9-step14-stimuli: rejected · digest-mismatch\./);
 
   await root.querySelector('[data-protocol-check="future-version"]').dispatch('click');
   assert.equal(output.dataset.protocolCheckCode, 'wire-version-too-new');

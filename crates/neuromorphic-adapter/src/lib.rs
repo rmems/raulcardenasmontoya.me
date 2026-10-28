@@ -10,6 +10,7 @@ use wasm_bindgen::prelude::*;
 
 pub mod encoder;
 pub mod kinetic;
+pub mod lif_bank;
 /// NIR graph inspection (`nir-rs`, no HDF5), exported as `WasmNirInspection`
 /// only from the labs build (`--features nir`); the default homepage build
 /// does not compile it.
@@ -32,6 +33,7 @@ use encoder::{
     normalize_to_encoder_input_for_contract,
 };
 use kinetic::{KineticExtractor, TELEMETRY_PACKET_LEN};
+use lif_bank::LifBankShaping;
 
 pub const CONTRACT_VERSION: u32 = 3;
 /// Contract version that adds selectable encoder modes and spike-train
@@ -234,6 +236,15 @@ fn build_network(model: NeuronModel) -> SpikingNetwork {
     network
 }
 
+/// The shipped LIF bank: [`build_network`] rewired by [`LifBankShaping`]
+/// (one synapse per neuron, spread thresholds, refractory period, background
+/// drive). Returned together so the two can never be separated.
+fn build_shaped_network(model: NeuronModel) -> (SpikingNetwork, LifBankShaping) {
+    let mut network = build_network(model);
+    let shaping = LifBankShaping::install(&mut network);
+    (network, shaping)
+}
+
 /// Deterministic, browser-safe composition of the audited V1 crate surfaces.
 pub struct BrowserRuntime {
     seed: u64,
@@ -250,6 +261,7 @@ pub struct BrowserRuntime {
     encoded_spike_total: u64,
     mesh: SynapticMesh,
     network: SpikingNetwork,
+    shaping: LifBankShaping,
     rng: StdRng,
     pending_source_spikes: Vec<bool>,
     last_spikes: Vec<u32>,
@@ -294,6 +306,7 @@ impl BrowserRuntime {
         let topology_digest = topology_projection.topology_digest.clone();
         let (topology_rows, topology_targets, topology_weights, topology_delays) =
             mesh.to_gpu_arrays();
+        let (network, shaping) = build_shaped_network(V1_NEURON_MODEL);
 
         Ok(Self {
             seed,
@@ -308,7 +321,8 @@ impl BrowserRuntime {
             encoded_spike_channels: 0,
             encoded_spike_total: 0,
             mesh,
-            network: build_network(V1_NEURON_MODEL),
+            network,
+            shaping,
             rng: StdRng::seed_from_u64(seed),
             pending_source_spikes: vec![false; CHANNEL_COUNT],
             last_spikes: Vec::new(),
@@ -395,19 +409,21 @@ impl BrowserRuntime {
         // The simulation path uses only the caller-seeded `StdRng`; it never
         // touches entropy (`getrandom`), which exists solely for `wasm-js`
         // linking on wasm32.
-        let spikes =
-            match self
-                .network
-                .step_with_rng(&currents, &NeuroModulators::default(), &mut self.rng)
-            {
-                Ok(spikes) => spikes,
-                Err(error) => {
-                    return self.fail(
-                        "step-neuromod-failed",
-                        format!("could not advance neuromod: {error:?}"),
-                    );
-                }
-            };
+        let stepped = self.shaping.step(
+            &mut self.network,
+            &currents,
+            &NeuroModulators::default(),
+            &mut self.rng,
+        );
+        let spikes = match stepped {
+            Ok(spikes) => spikes,
+            Err(error) => {
+                return self.fail(
+                    "step-neuromod-failed",
+                    format!("could not advance neuromod: {error:?}"),
+                );
+            }
+        };
         self.last_spikes = match spikes
             .into_iter()
             .map(|neuron| u32::try_from(neuron).map_err(|_| "spike index exceeds u32"))

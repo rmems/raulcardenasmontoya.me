@@ -481,7 +481,7 @@ test('the protocol route replays recorded corpus-ipc fixtures static-first and l
   // Linked from the evidence intro; offline transport only.
   assert.match(read('src/pages/evidence.astro'), /href="\/protocol\/"/);
   assert.match(read('src/protocol/provenance.ts'), /No ZeroMQ, HTTP service, proxy, or live producer/);
-  for (const file of ['manifest.json', 'kinetic-seed9-step7-stimuli.json', 'kinetic-seed9-step7-spikes.json', 'kinetic-seed9-step7-eligibility-traces.json']) {
+  for (const file of ['manifest.json', 'kinetic-seed9-step14-stimuli.json', 'kinetic-seed9-step14-spikes.json', 'kinetic-seed9-step14-eligibility-traces.json']) {
     assert.equal(existsSync(new URL(`../public/protocol/fixtures/v1/${file}`, import.meta.url)), true, `${file} is missing`);
   }
 });

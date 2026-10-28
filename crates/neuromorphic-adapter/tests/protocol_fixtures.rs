@@ -75,7 +75,7 @@ struct ReplayedTick {
     traces: Vec<corpus_ipc::TraceData>,
 }
 
-/// Replay the contract-5 golden until the network first fires.
+/// Replay the contract-5 golden until `TRACE_NEURON` first fires.
 fn replay_first_firing_tick() -> ReplayedTick {
     let fixture: Value = serde_json::from_str(SOURCE_TRACE).expect("golden trace parses");
     assert_eq!(fixture["config"], json!([5]), "source golden is contract 5");
@@ -105,7 +105,7 @@ fn replay_first_firing_tick() -> ReplayedTick {
             }
             "step" => {
                 let state = runtime.step().expect("runtime can advance");
-                if !state.spike_neurons.is_empty() {
+                if state.spike_neurons.contains(&(TRACE_NEURON as u32)) {
                     let traces = runtime
                         .eligibility_trace_rows(TRACE_NEURON)
                         .expect("neuron 0 fired, so it has a spike time");
@@ -115,7 +115,7 @@ fn replay_first_firing_tick() -> ReplayedTick {
             other => panic!("unknown operation {other}"),
         }
     }
-    panic!("the contract-5 golden must make the network fire");
+    panic!("the contract-5 golden must make the traced neuron fire");
 }
 
 fn replay_metadata(step: u64) -> Option<BatchMetadata> {

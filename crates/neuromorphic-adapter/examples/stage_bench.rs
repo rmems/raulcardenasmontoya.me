@@ -33,6 +33,7 @@ use std::time::{Duration, Instant};
 use neuromod::{NeuroModulators, SeedableRng, SpikingNetwork, StdRng};
 use neuromorphic_adapter::encoder::{ENCODER_CHANNELS, EncoderMode, V1Encoder};
 use neuromorphic_adapter::kinetic::{KineticExtractor, TELEMETRY_PACKET_LEN};
+use neuromorphic_adapter::lif_bank::LifBankShaping;
 use neuromorphic_adapter::{BrowserRuntime, CONTRACT_VERSION_V5, TopologyProjection};
 use synaptic_wiring::SynapticMesh;
 use synaptic_wiring::topology::generate_small_world;
@@ -113,7 +114,8 @@ fn lcg(sequence: u64) -> f64 {
     ((mixed >> 11) as f64 / (1_u64 << 53) as f64) * 2.0 - 1.0
 }
 
-/// Mirror of the adapter's private `build_network` for the LIF-only v1 model.
+/// Mirror of the adapter's private `build_network` for the LIF-only v1 model:
+/// the unshaped uniform-weight bank.
 fn lif_network(neurons: usize, channels: usize) -> SpikingNetwork {
     let mut network = SpikingNetwork::with_dimensions(neurons, 0, channels);
     let seed = 2.0 / channels as f32;
@@ -121,6 +123,15 @@ fn lif_network(neurons: usize, channels: usize) -> SpikingNetwork {
         neuron.weights = vec![seed; channels];
     }
     network
+}
+
+/// The shipped LIF bank: [`lif_network`] rewired by [`LifBankShaping`], as
+/// `BrowserRuntime` builds it. The scale section below deliberately keeps the
+/// unshaped bank; those sizes are not what ships.
+fn live_bank() -> (SpikingNetwork, LifBankShaping) {
+    let mut network = lif_network(LIVE_NEURONS, ENCODER_CHANNELS);
+    let shaping = LifBankShaping::install(&mut network);
+    (network, shaping)
 }
 
 fn live_mesh() -> SynapticMesh {
@@ -149,7 +160,7 @@ fn record(source: InputSource, mode: EncoderMode, ticks: u64) -> Recording {
     let mut extractor = KineticExtractor::new();
     let mut encoder = V1Encoder::for_mode(mode);
     let mut mesh = live_mesh();
-    let mut network = lif_network(LIVE_NEURONS, ENCODER_CHANNELS);
+    let (mut network, mut shaping) = live_bank();
     let mut rng = StdRng::seed_from_u64(DEMO_SEED);
     let modulators = NeuroModulators::default();
     let mut recording = Recording {
@@ -169,8 +180,8 @@ fn record(source: InputSource, mode: EncoderMode, ticks: u64) -> Recording {
             spikes[usize::from(*channel)] = true;
         }
         let currents = mesh.propagate(&spikes).expect("live propagation succeeds");
-        let fired = network
-            .step_with_rng(&currents, &modulators, &mut rng)
+        let fired = shaping
+            .step(&mut network, &currents, &modulators, &mut rng)
             .expect("live neuromod step succeeds");
         recording.encoded_spikes += channels.len() as u64;
         recording.lif_spikes += fired.len() as u64;
@@ -281,12 +292,12 @@ fn bench_workload(
         checksum
     });
     let snn_step = batch(runs, ticks, || {
-        let mut network = lif_network(LIVE_NEURONS, ENCODER_CHANNELS);
+        let (mut network, mut shaping) = live_bank();
         let mut rng = StdRng::seed_from_u64(DEMO_SEED);
         let mut checksum = 0_u64;
         for currents in &recording.currents {
-            let fired = network
-                .step_with_rng(currents, &modulators, &mut rng)
+            let fired = shaping
+                .step(&mut network, currents, &modulators, &mut rng)
                 .expect("live neuromod step succeeds");
             checksum += black_box(fired).len() as u64;
         }

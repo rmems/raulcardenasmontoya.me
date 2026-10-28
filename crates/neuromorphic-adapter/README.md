@@ -49,9 +49,13 @@ and `target/` are generated locally and intentionally not committed.
 
 V1 runs `neuromod`'s LIF bank only (`NeuronModel::Lif`; Izhikevich is a
 reserved extension point gated on a contract-version increase). Upstream
-`with_dimensions` zero-initializes weights, so the adapter seeds each neuron's
-weights uniformly to `WEIGHT_BUDGET / num_channels`, matching
-`neuromod`'s `examples/rstdp_demo.rs` convention. See the `neuromod` engine
+`with_dimensions` zero-initializes weights, so `build_network` seeds each
+neuron's weights uniformly to `WEIGHT_BUDGET / num_channels`, matching
+`neuromod`'s `examples/rstdp_demo.rs` convention. The shipped runtime then
+rewires that bank in `src/lif_bank.rs` (`LifBankShaping`): one synapse per
+neuron, inhibition kept as inhibition, per-neuron thresholds and background
+drive, and a 2-step refractory period, so firing is sparse and desynchronised
+(RM-2352). See the `neuromod` engine
 integration section of `docs/architecture/browser-runtime.md` (ADR-0001).
 
 ## Golden trace fixture

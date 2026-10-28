@@ -574,12 +574,36 @@ only: it never reimplements equations, thresholds, or integrators.
 - **Weight initialization.** `SpikingNetwork::with_dimensions` zero-initializes
   LIF synaptic weights, and `neuromod` gates all stimulus current on those
   weights, so a default network can never fire. Following upstream's own demo
-  convention (`examples/rstdp_demo.rs`), the adapter seeds each neuron's
+  convention (`examples/rstdp_demo.rs`), `build_network` seeds each neuron's
   weights uniformly to `WEIGHT_BUDGET / num_channels` (2.0 / 16). This is
   initialization through the crate's public API, not site-local dynamics.
+  The shipped runtime then rewires that bank (next item).
   Because seeding changed the deterministic states a fixed seed produces,
   `CONTRACT_VERSION` was raised to 3 (from 2) — replays recorded under V2
   semantics are not valid under V3.
+- **Sparse, desynchronised firing (RM-2352).** Uniform weights fed every
+  neuron the same mean current, `neuromod` rectifies inhibitory currents with
+  `|current|`, and it has no refractory period, so the first wiring fired all
+  16 neurons in the same step (15.99 spikes per tick in `delta` and `rate`).
+  `crates/neuromorphic-adapter/src/lif_bank.rs` (`LifBankShaping`) fixes this
+  through the public `neuromod` and `synaptic-wiring` surfaces only. Each
+  neuron has one synapse, to its own channel, at the full L1 budget, so it is
+  driven by the current `synaptic-wiring` routed to it and `neuromod`'s
+  renormalization stays an exact no-op. Net inhibitory current is clamped to
+  zero instead of being rectified. Thresholds, evoked gain, background drive,
+  and starting membrane phase differ per neuron by fixed low-discrepancy
+  sequences, and the background drive is dithered by a hash of (neuron, step),
+  so there is no entropy and no clock. After a spike a neuron's weights are
+  withheld for `REFRACTORY_STEPS` (2) steps and restored before the step
+  returns, so it cannot fire on consecutive steps. Every spike is still a
+  `neuromod` threshold crossing; the shaping adds none. The snapshot layout is
+  unchanged, so this is not a contract bump. The goldens were regenerated, and
+  `tests/sparse_firing.rs` holds the result to 20 to 120 spikes in every
+  40-step window, no neuron firing inside its refractory period, and never
+  the whole population in one step, for every encoder mode with scripted and
+  pointer-active input. The same wiring keeps the bank active between presses
+  and leaves per-neuron rates uneven: `neuromod`'s global lateral inhibition,
+  which the adapter does not change, favours the most excitable neurons.
 - **Feature gating.** `neuromod` and `axon-encoder` are linked with
   `default-features = false` plus the opt-in `wasm-js` feature. That feature
   only enables the `getrandom 0.4.3` `wasm_js` backend so the crates link on

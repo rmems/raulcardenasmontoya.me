@@ -129,37 +129,52 @@ real `BrowserRuntime`; its p95, p99, and max are per-tick samples at the
 
 | input | mode | encoded spikes/tick | LIF spikes/tick | extract | encode | propagate | SNN step | materialize | input+step | p95 | p99 | max |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| scripted | delta | 2.88 | 15.99 | 0.027 | 0.063 | 0.070 | 2.136 | 0.359 | 2.940 | 3.100 | 3.100 | 18.600 |
-| scripted | temporal | 0.05 | 1.32 | 0.027 | 0.071 | 0.039 | 0.664 | 0.341 | 1.295 | 1.800 | 1.900 | 3.600 |
-| scripted | rate | 3.82 | 15.98 | 0.027 | 0.157 | 0.081 | 2.156 | 0.362 | 3.061 | 3.200 | 3.300 | 4.500 |
-| pointer-active | delta | 6.83 | 15.99 | 0.030 | 0.098 | 0.104 | 2.133 | 0.359 | 2.987 | 3.100 | 3.100 | 5.700 |
-| pointer-active | temporal | 4.39 | 15.95 | 0.030 | 0.144 | 0.083 | 2.133 | 0.360 | 3.023 | 3.200 | 3.200 | 5.300 |
-| pointer-active | rate | 8.98 | 15.98 | 0.030 | 0.222 | 0.130 | 2.115 | 0.373 | 3.124 | 3.200 | 3.300 | 5.600 |
-| pointer-idle | delta | 0.00 | 0.04 | 0.019 | 0.011 | 0.037 | 0.763 | 0.344 | 1.274 | 1.400 | 1.700 | 3.100 |
-| pointer-idle | temporal | 0.00 | 0.00 | 0.019 | 0.069 | 0.038 | 0.491 | 0.350 | 1.114 | 1.200 | 1.300 | 4.000 |
-| pointer-idle | rate | 2.00 | 15.98 | 0.019 | 0.081 | 0.055 | 1.604 | 0.360 | 2.361 | 2.500 | 2.500 | 4.700 |
+| scripted | delta | 2.88 | 1.58 | 0.023 | 0.061 | 0.069 | 1.380 | 0.497 | 2.130 | 2.500 | 2.700 | 3.900 |
+| scripted | temporal | 0.05 | 0.78 | 0.024 | 0.068 | 0.036 | 1.224 | 0.504 | 1.894 | 2.200 | 2.300 | 19.100 |
+| scripted | rate | 3.82 | 1.70 | 0.024 | 0.154 | 0.078 | 1.454 | 0.497 | 2.263 | 2.600 | 2.900 | 42.800 |
+| pointer-active | delta | 6.83 | 1.70 | 0.026 | 0.092 | 0.102 | 1.376 | 0.491 | 2.225 | 2.600 | 2.700 | 22.300 |
+| pointer-active | temporal | 4.39 | 1.29 | 0.026 | 0.139 | 0.080 | 1.325 | 0.519 | 2.167 | 2.500 | 2.700 | 4.200 |
+| pointer-active | rate | 8.98 | 2.43 | 0.026 | 0.226 | 0.127 | 1.570 | 0.524 | 2.545 | 2.900 | 3.100 | 20.900 |
+| pointer-idle | delta | 0.00 | 0.79 | 0.021 | 0.011 | 0.034 | 1.232 | 0.500 | 1.815 | 2.100 | 2.200 | 3.200 |
+| pointer-idle | temporal | 0.00 | 0.78 | 0.021 | 0.066 | 0.036 | 1.214 | 0.500 | 1.868 | 2.100 | 2.300 | 5.100 |
+| pointer-idle | rate | 2.00 | 1.11 | 0.021 | 0.083 | 0.054 | 1.251 | 0.498 | 1.950 | 2.200 | 2.500 | 46.400 |
 
-**Same harness compiled to `wasm32-wasip1`, run by Node 22.12.0 (V8 12.4):**
+**Same harness compiled to `wasm32-wasip1`, run by Node 24.20.0 (V8 13.6):**
 
 | input | mode | encoded spikes/tick | LIF spikes/tick | extract | encode | propagate | SNN step | materialize | input+step | p95 | p99 | max |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| scripted | delta | 2.88 | 15.99 | 0.049 | 0.077 | 0.095 | 3.696 | 0.286 | 4.479 | 4.800 | 4.900 | 6.800 |
-| scripted | temporal | 0.05 | 1.32 | 0.032 | 0.102 | 0.040 | 1.219 | 0.272 | 1.923 | 2.600 | 2.700 | 4.600 |
-| scripted | rate | 3.82 | 15.98 | 0.032 | 0.161 | 0.094 | 3.743 | 0.280 | 4.666 | 4.900 | 5.200 | 390.700 |
-| pointer-active | delta | 6.83 | 15.99 | 0.033 | 0.070 | 0.122 | 3.759 | 0.282 | 4.637 | 4.900 | 5.000 | 7.100 |
-| pointer-active | temporal | 4.39 | 15.95 | 0.033 | 0.156 | 0.097 | 3.679 | 0.280 | 4.621 | 4.900 | 5.000 | 9.600 |
-| pointer-active | rate | 8.98 | 15.98 | 0.033 | 0.194 | 0.152 | 3.750 | 0.281 | 4.799 | 5.100 | 5.200 | 7.300 |
-| pointer-idle | delta | 0.00 | 0.04 | 0.026 | 0.018 | 0.037 | 1.484 | 0.266 | 2.085 | 2.400 | 3.000 | 6.400 |
-| pointer-idle | temporal | 0.00 | 0.00 | 0.026 | 0.099 | 0.037 | 1.049 | 0.264 | 1.712 | 1.900 | 1.900 | 4.700 |
-| pointer-idle | rate | 2.00 | 15.98 | 0.027 | 0.085 | 0.063 | 2.768 | 0.280 | 3.561 | 3.800 | 3.900 | 6.200 |
+| scripted | delta | 2.88 | 1.58 | 0.041 | 0.053 | 0.075 | 2.180 | 0.285 | 3.124 | 3.400 | 3.700 | 119.300 |
+| scripted | temporal | 0.05 | 0.78 | 0.032 | 0.091 | 0.033 | 1.987 | 0.210 | 2.633 | 3.000 | 3.300 | 82.400 |
+| scripted | rate | 3.82 | 1.70 | 0.031 | 0.134 | 0.084 | 2.271 | 0.200 | 3.159 | 3.500 | 4.700 | 161.300 |
+| pointer-active | delta | 6.83 | 1.70 | 0.033 | 0.052 | 0.111 | 2.214 | 0.200 | 3.207 | 3.400 | 5.000 | 194.500 |
+| pointer-active | temporal | 4.39 | 1.29 | 0.033 | 0.128 | 0.083 | 2.202 | 0.198 | 2.905 | 3.300 | 3.700 | 132.000 |
+| pointer-active | rate | 8.98 | 2.43 | 0.033 | 0.161 | 0.138 | 2.404 | 0.209 | 3.310 | 3.800 | 4.100 | 27.600 |
+| pointer-idle | delta | 0.00 | 0.79 | 0.027 | 0.019 | 0.030 | 1.968 | 0.201 | 2.545 | 2.900 | 3.500 | 134.200 |
+| pointer-idle | temporal | 0.00 | 0.78 | 0.027 | 0.089 | 0.030 | 1.895 | 0.203 | 2.522 | 2.900 | 3.100 | 4.800 |
+| pointer-idle | rate | 2.00 | 1.11 | 0.026 | 0.059 | 0.056 | 1.876 | 0.199 | 2.520 | 2.900 | 3.100 | 9.000 |
 
 The input sources are the shipped scripted Lissajous path, a deterministic
 fast jittered drag with pressure ("pointer-active"), and a pointer held still
-("pointer-idle"). The `neuromod` step is the largest stage in every workload,
-and its cost rises with the number of LIF neurons that fire: natively 0.49 to
-0.76 µs when almost none fire, and 2.1 µs when all 16 do. Extraction,
-encoding, and propagation are each under 0.25 µs. The 390.7 µs WASI maximum is
-an outlier; that row's p99 is 5.2 µs.
+("pointer-idle"). The `neuromod` step is the largest stage in every workload.
+Natively it takes 1.21 to 1.57 µs per tick, and the shipped LIF bank now fires 0.78 to 2.43
+of its 16 neurons per tick on average (sparse, desynchronised firing, RM-2352).
+Extraction, encoding, and propagation are each under 0.25 µs.
+
+**Re-measured for RM-2352.** Before sparse firing, `scripted/delta` and
+`scripted/rate` produced 15.99 and 15.98 LIF spikes per tick, which is every
+neuron every tick, and `pointer-active/temporal` produced 15.95. The two
+tables above, and the LIF-spikes and events columns of the Chrome table in
+section 3, were regenerated after that change: `npm run perf:stages` for the
+native table, `node scripts/perf/run-wasi-stage-bench.mjs` for the WASI table
+and `node scripts/perf/measure-node.mjs` for the Chrome table's two
+simulation columns. Those columns are deterministic, so a Node run of the
+shipped package gives the values Chrome sees; the Chrome timing columns are
+unchanged from the October 9 run. The stage benchmark now steps the same
+`LifBankShaping` the runtime uses (`crates/neuromorphic-adapter/src/lif_bank.rs`),
+so these rows measure the shipped bank. The synthetic topologies below keep the
+old uniform-weight bank because they are not what ships. The rows were
+re-run on Node 24.20.0 (V8 13.6) and Rust 1.99.0, not the Node 22.12.0 and Rust
+1.98.1 listed in the context table.
 
 ### 2. Synthetic topologies (not shipped)
 
@@ -220,24 +235,24 @@ contract.
 
 | run | bridge | input | mode | raw input | raw input+step | raw state() | getters | bridge state() | bridge tick | worker tick | spike ingest | LIF spikes/tick | events/tick |
 |---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| headless | before | scripted | delta | 0.3 | 4.35 | 0.35 | 3.75 | 41.05 | 50.8 | 68.35 | 3.15 | 15.99 | 63.97 |
-| headless | before | scripted | temporal | 0.25 | 2 | 0.35 | 4 | 40.7 | 45.7 | 73.15 | 0.5 | 1.32 | 5.28 |
-| headless | before | scripted | rate | 0.3 | 4.3 | 0.4 | 4.45 | 39.7 | 47.5 | 69.05 | 3 | 15.98 | 63.94 |
-| headless | before | pointer-active | delta | 0.25 | 4.2 | 0.35 | 4.2 | 39.85 | 48.35 | 73.2 | 3.1 | 15.99 | 63.97 |
-| headless | before | pointer-active | temporal | 0.3 | 4.4 | 0.35 | 4.7 | 40.9 | 50.6 | 93.6 | 3.4 | 15.95 | 63.81 |
-| headless | before | pointer-active | rate | 0.35 | 4.4 | 0.35 | 4.45 | 40.25 | 48.05 | 69.15 | 3.15 | 15.98 | 63.94 |
-| headless | after | scripted | delta | 0.35 | 4.2 | 0.35 | 3.65 | 12.05 | 17.95 | 70.25 | 3.8 | 15.99 | 63.97 |
-| headless | after | scripted | temporal | 0.25 | 1.95 | 0.35 | 3.95 | 12.1 | 13.95 | 67.95 | 0.55 | 1.32 | 5.28 |
-| headless | after | scripted | rate | 0.35 | 4.35 | 0.35 | 4.15 | 12.3 | 16.55 | 71.25 | 3.1 | 15.98 | 63.94 |
-| headless | after | pointer-active | delta | 0.25 | 4.2 | 0.35 | 3.9 | 12.05 | 16.3 | 69.2 | 3.2 | 15.99 | 63.97 |
-| headless | after | pointer-active | temporal | 0.3 | 4.3 | 0.35 | 4.15 | 12.35 | 16.55 | 69.35 | 3 | 15.95 | 63.81 |
-| headless | after | pointer-active | rate | 0.35 | 4.35 | 0.35 | 3.85 | 12 | 16.35 | 68.7 | 3.15 | 15.98 | 63.94 |
-| headed | after | scripted | delta | 0.3 | 4.25 | 0.35 | 3.6 | 12.35 | 16.85 | 70.45 | 3.15 | 15.99 | 63.97 |
-| headed | after | scripted | temporal | 0.25 | 1.95 | 0.35 | 3.95 | 12.7 | 14.15 | 66.5 | 0.5 | 1.32 | 5.28 |
-| headed | after | scripted | rate | 0.35 | 4.3 | 0.4 | 4 | 12.7 | 16.95 | 68.25 | 2.95 | 15.98 | 63.94 |
-| headed | after | pointer-active | delta | 0.25 | 4.15 | 0.35 | 3.95 | 11.9 | 16.65 | 72.2 | 3.1 | 15.99 | 63.97 |
-| headed | after | pointer-active | temporal | 0.3 | 4.35 | 0.35 | 4.3 | 12.9 | 17.6 | 69.05 | 2.95 | 15.95 | 63.81 |
-| headed | after | pointer-active | rate | 0.35 | 4.4 | 0.35 | 4.1 | 12.1 | 16.3 | 69.45 | 3.1 | 15.98 | 63.94 |
+| headless | before | scripted | delta | 0.3 | 4.35 | 0.35 | 3.75 | 41.05 | 50.8 | 68.35 | 3.15 | 1.58 | 6.34 |
+| headless | before | scripted | temporal | 0.25 | 2 | 0.35 | 4 | 40.7 | 45.7 | 73.15 | 0.5 | 0.78 | 3.11 |
+| headless | before | scripted | rate | 0.3 | 4.3 | 0.4 | 4.45 | 39.7 | 47.5 | 69.05 | 3 | 1.70 | 6.81 |
+| headless | before | pointer-active | delta | 0.25 | 4.2 | 0.35 | 4.2 | 39.85 | 48.35 | 73.2 | 3.1 | 1.70 | 6.80 |
+| headless | before | pointer-active | temporal | 0.3 | 4.4 | 0.35 | 4.7 | 40.9 | 50.6 | 93.6 | 3.4 | 1.29 | 5.15 |
+| headless | before | pointer-active | rate | 0.35 | 4.4 | 0.35 | 4.45 | 40.25 | 48.05 | 69.15 | 3.15 | 2.43 | 9.71 |
+| headless | after | scripted | delta | 0.35 | 4.2 | 0.35 | 3.65 | 12.05 | 17.95 | 70.25 | 3.8 | 1.58 | 6.34 |
+| headless | after | scripted | temporal | 0.25 | 1.95 | 0.35 | 3.95 | 12.1 | 13.95 | 67.95 | 0.55 | 0.78 | 3.11 |
+| headless | after | scripted | rate | 0.35 | 4.35 | 0.35 | 4.15 | 12.3 | 16.55 | 71.25 | 3.1 | 1.70 | 6.81 |
+| headless | after | pointer-active | delta | 0.25 | 4.2 | 0.35 | 3.9 | 12.05 | 16.3 | 69.2 | 3.2 | 1.70 | 6.80 |
+| headless | after | pointer-active | temporal | 0.3 | 4.3 | 0.35 | 4.15 | 12.35 | 16.55 | 69.35 | 3 | 1.29 | 5.15 |
+| headless | after | pointer-active | rate | 0.35 | 4.35 | 0.35 | 3.85 | 12 | 16.35 | 68.7 | 3.15 | 2.43 | 9.71 |
+| headed | after | scripted | delta | 0.3 | 4.25 | 0.35 | 3.6 | 12.35 | 16.85 | 70.45 | 3.15 | 1.58 | 6.34 |
+| headed | after | scripted | temporal | 0.25 | 1.95 | 0.35 | 3.95 | 12.7 | 14.15 | 66.5 | 0.5 | 0.78 | 3.11 |
+| headed | after | scripted | rate | 0.35 | 4.3 | 0.4 | 4 | 12.7 | 16.95 | 68.25 | 2.95 | 1.70 | 6.81 |
+| headed | after | pointer-active | delta | 0.25 | 4.15 | 0.35 | 3.95 | 11.9 | 16.65 | 72.2 | 3.1 | 1.70 | 6.80 |
+| headed | after | pointer-active | temporal | 0.3 | 4.35 | 0.35 | 4.3 | 12.9 | 17.6 | 69.05 | 2.95 | 1.29 | 5.15 |
+| headed | after | pointer-active | rate | 0.35 | 4.4 | 0.35 | 4.1 | 12.1 | 16.3 | 69.45 | 3.1 | 2.43 | 9.71 |
 
 **Node 22.12.0 (same benchmark, no worker):**
 
