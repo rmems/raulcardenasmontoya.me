@@ -87,12 +87,12 @@ jobs:
         uses: anthropics/claude-code-action@c3d45e8e941e1b2ad7b278c57482d9c5bf1f35b3 # v1.0.99
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          # Issue commands plus the exact `npm run build`. Other npm scripts and
-          # cargo stay disallowed: cargo runs build.rs / test binaries, and the
-          # build executes the checked-out code (astro config, content loaders),
-          # so this is only safe because the triggers above are limited to
-          # OWNER/MEMBER/COLLABORATOR and checkout is the default ref, not a
-          # fork's PR head. No Rust toolchain step.
+          # Issue commands, plus the exact `npm run build` but only outside pull
+          # requests. For PR events claude-code-action checks out the PR branch
+          # (a fork's head included) before Claude runs, so a build there would
+          # execute that branch's astro config, loaders and npm scripts with the
+          # subscription token in scope. On issue events it works from the
+          # default branch. cargo stays disallowed (build.rs, test binaries).
           claude_args: |
             --model claude-sonnet-5-5
-            --allowedTools "Bash(gh issue create:*),Bash(gh issue list:*),Bash(gh issue view:*),Bash(gh issue comment:*),Bash(npm run build)"
+            --allowedTools "Bash(gh issue create:*),Bash(gh issue list:*),Bash(gh issue view:*),Bash(gh issue comment:*)${{ (github.event_name == 'issues' || (github.event_name == 'issue_comment' && !github.event.issue.pull_request)) && ',Bash(npm run build)' || '' }}"
