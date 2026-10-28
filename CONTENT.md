@@ -2,9 +2,12 @@
 
 Before publishing, update `src/data/site.ts`:
 
-- Set `email` from `null` to your public contact email.
-- GitHub, LinkedIn, and Hugging Face profile links are now live. Review them before publishing.
-- Put your real résumé PDF at `public/resume.pdf`, then set `resumePath` to `/resume.pdf`; the résumé page will expose the link.
+- `email` and the résumé (`resumePath`, `/resume.pdf`) are set; keep `src/data/site.ts` free of `null` placeholders.
+- Profile links in `site.social` are live and are the source of truth for every external profile:
+  - LinkedIn is `https://www.linkedin.com/in/raul-cardenas-montoya` (verified to load).
+  - Instagram, X and Threads all use `KeepOnSpiking`.
+  - Never link Facebook; there is no Facebook account.
+- Every external profile (GitHub, X, LinkedIn, Hugging Face, Instagram, Threads, crates.io) should show "Raul Cardenas Montoya" and link `https://raulcardenasmontoya.me`.
 
 For project cards, edit `src/data/projects.ts`. Add public links only when each repository, case study, or demo is ready to share. The included summaries intentionally avoid performance claims and invented outcomes.
 
