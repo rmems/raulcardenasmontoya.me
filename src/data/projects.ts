@@ -69,9 +69,9 @@ export const projects: Project[] = [
       shipped:
         'On crates.io. GGUF v3 parsing, the format-independent Checkpoint API, packed K-quant dequantization (Q8_0, Q5_K, Q6_K, IQ3_M) and MoE per-expert extraction on the default build; the Safetensors and mmap readers sit behind features.',
       evidence:
-        'Evidence: engram-parser {{engramParserVersion}} on crates.io with {{engramParserDownloads}} downloads as of {{cratesAsOf}} (CI and mirror traffic included).',
-      next: 'Next milestone: widen MoE per-expert extraction coverage and keep the Safetensors and mmap paths behind features while holding wire compatibility with checked-in fixtures.',
-      whyItMatters: 'Why it matters: checkpoints arrive in different formats, and one careful reader means less glue code before research can start.',
+        'engram-parser {{engramParserVersion}} on crates.io with {{engramParserDownloads}} downloads as of {{cratesAsOf}} (CI and mirror traffic included).',
+      next: 'Widen MoE per-expert extraction coverage and keep the Safetensors and mmap paths behind features while holding wire compatibility with checked-in fixtures.',
+      whyItMatters: 'Checkpoints arrive in different formats, and one careful reader means less glue code before research can start.',
     },
   ),
   project(
@@ -90,9 +90,9 @@ export const projects: Project[] = [
       shipped:
         'The homepage demo runs axon-encoder, neuromod, synaptic-wiring and kinetic-signals in the browser, and the plasticity lab runs limbic-critic and plasticity-lab.',
       evidence:
-        'Evidence: {{crates}} crates on crates.io with {{cratesTotalDownloads}} total downloads as of {{cratesAsOf}} (CI and mirror traffic included).',
-      next: 'Next milestone: hold the crate boundaries through the browser demo and plasticity lab compositions, and carry a network from simulator toward hardware export.',
-      whyItMatters: 'Why it matters: small crates with one concern each are easier to test, replace, and carry from a laptop demo to hardware.',
+        '{{crates}} published crates site-wide on crates.io with {{cratesTotalDownloads}} total downloads as of {{cratesAsOf}} (CI and mirror traffic included).',
+      next: 'Hold the crate boundaries through the browser demo and plasticity lab compositions, and carry a network from simulator toward hardware export.',
+      whyItMatters: 'Small crates with one concern each are easier to test, replace, and carry from a laptop demo to hardware.',
     },
   ),
   project(
@@ -111,9 +111,9 @@ export const projects: Project[] = [
       shipped:
         'A reviewed generator registry, a fail-closed rights policy in which unknown provenance resolves to blocked, and append-only raw JSONL with deterministic compose and export gates.',
       evidence:
-        'Evidence: {{factoryDatasets}} datasets across {{factoryCollections}} Synthetic Factory collections, of {{datasets}} public datasets as of {{datasetsAsOf}}.',
-      next: 'Next milestone: keep the generator registry reviewed and the fail-closed rights policy, and extend deterministic curation with auditable compose and export gates.',
-      whyItMatters: 'Why it matters: training data is easier to trust when every line points back to the executable source that made it.',
+        '{{factoryDatasets}} datasets across {{factoryCollections}} Synthetic Factory collections, of {{datasets}} public datasets as of {{datasetsAsOf}}.',
+      next: 'Keep the generator registry reviewed and the fail-closed rights policy, and extend deterministic curation with auditable compose and export gates.',
+      whyItMatters: 'Training data is easier to trust when every line points back to the executable source that made it.',
     },
   ),
   project(
@@ -132,9 +132,9 @@ export const projects: Project[] = [
       shipped:
         'Every training run records a reproducibility manifest, GPU telemetry and artifact digests. The CLI reports resume and export readiness per run, runs a held-out base-versus-SFT canary, and verifies a reproducibility bundle offline.',
       evidence:
-        'Evidence: trains against {{factoryDatasets}} Synthetic Factory datasets across {{factoryCollections}} collections as of {{datasetsAsOf}}; no separate crate or dataset published as of {{cratesAsOf}}.',
-      next: 'Next milestone: keep every run sealed with manifest, telemetry digests and frozen split, and keep the held-out base-versus-SFT canary the gate before any capability claim.',
-      whyItMatters: 'Why it matters: post-training is easier to trust when every run can be rechecked from its manifest instead of its log line.',
+        'Consumes data from the Synthetic Factory collections; no separate crate or dataset published from this brief as of {{datasetsAsOf}}.',
+      next: 'Keep every run sealed with manifest, telemetry digests and frozen split, and keep the held-out base-versus-SFT canary the gate before any capability claim.',
+      whyItMatters: 'Post-training is easier to trust when every run can be rechecked from its manifest instead of its log line.',
     },
   ),
   project(
@@ -153,9 +153,9 @@ export const projects: Project[] = [
       shipped:
         'On crates.io. The NIR graph model with the standard node types, HDF5 .nir read and write behind the hdf5 feature, and compatibility claims against the Python reference that are backed by checked-in fixtures.',
       evidence:
-        'Evidence: nir-rs {{nirVersion}} on crates.io with {{nirDownloads}} downloads as of {{cratesAsOf}} (CI and mirror traffic included).',
-      next: 'Next milestone: track the reference implementation on the wire for the standard node types, keeping native HDF5 opt-in.',
-      whyItMatters: 'Why it matters: a shared interchange format lets a network move between simulators and hardware without being rewritten.',
+        'nir-rs {{nirVersion}} on crates.io with {{nirDownloads}} downloads as of {{cratesAsOf}} (CI and mirror traffic included).',
+      next: 'Track the reference implementation on the wire for the standard node types, keeping native HDF5 opt-in.',
+      whyItMatters: 'A shared interchange format lets a network move between simulators and hardware without being rewritten.',
     },
   ),
   project(
@@ -174,9 +174,9 @@ export const projects: Project[] = [
       shipped:
         'The node itself, documented as infrastructure: a Ryzen 9 9950X, an RTX 5080 with 16 GB, 64 GB of DDR5-6000 and two NVMe drives on Fedora Linux, used as a self-hosted GitHub Actions runner for GPU and RTL workloads.',
       evidence:
-        'Evidence: no published crate or dataset ships from this brief; the documented node supports {{crates}} crates as of {{cratesAsOf}} and {{datasets}} datasets as of {{datasetsAsOf}} as a self-hosted runner.',
-      next: 'Next milestone: keep the node reproducible from versioned configuration and keep the GPU and RTL runner paths inspectable.',
-      whyItMatters: 'Why it matters: durable local workflows make experiments easier to inspect and repeat without depending on workstation state.',
+        'Infrastructure only; no crate or dataset is published from this brief as of {{cratesAsOf}}.',
+      next: 'Keep the node reproducible from versioned configuration and keep the GPU and RTL runner paths inspectable.',
+      whyItMatters: 'Durable local workflows make experiments easier to inspect and repeat without depending on workstation state.',
     },
   ),
   project(
@@ -196,10 +196,10 @@ export const projects: Project[] = [
       shipped:
         'The Grok-1 dissection collection on Hugging Face (the structural parse inventory, the ternary quantization experiment reports and the GOZ1 packs) and the repositories: corinth-canal, the Rust hybrid MoE/SNN runner; xai-dissect, a Rust CLI for raw Grok-1 shards; magere-brug, the artifact registry with recipes and manifests; and combine-for-AI, a neutral benchmark harness.',
       evidence:
-        'Evidence: {{grokDatasets}} datasets in the Grok-1 dissection collection across {{grokCollections}} collection as of {{datasetsAsOf}}, plus {{mergedPrs}} merged upstream pull requests verified {{mergedPrsVerifiedAt}}.',
+        '{{grokDatasets}} datasets in the Grok-1 dissection collection across {{grokCollections}} collections as of {{datasetsAsOf}}.',
       next:
         'The formulation is still being searched for. There is no trusted run artifact to cite yet, and the brief will name a result only once a run is published with its manifest.',
-      whyItMatters: 'Why it matters: the cost of inference decides whether open-weight models can run on premises or at the edge.',
+      whyItMatters: 'The cost of inference decides whether open-weight models can run on premises or at the edge.',
       links: [
         { label: 'Hugging Face collection', href: 'https://huggingface.co/collections/rmems/grok-1-dissection-and-ternary-packing-6a7927095f6a7ca444f003af' },
         { label: 'corinth-canal', href: 'https://github.com/rmems/corinth-canal' },

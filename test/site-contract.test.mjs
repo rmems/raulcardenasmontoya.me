@@ -241,11 +241,14 @@ test('the work page expands existing project data without unsupported outcomes o
   }
 
   // Every brief carries an evidence line, a next milestone and a why-it-matters line.
-  for (const name of order) {
-    const block = projects.slice(projects.indexOf(name), projects.indexOf(name) + 4000);
-    assert.match(block, /evidence:/, `${name} has an evidence line`);
-    assert.match(block, /next:/, `${name} has a next milestone`);
-    assert.match(block, /whyItMatters:/, `${name} has a why-it-matters line`);
+  // Headings carry the labels, so the strings themselves carry no "Evidence:" prefix.
+  assert.doesNotMatch(projects, /(evidence|next|whyItMatters):\s*'(Evidence|Next milestone|Why it matters):/);
+  const starts = order.map((name) => projects.indexOf(name));
+  for (let i = 0; i < order.length; i++) {
+    const block = projects.slice(starts[i], i + 1 < starts.length ? starts[i + 1] : undefined);
+    assert.match(block, /evidence:/, `${order[i]} has an evidence line`);
+    assert.match(block, /next:/, `${order[i]} has a next milestone`);
+    assert.match(block, /whyItMatters:/, `${order[i]} has a why-it-matters line`);
   }
 
   // Evidence numbers come from dated-snapshot tokens, never typed digits.
