@@ -143,7 +143,7 @@ export const projects: Project[] = [
       evidence:
         'Consumes data from the Synthetic Factory collections; no separate crate or dataset published from this brief as of {{datasetsAsOf}}.',
       next: 'Keep every run sealed with manifest, telemetry digests and frozen split, and keep the held-out base-versus-SFT canary the gate before any capability claim.',
-      headline: 'Recorded run: SFT gain was formatting, not capability (10/16 base, 10/16 SFT)',
+      headline: 'Recorded run: the SFT gain was formatting, not capability',
       whyItMatters: 'Post-training is easier to trust when every run can be rechecked from its manifest instead of its log line.',
     },
   ),
