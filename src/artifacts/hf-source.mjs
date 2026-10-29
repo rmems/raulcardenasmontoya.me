@@ -31,6 +31,61 @@ export const STATUS_LABELS = {
   'not-training-data': 'Not training data',
 };
 
+/** The live stats both the build and the browser read from a repo's API payload. */
+export const STAT_KEYS = ['downloads', 'likes', 'lastModified'];
+
+/**
+ * Downloads, likes and last-modified from one of the Hub's repo endpoints. A
+ * value the payload does not carry (or carries unusably: a negative count, an
+ * unparseable timestamp) is left out instead of being invented as zero, so a
+ * caller can tell "no figure" from "no downloads yet".
+ */
+export function statsFrom(info) {
+  const stats = {};
+  const count = (value) => (Number.isInteger(value) && value >= 0 ? value : undefined);
+  const downloads = count(info?.downloads);
+  if (downloads !== undefined) stats.downloads = downloads;
+  const likes = count(info?.likes);
+  if (likes !== undefined) stats.likes = likes;
+  const lastModified = typeof info?.lastModified === 'string' ? info.lastModified.slice(0, 10) : '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(lastModified)) stats.lastModified = lastModified;
+  return stats;
+}
+
+/** Only the three stat fields of a stored repo record, so a card-only record contributes nothing. */
+export function pickStats(record) {
+  const stats = {};
+  for (const key of STAT_KEYS) {
+    if (record?.[key] !== undefined) stats[key] = record[key];
+  }
+  return stats;
+}
+
+const number = new Intl.NumberFormat('en-US');
+
+/**
+ * One line of stats, shared by the build-time render and the browser refresh so
+ * both spell a figure the same way. Returns an empty string when there is
+ * nothing to show (no blank or zero placeholders).
+ */
+export function formatStats(stats = {}) {
+  const parts = [];
+  if (Number.isInteger(stats.downloads) && stats.downloads >= 0) {
+    parts.push(`${number.format(stats.downloads)} ${stats.downloads === 1 ? 'download' : 'downloads'}`);
+  }
+  if (Number.isInteger(stats.likes) && stats.likes >= 0) {
+    parts.push(`${number.format(stats.likes)} ${stats.likes === 1 ? 'like' : 'likes'}`);
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(stats.lastModified ?? '')) parts.push(`updated ${stats.lastModified}`);
+  return parts.join(' · ');
+}
+
+/** `HH:MM UTC`, the timestamp a live figure was fetched at. */
+export function formatFetchedAt(date) {
+  const iso = date instanceof Date ? date.toISOString() : String(date);
+  return `${iso.slice(11, 16)} UTC`;
+}
+
 /** A repo with nothing but card/attribute files holds no data. */
 export function countDataFiles(filenames) {
   return filenames.filter((name) => !CARD_FILES.has(name)).length;
@@ -82,11 +137,11 @@ export async function fetchHfSnapshot({ fetchImpl = globalThis.fetch, now = new 
       getJson(`${base}/api/datasets/${id}`, fetchImpl),
       getText(`${base}/datasets/${id}/raw/main/README.md`, fetchImpl),
     ]);
-    return { id, dataFiles: countDataFiles((info.siblings ?? []).map((file) => file.rfilename)), status: classifyCardStatus(readme) };
+    return { id, dataFiles: countDataFiles((info.siblings ?? []).map((file) => file.rfilename)), status: classifyCardStatus(readme), ...statsFrom(info) };
   });
   const models = await inBatches(modelList, 8, async ({ id }) => {
     const info = await getJson(`${base}/api/models/${id}`, fetchImpl);
-    return { id, dataFiles: countDataFiles((info.siblings ?? []).map((file) => file.rfilename)) };
+    return { id, dataFiles: countDataFiles((info.siblings ?? []).map((file) => file.rfilename)), ...statsFrom(info) };
   });
   // The listing truncates each collection's items, so read every collection in full.
   const collections = await inBatches(collectionList, 4, async ({ slug }) => {

@@ -1,5 +1,5 @@
 {
-  "verifiedAt": "2026-10-21",
+  "verifiedAt": "2026-10-29",
   "method": "GitHub REST API GET /repos/{repo}/pulls/{number}: merged === true; additions, deletions and changed_files as reported by GitHub.",
   "pullRequests": [
     { "repo": "Halloweedev/usagepal", "number": 67, "title": "Feat/grok usage costs", "mergedAt": "2026-09-14", "additions": 562, "deletions": 97, "changedFiles": 6 },

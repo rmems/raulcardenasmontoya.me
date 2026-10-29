@@ -1,12 +1,14 @@
 import snapshot from '../data/artifacts/hf-snapshot.json';
-import { collectionUrl, fetchHfSnapshot, groupByCollection, listableRepos, STATUS_LABELS } from './hf-source.mjs';
-import type { HfSnapshot } from './hf-source.mjs';
+import { collectionUrl, fetchHfSnapshot, groupByCollection, listableRepos, pickStats, STATUS_LABELS } from './hf-source.mjs';
+import type { HfRepoStats, HfSnapshot } from './hf-source.mjs';
 
 export interface PublishedRepo {
   id: string;
   url: string;
   /** The card's own status labels; empty when the card states none. */
   statusLabels: string[];
+  /** Snapshot downloads, likes and last-modified; empty when the record carries none. */
+  stats: HfRepoStats;
 }
 
 export interface DatasetCollection {
@@ -36,6 +38,7 @@ export function toArtifacts(data: HfSnapshot, source: HfArtifacts['source'], fal
     id: repo.id,
     url: `https://huggingface.co/datasets/${repo.id}`,
     statusLabels: (repo.status ?? []).map((flag) => STATUS_LABELS[flag] ?? flag),
+    stats: pickStats(repo),
   }));
   const grouped = groupByCollection(datasets, data.collections ?? []);
   return {
@@ -43,7 +46,7 @@ export function toArtifacts(data: HfSnapshot, source: HfArtifacts['source'], fal
     source,
     fallbackReason,
     datasets,
-    models: listableRepos(data.models).map((repo) => ({ id: repo.id, url: `https://huggingface.co/${repo.id}`, statusLabels: [] })),
+    models: listableRepos(data.models).map((repo) => ({ id: repo.id, url: `https://huggingface.co/${repo.id}`, statusLabels: [], stats: pickStats(repo) })),
     collections: grouped.collections.map((collection) => ({ ...collection, url: collectionUrl(collection) })),
     ungrouped: grouped.ungrouped,
   };

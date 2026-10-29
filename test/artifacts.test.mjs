@@ -7,8 +7,12 @@ import {
   countDataFiles,
   EXCLUDED_DATASETS,
   fetchHfSnapshot,
+  formatFetchedAt,
+  formatStats,
   groupByCollection,
   listableRepos,
+  pickStats,
+  statsFrom,
 } from '../src/artifacts/hf-source.mjs';
 
 const json = (path) => JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
@@ -99,6 +103,65 @@ test('the committed snapshot carries the owner\'s collections and the page group
 
 test('a failing Hugging Face API rejects so the loader falls back to the snapshot', async () => {
   await assert.rejects(fetchHfSnapshot({ fetchImpl: async () => ({ ok: false, status: 503 }) }), /HTTP 503/);
+});
+
+test('stats come from the API payload, and an unusable value is left out rather than zeroed', () => {
+  assert.deepEqual(statsFrom({ downloads: 0, likes: 3, lastModified: '2026-10-01T00:00:00.000Z' }), {
+    downloads: 0,
+    likes: 3,
+    lastModified: '2026-10-01',
+  });
+  assert.deepEqual(statsFrom({ downloads: -1, likes: '7', lastModified: null }), {});
+  assert.deepEqual(statsFrom(null), {});
+  // The snapshot record keeps only the stats, never the id or the file count.
+  assert.deepEqual(pickStats({ id: 'rmems/x', dataFiles: 9, status: [], downloads: 4, lastModified: '2026-10-01' }), {
+    downloads: 4,
+    lastModified: '2026-10-01',
+  });
+  assert.deepEqual(pickStats({ id: 'rmems/card-only', dataFiles: 0 }), {});
+});
+
+test('the stat line and the live timestamp are spelled the same way at build time and in the browser', () => {
+  assert.equal(formatStats({ downloads: 1234, likes: 1, lastModified: '2026-10-01' }), '1,234 downloads · 1 like · updated 2026-10-01');
+  assert.equal(formatStats({ likes: 0 }), '0 likes', 'a measured zero is shown; only a missing figure is omitted');
+  assert.equal(formatStats({}), '', 'no figure means no line, never a blank or a placeholder zero');
+  assert.equal(formatStats(), '');
+  assert.equal(formatFetchedAt(new Date('2026-10-29T20:30:00.000Z')), '20:30 UTC');
+});
+
+test('the live refresh reads stats from each repo endpoint', async () => {
+  const json = (body) => ({ ok: true, status: 200, headers: new globalThis.Headers(), json: async () => body });
+  const fetchImpl = async (url) => {
+    if (url.includes('/api/datasets?')) return json([{ id: 'rmems/with-stats' }]);
+    if (url.includes('/api/models?')) return json([{ id: 'rmems/Spikenaut-SNN' }]);
+    if (url.includes('/api/collections?')) return json([]);
+    if (url.includes('/api/datasets/rmems/with-stats')) return json({ siblings: [{ rfilename: 'data.jsonl' }], downloads: 12, likes: 1, lastModified: '2026-10-02T10:00:00.000Z' });
+    if (url.includes('/api/models/rmems/Spikenaut-SNN')) return json({ siblings: [{ rfilename: 'model.safetensors' }], downloads: 46, likes: 2 });
+    return { ok: false, status: 404, headers: new globalThis.Headers() };
+  };
+  const result = await fetchHfSnapshot({ fetchImpl, now: new Date('2026-10-29T12:00:00.000Z') });
+
+  assert.deepEqual(result.datasets, [{ id: 'rmems/with-stats', dataFiles: 1, status: [], downloads: 12, likes: 1, lastModified: '2026-10-02' }]);
+  assert.deepEqual(result.models, [{ id: 'rmems/Spikenaut-SNN', dataFiles: 1, downloads: 46, likes: 2 }]);
+});
+
+test('the committed snapshot carries dated stats for the repos it lists', () => {
+  for (const repo of listableRepos(snapshot.datasets)) {
+    assert.ok(Number.isInteger(repo.downloads) && repo.downloads >= 0, `${repo.id} has no downloads figure dated ${snapshot.asOf}`);
+    assert.ok(Number.isInteger(repo.likes) && repo.likes >= 0, `${repo.id} has no likes figure`);
+    assert.match(repo.lastModified, /^\d{4}-\d{2}-\d{2}$/, `${repo.id} has no last-modified date`);
+    assert.notEqual(formatStats(pickStats(repo)), '');
+  }
+});
+
+test('the page renders snapshot stats in a live-refreshable block and enhances them in the browser', () => {
+  const page = read('src/pages/artifacts.astro');
+  assert.match(page, /data-hf-stats data-hf-kind="datasets" data-hf-repo=\{dataset\.id\}/);
+  assert.match(page, /data-hf-stats data-hf-kind="models" data-hf-repo=\{model\.id\}/);
+  assert.match(page, /data-hf-figures>\{snapshotFigures\(dataset\)\}/);
+  assert.match(page, /data-hf-freshness>as of \{hf\.asOf\}/);
+  assert.match(page, /import \{ refreshHfStats \} from '\.\.\/runtime\/hf-live-stats';/);
+  assert.match(page, /void refreshHfStats\(\);/);
 });
 
 test('every upstream PR is recorded as merged with a diff size and links to its pull request', () => {

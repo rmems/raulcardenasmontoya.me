@@ -3,10 +3,13 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import { loadCrates } from '../artifacts/crates';
 import { CRATE_STATUS_NOTES, cratesIoUrl, docsUrl } from '../artifacts/crates-source.mjs';
 import { loadHfArtifacts } from '../artifacts/hf';
+import { formatStats } from '../artifacts/hf-source.mjs';
 import { prUrl, upstreamPrs, upstreamVerifiedAt } from '../artifacts/upstream';
 
 const [crates, hf] = await Promise.all([loadCrates(), loadHfArtifacts()]);
 const number = new Intl.NumberFormat('en-US');
+/** The snapshot figures for a repo; an empty string means the record carries no stat to show. */
+const snapshotFigures = (repo: { stats: Parameters<typeof formatStats>[0] }) => formatStats(repo.stats);
 const snapshotNote = (source: 'live' | 'snapshot', reason: 'skipped' | 'unreachable' | undefined, service: string) =>
   source === 'snapshot'
     ? reason === 'skipped'
@@ -47,10 +50,10 @@ const snapshotNote = (source: 'live' | 'snapshot', reason: 'skipped' | 'unreacha
     ))}
   </section>
 
-  <section class="section artifacts-section" id="datasets" aria-labelledby="artifacts-hf-title" data-hf-source={hf.source}>
+  <section class="section artifacts-section" id="datasets" aria-labelledby="artifacts-hf-title" data-hf-source={hf.source} data-hf-as-of={hf.asOf}>
     <p class="eyebrow">Hugging Face · as of {hf.asOf}</p>
     <h2 id="artifacts-hf-title">{hf.datasets.length} datasets, {hf.models.length} {hf.models.length === 1 ? 'model' : 'models'}.</h2>
-    <p class="artifacts-note">Datasets are grouped by the collections they belong to on the Hub; a dataset in several collections is listed once, under the newest. Each label is the status its own dataset card states. A missing label means none of the status wording this page recognizes (research-only, personal research, raw/uncurated, not training data) appears on the card; read the card itself. Repos that hold only a card and no data are not listed. Counts as of {hf.asOf}{snapshotNote(hf.source, hf.fallbackReason, 'Hugging Face API')}.</p>
+    <p class="artifacts-note">Datasets are grouped by the collections they belong to on the Hub; a dataset in several collections is listed once, under the newest. Each label is the status its own dataset card states. A missing label means none of the status wording this page recognizes (research-only, personal research, raw/uncurated, not training data) appears on the card; read the card itself. Repos that hold only a card and no data are not listed. Downloads, likes and last-modified dates start as the snapshot below and are refreshed from the public Hugging Face API in your browser; a figure that says "as of {hf.asOf}" is still the snapshot. Counts as of {hf.asOf}{snapshotNote(hf.source, hf.fallbackReason, 'Hugging Face API')}.</p>
 
     {hf.collections.map((collection) => (
       <>
@@ -59,6 +62,12 @@ const snapshotNote = (source: 'live' | 'snapshot', reason: 'skipped' | 'unreacha
           {collection.datasets.map((dataset) => (
             <li>
               <a href={dataset.url} target="_blank" rel="noopener noreferrer">{dataset.id}</a>
+              {snapshotFigures(dataset) !== '' ? (
+                <span class="artifact-status artifact-stats" data-hf-stats data-hf-kind="datasets" data-hf-repo={dataset.id} data-hf-stats-source="snapshot">
+                  <span class="artifact-figures" data-hf-figures>{snapshotFigures(dataset)}</span>
+                  <span class="artifact-freshness" data-hf-freshness>as of {hf.asOf}</span>
+                </span>
+              ) : null}
               {dataset.statusLabels.length > 0 ? <span class="artifact-status">{dataset.statusLabels.join(' · ')}</span> : null}
             </li>
           ))}
@@ -72,6 +81,12 @@ const snapshotNote = (source: 'live' | 'snapshot', reason: 'skipped' | 'unreacha
           {hf.ungrouped.map((dataset) => (
             <li>
               <a href={dataset.url} target="_blank" rel="noopener noreferrer">{dataset.id}</a>
+              {snapshotFigures(dataset) !== '' ? (
+                <span class="artifact-status artifact-stats" data-hf-stats data-hf-kind="datasets" data-hf-repo={dataset.id} data-hf-stats-source="snapshot">
+                  <span class="artifact-figures" data-hf-figures>{snapshotFigures(dataset)}</span>
+                  <span class="artifact-freshness" data-hf-freshness>as of {hf.asOf}</span>
+                </span>
+              ) : null}
               {dataset.statusLabels.length > 0 ? <span class="artifact-status">{dataset.statusLabels.join(' · ')}</span> : null}
             </li>
           ))}
@@ -82,7 +97,15 @@ const snapshotNote = (source: 'live' | 'snapshot', reason: 'skipped' | 'unreacha
     <h3>Models</h3>
     <ul class="artifact-list" data-hf-models>
       {hf.models.map((model) => (
-        <li><a href={model.url} target="_blank" rel="noopener noreferrer">{model.id}</a></li>
+        <li>
+          <a href={model.url} target="_blank" rel="noopener noreferrer">{model.id}</a>
+          {snapshotFigures(model) !== '' ? (
+            <span class="artifact-status artifact-stats" data-hf-stats data-hf-kind="models" data-hf-repo={model.id} data-hf-stats-source="snapshot">
+              <span class="artifact-figures" data-hf-figures>{snapshotFigures(model)}</span>
+              <span class="artifact-freshness" data-hf-freshness>as of {hf.asOf}</span>
+            </span>
+          ) : null}
+        </li>
       ))}
     </ul>
   </section>
@@ -101,3 +124,9 @@ const snapshotNote = (source: 'live' | 'snapshot', reason: 'skipped' | 'unreacha
     </ul>
   </section>
 </BaseLayout>
+
+<script>
+  import { refreshHfStats } from '../runtime/hf-live-stats';
+
+  void refreshHfStats();
+</script>

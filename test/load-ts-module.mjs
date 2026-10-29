@@ -3,6 +3,9 @@ import ts from 'typescript';
 
 const relativeImport = /from\s+(['"])(\.\.?\/[^'"]+)\1/g;
 
+/** Hand-written JavaScript or JSON is loaded as-is; everything else is transpiled TypeScript. */
+const isJavaScript = (relativePath) => /\.(?:[cm]?js|json)$/.test(relativePath);
+
 function toFileUrl(relativePath, parentUrl) {
   const withExtension = relativePath.endsWith('.ts') ? relativePath : `${relativePath}.ts`;
   return new URL(withExtension, parentUrl);
@@ -25,6 +28,8 @@ function transpileFile(sourceUrl) {
 
 function rewriteRelativeImports(outputText, sourceUrl) {
   return outputText.replace(relativeImport, (_match, _quote, spec) => {
+    // A module that is already JavaScript needs no transpiling: import it directly.
+    if (isJavaScript(spec)) return `from ${JSON.stringify(new URL(spec, sourceUrl).href)}`;
     const childUrl = toFileUrl(spec, sourceUrl);
     const childText = rewriteRelativeImports(transpileFile(childUrl), childUrl);
     return `from ${JSON.stringify(`data:text/javascript;charset=utf-8,${encodeURIComponent(childText)}`)}`;

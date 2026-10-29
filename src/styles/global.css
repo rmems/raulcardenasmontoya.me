@@ -878,6 +878,9 @@ button.button {
 .artifact-list { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--line-strong); }
 .artifact-list li { padding: 0.6rem 0; border-bottom: 1px solid var(--line-strong); overflow-wrap: anywhere; }
 .artifact-status { display: block; color: var(--muted); font-size: 0.9rem; }
+.artifact-figures { font-variant-numeric: tabular-nums; }
+.artifact-freshness::before { content: ' · '; }
+.artifact-stats[data-hf-stats-source='live'] .artifact-freshness { color: var(--ink); }
 .collection-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.3rem 0.8rem; }
 .collection-title a { text-decoration-color: var(--line-strong); }
 .collection-count { color: var(--muted); font-family: var(--mono); font-size: 0.72rem; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }

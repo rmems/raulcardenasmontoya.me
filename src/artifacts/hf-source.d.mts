@@ -1,13 +1,20 @@
 export const HF_OWNER: string;
 export const EXCLUDED_DATASETS: Record<string, string>;
 export const STATUS_LABELS: Record<string, string>;
-export interface HfRepoRecord { id: string; dataFiles: number; status?: string[] }
+export const STAT_KEYS: Array<'downloads' | 'likes' | 'lastModified'>;
+export interface HfRepoStats { downloads?: number; likes?: number; lastModified?: string }
+export interface HfApiRepoInfo { downloads?: unknown; likes?: unknown; lastModified?: unknown }
+export interface HfRepoRecord { id: string; dataFiles: number; status?: string[]; downloads?: number; likes?: number; lastModified?: string }
 export interface HfCollectionItem { type: string; id: string }
 export interface HfCollectionRecord { slug: string; title: string; lastUpdated: string; items: HfCollectionItem[] }
 export interface HfSnapshot { asOf: string; source: string; datasets: HfRepoRecord[]; models: HfRepoRecord[]; collections?: HfCollectionRecord[] }
 export interface HfCollectionGroup<T> { slug: string; title: string; lastUpdated: string; datasets: T[] }
 export function classifyCardStatus(readme: string): string[];
 export function countDataFiles(filenames: string[]): number;
+export function statsFrom(info: HfApiRepoInfo | null | undefined): HfRepoStats;
+export function pickStats(record: HfRepoRecord | null | undefined): HfRepoStats;
+export function formatStats(stats?: HfRepoStats): string;
+export function formatFetchedAt(date: Date | string): string;
 export function listableRepos<T extends { id: string; dataFiles: number }>(repos: T[]): T[];
 export function fetchHfSnapshot(options?: { fetchImpl?: typeof fetch; now?: Date }): Promise<HfSnapshot>;
 export function groupByCollection<T extends { id: string }>(datasets: T[], collections?: HfCollectionRecord[]): { collections: HfCollectionGroup<T>[]; ungrouped: T[] };

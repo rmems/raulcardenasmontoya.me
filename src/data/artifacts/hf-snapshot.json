@@ -1,11 +1,14 @@
 {
-  "asOf": "2026-10-27",
+  "asOf": "2026-10-29",
   "source": "https://huggingface.co/api/datasets?author=rmems",
   "datasets": [
     {
       "id": "rmems/agent-honest-stop-episodes",
       "dataFiles": 0,
-      "status": []
+      "status": [],
+      "downloads": 54,
+      "likes": 0,
+      "lastModified": "2026-10-15"
     },
     {
       "id": "rmems/agent-memory-compaction-trajectories",
@@ -14,12 +17,18 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 334,
+      "likes": 1,
+      "lastModified": "2026-09-17"
     },
     {
       "id": "rmems/agent-trajectory-preference-pairs",
       "dataFiles": 1,
-      "status": []
+      "status": [],
+      "downloads": 95,
+      "likes": 0,
+      "lastModified": "2026-10-22"
     },
     {
       "id": "rmems/agentic-coding-trajectories",
@@ -28,7 +37,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 310,
+      "likes": 1,
+      "lastModified": "2026-09-18"
     },
     {
       "id": "rmems/agentic-coding-trajectories-grok46",
@@ -37,7 +49,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 282,
+      "likes": 1,
+      "lastModified": "2026-09-04"
     },
     {
       "id": "rmems/api-contract-migration-trajectories",
@@ -46,7 +61,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 192,
+      "likes": 0,
+      "lastModified": "2026-09-23"
     },
     {
       "id": "rmems/authz-regression-trajectories",
@@ -55,7 +73,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 441,
+      "likes": 0,
+      "lastModified": "2026-09-23"
     },
     {
       "id": "rmems/browser-tool-use-trajectories",
@@ -64,7 +85,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 411,
+      "likes": 1,
+      "lastModified": "2026-10-24"
     },
     {
       "id": "rmems/cache-stampede-trajectories",
@@ -73,7 +97,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 324,
+      "likes": 0,
+      "lastModified": "2026-09-23"
     },
     {
       "id": "rmems/cascading-error-recovery-trajectories",
@@ -82,7 +109,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 467,
+      "likes": 0,
+      "lastModified": "2026-09-01"
     },
     {
       "id": "rmems/code-review-preference-pairs",
@@ -91,7 +121,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 544,
+      "likes": 0,
+      "lastModified": "2026-09-23"
     },
     {
       "id": "rmems/csv-excel-ingest-trajectories",
@@ -100,7 +133,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 235,
+      "likes": 0,
+      "lastModified": "2026-09-01"
     },
     {
       "id": "rmems/data-pipeline-repair-trajectories",
@@ -109,7 +145,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 166,
+      "likes": 0,
+      "lastModified": "2026-09-17"
     },
     {
       "id": "rmems/db-migration-repair-trajectories",
@@ -118,12 +157,18 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 164,
+      "likes": 0,
+      "lastModified": "2026-09-01"
     },
     {
       "id": "rmems/delegation-planning-trajectories",
       "dataFiles": 1,
-      "status": []
+      "status": [],
+      "downloads": 82,
+      "likes": 0,
+      "lastModified": "2026-10-22"
     },
     {
       "id": "rmems/distributed-lock-trajectories",
@@ -132,7 +177,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 188,
+      "likes": 0,
+      "lastModified": "2026-09-01"
     },
     {
       "id": "rmems/docker-build-cache-trajectories",
@@ -141,7 +189,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 185,
+      "likes": 0,
+      "lastModified": "2026-09-23"
     },
     {
       "id": "rmems/email-webhook-retry-trajectories",
@@ -150,7 +201,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 82,
+      "likes": 0,
+      "lastModified": "2026-10-24"
     },
     {
       "id": "rmems/eval-harness-trajectories",
@@ -159,12 +213,18 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 832,
+      "likes": 1,
+      "lastModified": "2026-10-24"
     },
     {
       "id": "rmems/execution-verified-repair-trajectories",
       "dataFiles": 3,
-      "status": []
+      "status": [],
+      "downloads": 106,
+      "likes": 0,
+      "lastModified": "2026-10-22"
     },
     {
       "id": "rmems/failure-as-fuel-preference-cascade",
@@ -173,7 +233,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 282,
+      "likes": 0,
+      "lastModified": "2026-09-18"
     },
     {
       "id": "rmems/failure-as-fuel-preference-cascade-grok46",
@@ -182,7 +245,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 154,
+      "likes": 0,
+      "lastModified": "2026-09-04"
     },
     {
       "id": "rmems/feature-flag-debug-trajectories",
@@ -191,7 +257,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 166,
+      "likes": 0,
+      "lastModified": "2026-09-01"
     },
     {
       "id": "rmems/flaky-test-quarantine-trajectories",
@@ -200,12 +269,18 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 151,
+      "likes": 0,
+      "lastModified": "2026-09-01"
     },
     {
       "id": "rmems/gaming-telemetry",
       "dataFiles": 1,
-      "status": []
+      "status": [],
+      "downloads": 47,
+      "likes": 0,
+      "lastModified": "2026-08-16"
     },
     {
       "id": "rmems/git-ops-recovery-trajectories",
@@ -214,7 +289,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 351,
+      "likes": 0,
+      "lastModified": "2026-09-23"
     },
     {
       "id": "rmems/graphql-nplusone-trajectories",
@@ -223,28 +301,40 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 138,
+      "likes": 0,
+      "lastModified": "2026-09-01"
     },
     {
       "id": "rmems/grok-1-dissect-artifacts",
       "dataFiles": 26,
       "status": [
         "personal-research"
-      ]
+      ],
+      "downloads": 73,
+      "likes": 0,
+      "lastModified": "2026-08-10"
     },
     {
       "id": "rmems/grok-1-goz1-packs",
       "dataFiles": 61,
       "status": [
         "personal-research"
-      ]
+      ],
+      "downloads": 104,
+      "likes": 0,
+      "lastModified": "2026-08-24"
     },
     {
       "id": "rmems/grok-1-ternary-quant-experiments",
       "dataFiles": 49,
       "status": [
         "personal-research"
-      ]
+      ],
+      "downloads": 70,
+      "likes": 0,
+      "lastModified": "2026-08-25"
     },
     {
       "id": "rmems/incident-response-oncall-trajectories",
@@ -253,7 +343,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 890,
+      "likes": 0,
+      "lastModified": "2026-09-01"
     },
     {
       "id": "rmems/infra-as-code-trajectories",
@@ -262,7 +355,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 314,
+      "likes": 0,
+      "lastModified": "2026-09-01"
     },
     {
       "id": "rmems/k8s-crashloop-trajectories",
@@ -271,7 +367,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 40,
+      "likes": 0,
+      "lastModified": "2026-09-01"
     },
     {
       "id": "rmems/llm-eval-flakiness-trajectories",
@@ -280,7 +379,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 402,
+      "likes": 1,
+      "lastModified": "2026-09-23"
     },
     {
       "id": "rmems/log-redaction-trajectories",
@@ -289,7 +391,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 235,
+      "likes": 0,
+      "lastModified": "2026-09-01"
     },
     {
       "id": "rmems/long-horizon-coding-trajectories",
@@ -298,7 +403,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 1661,
+      "likes": 0,
+      "lastModified": "2026-09-23"
     },
     {
       "id": "rmems/mcp-tool-schema-drift-trajectories",
@@ -307,12 +415,18 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 197,
+      "likes": 0,
+      "lastModified": "2026-09-12"
     },
     {
       "id": "rmems/mcp-tool-use-episodes",
       "dataFiles": 1,
-      "status": []
+      "status": [],
+      "downloads": 97,
+      "likes": 0,
+      "lastModified": "2026-10-22"
     },
     {
       "id": "rmems/monorepo-dep-bump-trajectories",
@@ -321,7 +435,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 414,
+      "likes": 0,
+      "lastModified": "2026-09-23"
     },
     {
       "id": "rmems/multi-agent-coordination-transcripts",
@@ -330,7 +447,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 485,
+      "likes": 0,
+      "lastModified": "2026-09-17"
     },
     {
       "id": "rmems/multi-agent-ouroboros-swarm",
@@ -339,7 +459,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 211,
+      "likes": 0,
+      "lastModified": "2026-09-12"
     },
     {
       "id": "rmems/multi-agent-ouroboros-swarm-grok46",
@@ -348,7 +471,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 187,
+      "likes": 0,
+      "lastModified": "2026-09-04"
     },
     {
       "id": "rmems/neuromorphic-event-language-bridge",
@@ -357,7 +483,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 223,
+      "likes": 0,
+      "lastModified": "2026-09-08"
     },
     {
       "id": "rmems/neuromorphic-event-language-bridge-grok46",
@@ -366,7 +495,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 192,
+      "likes": 0,
+      "lastModified": "2026-09-04"
     },
     {
       "id": "rmems/notebook-to-pipeline-trajectories",
@@ -375,7 +507,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 247,
+      "likes": 0,
+      "lastModified": "2026-09-01"
     },
     {
       "id": "rmems/observability-debug-trajectories",
@@ -384,12 +519,18 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 410,
+      "likes": 0,
+      "lastModified": "2026-10-24"
     },
     {
       "id": "rmems/operation-prometheus-trajectories",
       "dataFiles": 2,
-      "status": []
+      "status": [],
+      "downloads": 111,
+      "likes": 0,
+      "lastModified": "2026-10-20"
     },
     {
       "id": "rmems/oracle-grounded-neuromorphic-20261006",
@@ -398,7 +539,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 149,
+      "likes": 0,
+      "lastModified": "2026-10-20"
     },
     {
       "id": "rmems/package-release-trajectories",
@@ -407,7 +551,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 337,
+      "likes": 0,
+      "lastModified": "2026-09-23"
     },
     {
       "id": "rmems/payment-idempotency-trajectories",
@@ -416,7 +563,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 52,
+      "likes": 0,
+      "lastModified": "2026-09-01"
     },
     {
       "id": "rmems/prompt-cache-invalidation-trajectories",
@@ -425,7 +575,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 276,
+      "likes": 0,
+      "lastModified": "2026-09-23"
     },
     {
       "id": "rmems/proto-breaking-change-trajectories",
@@ -434,7 +587,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 385,
+      "likes": 0,
+      "lastModified": "2026-09-23"
     },
     {
       "id": "rmems/python-function-repair-20261006",
@@ -443,7 +599,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 204,
+      "likes": 0,
+      "lastModified": "2026-10-20"
     },
     {
       "id": "rmems/queue-backpressure-trajectories",
@@ -452,7 +611,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 58,
+      "likes": 0,
+      "lastModified": "2026-09-01"
     },
     {
       "id": "rmems/rag-retrieval-debug-trajectories",
@@ -461,7 +623,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 390,
+      "likes": 0,
+      "lastModified": "2026-10-24"
     },
     {
       "id": "rmems/rate-limit-backoff-trajectories",
@@ -470,7 +635,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 62,
+      "likes": 0,
+      "lastModified": "2026-09-01"
     },
     {
       "id": "rmems/safety-calibration-cases",
@@ -479,7 +647,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 321,
+      "likes": 0,
+      "lastModified": "2026-09-01"
     },
     {
       "id": "rmems/sandbox-refusal-trajectories",
@@ -488,7 +659,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 453,
+      "likes": 0,
+      "lastModified": "2026-09-23"
     },
     {
       "id": "rmems/search-index-rebuild-trajectories",
@@ -497,7 +671,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 133,
+      "likes": 0,
+      "lastModified": "2026-10-24"
     },
     {
       "id": "rmems/secret-scan-remediation-trajectories",
@@ -506,12 +683,18 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 1232,
+      "likes": 0,
+      "lastModified": "2026-09-21"
     },
     {
       "id": "rmems/SEMM-Latent-Telemetry",
       "dataFiles": 149,
-      "status": []
+      "status": [],
+      "downloads": 353,
+      "likes": 0,
+      "lastModified": "2026-07-24"
     },
     {
       "id": "rmems/sparse-reward-long-tasks",
@@ -520,12 +703,18 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 432,
+      "likes": 0,
+      "lastModified": "2026-10-24"
     },
     {
       "id": "rmems/Spikenaut-SNN-Telemetry",
       "dataFiles": 48,
-      "status": []
+      "status": [],
+      "downloads": 358,
+      "likes": 0,
+      "lastModified": "2026-10-24"
     },
     {
       "id": "rmems/ssl-cert-rotation-trajectories",
@@ -534,7 +723,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 48,
+      "likes": 0,
+      "lastModified": "2026-09-01"
     },
     {
       "id": "rmems/thalamic-relay-trajectories",
@@ -543,7 +735,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 318,
+      "likes": 0,
+      "lastModified": "2026-09-18"
     },
     {
       "id": "rmems/thalamic-relay-trajectories-grok46",
@@ -552,7 +747,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 264,
+      "likes": 0,
+      "lastModified": "2026-09-04"
     },
     {
       "id": "rmems/tool-use-preference-pairs",
@@ -561,7 +759,10 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 176,
+      "likes": 0,
+      "lastModified": "2026-09-23"
     },
     {
       "id": "rmems/websocket-reconnect-trajectories",
@@ -570,13 +771,19 @@
         "research-only",
         "raw-uncurated",
         "not-training-data"
-      ]
+      ],
+      "downloads": 63,
+      "likes": 0,
+      "lastModified": "2026-09-01"
     }
   ],
   "models": [
     {
       "id": "rmems/Spikenaut-SNN",
-      "dataFiles": 11
+      "dataFiles": 11,
+      "downloads": 46,
+      "likes": 2,
+      "lastModified": "2026-09-29"
     }
   ],
   "collections": [
