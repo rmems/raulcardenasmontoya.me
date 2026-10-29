@@ -39,6 +39,3 @@
 
   .about-profile figure { max-width: 420px; }
 }
-
-.about-photos { display: grid; grid-template-columns: repeat(3, minmax(0, 12rem)); gap: clamp(0.6rem, 2vw, 1rem); margin: 0 0 clamp(2rem, 4vw, 3rem); padding: 0; list-style: none; }
-.about-photos img { display: block; width: 100%; height: auto; border-radius: 4px; }
