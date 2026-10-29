@@ -1,0 +1,51 @@
+# Base44 sandbox dev environment.
+#
+# Runs the Astro dev server from the cloned source (bind-mounted) so edits appear
+# live in the preview. This file is sandbox-only; production stays GitHub Pages
+# (see README.md / .github/workflows/deploy.yml).
+#
+#   docker compose -f docker-compose.base44.yml up -d --build
+#
+# The site is fully static (no database, no API, no external credentials). The
+# Rust/WASM adapter packages under public/wasm/ are committed build output, so the
+# dev server needs only Node and `npm ci`.
+
+services:
+  web:
+    image: node:22-bookworm
+    working_dir: /app
+    # Development command: install from the committed lockfile, then run `astro dev`
+    # bound to all interfaces on port 3000 (the sandbox preview port).
+    command:
+      - sh
+      - -ec
+      - |
+        npm ci --ignore-scripts --no-audit --no-fund
+        exec npm run dev -- --host 0.0.0.0 --port 3000
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./:/app
+      # Dependencies live in a volume so the host checkout stays untouched.
+      - node_modules:/app/node_modules
+    environment:
+      - NODE_ENV=development
+      # Passed by the platform; Vite >= 6.1 appends it to the dev server's
+      # allowedHosts so the proxied preview hostname is accepted.
+      - __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS
+      - BASE44_PREVIEW_MODE
+    healthcheck:
+      # Probe the running dev server over HTTP (no curl in the image, so use Node).
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 180s
+    restart: on-failure
+
+volumes:
+  node_modules:
