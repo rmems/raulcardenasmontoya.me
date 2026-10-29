@@ -3,6 +3,8 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+// Files whose links are checked. Markdown is in on purpose: notes hold hand-written links.
+const isScanned = (path) => /\.(astro|css|json|md|mdx|mjs|ts)$/.test(path);
 
 test('portfolio content model exposes the three named projects and clear publishing placeholders', () => {
   assert.equal(existsSync(new URL('../src/data/projects.ts', import.meta.url)), true);
@@ -286,6 +288,73 @@ test('public identity links use the verified profile destinations', () => {
   assert.match(identity, /threads: 'https:\/\/www\.threads\.com\/@KeepOnSpiking'/);
 });
 
+test('every profile link carries rel="me" and the 404 stays out of search results', () => {
+  const layout = read('src/layouts/BaseLayout.astro');
+  const contact = read('src/pages/contact.astro');
+  const home = read('src/pages/index.astro');
+
+  // The footer is the only place that builds profile links from `footerLinks`; it sets rel="me" inline.
+  assert.match(layout, /rel=\{link\.external \? 'me noopener noreferrer' : undefined\}/);
+  assert.match(read('src/data/site.ts'), /label: 'Limen Neural', href: site\.social\.limenneural, external: true/);
+  assert.match(contact, /const profileRel = 'me noopener noreferrer'/);
+  assert.match(contact, /profiles\.map\(\(profile\) => <a href=\{profile\.href\} target="_blank" rel=\{profile\.rel\}>/);
+  assert.match(contact, /label: 'Limen Neural', href: site\.social\.limenneural, detail: '@Limen-Neural', rel: profileRel/);
+  assert.match(home, /href=\{site\.social\.linkedin\} target="_blank" rel="me noopener noreferrer"/);
+  assert.match(home, /href=\{site\.social\.github\} target="_blank" rel="me noopener noreferrer"/);
+
+  // The 404 page is the one route a crawler must not rank, and no other page sets noindex.
+  assert.match(read('src/pages/404.astro'), /<BaseLayout title="Page not found"[^>]*noindex>/);
+  assert.match(layout, /\{noindex \? <meta name="robots" content="noindex" \/> : null\}/);
+  for (const page of ['src/pages/index.astro', 'src/pages/about.astro', 'src/pages/contact.astro', 'src/pages/work.astro']) {
+    assert.doesNotMatch(read(page), /\bnoindex\b/, `${page} must stay indexable`);
+  }
+});
+
+test('the head metadata names one title, one description and one site name', () => {
+  const layout = read('src/layouts/BaseLayout.astro');
+
+  assert.match(layout, /<meta property="og:site_name" content=\{site\.fullName\} \/>/);
+  // The card alt used to hardcode "AI/ML systems engineer", disagreeing with site.title and the JSON-LD jobTitle.
+  assert.doesNotMatch(layout, /AI\/ML systems engineer/);
+  assert.match(layout, /const socialImageAlt = `\$\{site\.fullName\} — \$\{site\.title\}, raulcardenasmontoya\.me`;/);
+  assert.equal([...layout.matchAll(/content=\{socialImageAlt\}/g)].length, 2, 'og:image:alt and twitter:image:alt');
+});
+
+test('every profile URL in the source is a canonical site.social destination (#61)', () => {
+  const identity = read('src/data/site.ts');
+  const bare = (url) => url.replace(/^https?:\/\/(?:www\.)?/, '');
+  const allowed = new Set([...identity.matchAll(/https:\/\/[^'"\s]+/g)].map(([url]) => bare(url)));
+  // A profile destination written anywhere, with or without its scheme and `www`. The lookbehind stops the
+  // match starting mid-hostname: `https://www.linux.com/news/` must not read as `x.com/news/`.
+  const profileUrl = /(?<![\w.-])(?:https?:\/\/)?(?:www\.)?(?:linkedin\.com\/in|instagram\.com|threads\.com|x\.com|twitter\.com|facebook\.com)\/[^\s'"`<>)]*/g;
+
+  // The superseded LinkedIn slugs (still on other profiles) and the old Instagram handle never come back.
+  assert.doesNotMatch(identity, /-8aa09839a|raccooncity_resident|facebook/i);
+
+  // Sample strings pin both review findings: a lookalike host is not a profile link, and markdown is scanned
+  // so a slug pasted into a note cannot ship.
+  const matched = (text) => [...text.matchAll(profileUrl)].map(([url]) => url);
+  assert.deepEqual(matched('See https://www.linux.com/news/ and https://notx.com/a for details.'), []);
+  assert.deepEqual(matched('[LinkedIn](https://www.linkedin.com/in/raul-cardenas-montoya)'), ['https://www.linkedin.com/in/raul-cardenas-montoya']);
+  assert.equal(isScanned('src/content/notes/first-field-note.md'), true);
+
+  for (const file of readdirSync(new URL('../src', import.meta.url), { recursive: true })) {
+    const path = `src/${file}`;
+    if (!isScanned(path)) continue;
+    for (const [url] of read(path).matchAll(profileUrl)) {
+      assert.ok(allowed.has(bare(url)), `${path} links ${url}, which is not in site.social`);
+    }
+  }
+
+  // #56 and #60 take the LinkedIn slug and the Instagram handle from the handoff, so derive them from site.ts.
+  const handoff = read('CONTENT.md');
+  const linkedin = [...allowed].find((url) => url.startsWith('linkedin.com/in/'));
+  // The complete backticked URL, not a prefix: a stale slug starts with the canonical one, so `includes()` alone
+  // would still pass if the canonical entry were removed from CONTENT.md.
+  assert.ok(handoff.includes(`\`https://www.${linkedin}\``), 'CONTENT.md names the canonical LinkedIn URL in backticks');
+  assert.match(handoff, /Instagram, X and Threads all use `KeepOnSpiking`/);
+});
+
 test('identity carries the AI Engineer title, every profile link, and Person JSON-LD', () => {
   const identity = read('src/data/site.ts');
   const layout = read('src/layouts/BaseLayout.astro');
@@ -294,8 +363,10 @@ test('identity carries the AI Engineer title, every profile link, and Person JSO
   assert.match(identity, /x: 'https:\/\/x\.com\/KeepOnSpiking'/);
   assert.match(identity, /cratesio: 'https:\/\/crates\.io\/users\/rmems'/);
   assert.doesNotMatch(identity, /cursor:/);
-  assert.match(layout, /'@type': 'Person'/);
+  // Limen Neural is a profile destination like the rest: in `social`, in `sameAs`, and rel="me" on the site.
+  assert.match(identity, /limenneural: 'https:\/\/github\.com\/Limen-Neural'/);
   assert.match(layout, /sameAs: Object\.values\(site\.social\)/);
+  assert.match(layout, /'@type': 'Person'/);
   assert.match(layout, /application\/ld\+json/);
   assert.match(layout, /`\$\{site\.fullName\} — \$\{site\.title\}`/);
 });

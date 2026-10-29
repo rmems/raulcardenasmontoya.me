@@ -3,11 +3,28 @@
 Before publishing, update `src/data/site.ts`:
 
 - `email` and the résumé (`resumePath`, `/resume.pdf`) are set; keep `src/data/site.ts` free of `null` placeholders.
-- Profile links in `site.social` are live and are the source of truth for every external profile:
-  - LinkedIn is `https://www.linkedin.com/in/raul-cardenas-montoya` (verified to load).
-  - Instagram, X and Threads all use `KeepOnSpiking`.
+- Profile links in `site.social` are the source of truth for every external profile and for #56 and #60 (#61):
+  - Canonical site URL: `https://raulcardenasmontoya.me`. It is `site` in `astro.config.mjs` and drives
+    the canonical link, `og:url`, the sitemap and the Person JSON-LD; every profile should link it.
+  - LinkedIn is `https://www.linkedin.com/in/raul-cardenas-montoya`. Opened in a browser on 2026-10-29: the
+    slug loads, the headline leads with "AI Engineer", and the profile lists `raulcardenasmontoya.me` under
+    Website. That settles the slug for #56 and #60. Two pre-rename URLs are still in circulation and must
+    not be copied back: `https://www.linkedin.com/in/raul-cardenas-montoya-8aa09839a` and
+    `https://www.linkedin.com/in/raul-montoya-cardenas-8aa09839a` (the name order swapped).
+  - Instagram, X and Threads all use `KeepOnSpiking`. The Instagram account was renamed from
+    `raccooncity_resident`; no page or profile may link that handle again.
   - Never link Facebook; there is no Facebook account.
-- Every external profile (GitHub, X, LinkedIn, Hugging Face, Instagram, Threads, crates.io) should show "Raul Cardenas Montoya" and link `https://raulcardenasmontoya.me`.
+  - LinkedIn answers automated requests with HTTP 999 on every `/in/` URL, so a script cannot re-check it;
+    confirm any change in a browser instead.
+- Every external profile (GitHub, X, LinkedIn, Hugging Face, Instagram, Threads, crates.io) should show
+  "Raul Cardenas Montoya" and link `https://raulcardenasmontoya.me`. Confirmed on 2026-10-29 for GitHub (its
+  website field, plus Instagram, Threads, X and LinkedIn social accounts) and LinkedIn. **Hugging Face is
+  the last one to fix:** its profile links the pre-rename `raul-montoya-cardenas-8aa09839a` slug and carries
+  the site URL only as plain text in its bio; Instagram, X and Threads bios need a signed-in session to
+  check.
+- Limen Neural is `https://github.com/Limen-Neural` in `site.social`, like any other profile: it renders in the
+  footer and on `/contact/`, carries `rel="me"`, and appears in the Person JSON-LD `sameAs`. Adding a profile
+  means one line in `site.social` plus its footer and contact entries; the layout holds no URLs.
 
 For project cards, edit `src/data/projects.ts`. Add public links only when each repository, case study, or demo is ready to share. The included summaries intentionally avoid performance claims and invented outcomes.
 

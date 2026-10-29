@@ -6,6 +6,7 @@ export const site = {
   email: 'montoyaraul34@gmail.com',
   social: {
     github: 'https://github.com/rmems',
+    limenneural: 'https://github.com/Limen-Neural',
     linkedin: 'https://www.linkedin.com/in/raul-cardenas-montoya',
     huggingface: 'https://huggingface.co/rmems',
     x: 'https://x.com/KeepOnSpiking',
@@ -32,6 +33,7 @@ export const footerLinks: readonly FooterLink[] = [
   { label: site.email, href: `mailto:${site.email}` },
   ...(site.resumePath ? [{ label: 'Résumé (PDF)', href: site.resumePath }] : []),
   { label: 'GitHub', href: site.social.github, external: true },
+  { label: 'Limen Neural', href: site.social.limenneural, external: true, ariaLabel: 'Limen Neural on GitHub (opens in new tab)' },
   { label: 'Hugging Face', href: site.social.huggingface, external: true },
   { label: 'crates.io', href: site.social.cratesio, external: true },
   { label: 'X', href: site.social.x, external: true, ariaLabel: 'Raul on X (opens in new tab)' },
