@@ -286,6 +286,31 @@ test('public identity links use the verified profile destinations', () => {
   assert.match(identity, /threads: 'https:\/\/www\.threads\.com\/@KeepOnSpiking'/);
 });
 
+test('every profile URL in the source is a canonical site.social destination (#61)', () => {
+  const identity = read('src/data/site.ts');
+  const bare = (url) => url.replace(/^https?:\/\/(?:www\.)?/, '');
+  const allowed = new Set([...identity.matchAll(/https:\/\/[^'"\s]+/g)].map(([url]) => bare(url)));
+  // A profile destination written anywhere, with or without its scheme and `www`.
+  const profileUrl = /(?:https?:\/\/)?(?:www\.)?(?:linkedin\.com\/in|instagram\.com|threads\.com|x\.com|twitter\.com|facebook\.com)\/[^\s'"`<>)]*/g;
+
+  // The superseded LinkedIn slugs (still on other profiles) and the old Instagram handle never come back.
+  assert.doesNotMatch(identity, /-8aa09839a|raccooncity_resident|facebook/i);
+
+  for (const file of readdirSync(new URL('../src', import.meta.url), { recursive: true })) {
+    const path = `src/${file}`;
+    if (!/\.(astro|css|json|mjs|ts)$/.test(path)) continue;
+    for (const [url] of read(path).matchAll(profileUrl)) {
+      assert.ok(allowed.has(bare(url)), `${path} links ${url}, which is not in site.social`);
+    }
+  }
+
+  // #56 and #60 take the LinkedIn slug and the Instagram handle from the handoff, so derive them from site.ts.
+  const handoff = read('CONTENT.md');
+  const linkedin = [...allowed].find((url) => url.startsWith('linkedin.com/in/'));
+  assert.ok(handoff.includes(`https://www.${linkedin}`), 'CONTENT.md names the canonical LinkedIn URL');
+  assert.match(handoff, /Instagram, X and Threads all use `KeepOnSpiking`/);
+});
+
 test('identity carries the AI Engineer title, every profile link, and Person JSON-LD', () => {
   const identity = read('src/data/site.ts');
   const layout = read('src/layouts/BaseLayout.astro');

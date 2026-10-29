@@ -3,11 +3,20 @@
 Before publishing, update `src/data/site.ts`:
 
 - `email` and the résumé (`resumePath`, `/resume.pdf`) are set; keep `src/data/site.ts` free of `null` placeholders.
-- Profile links in `site.social` are live and are the source of truth for every external profile:
-  - LinkedIn is `https://www.linkedin.com/in/raul-cardenas-montoya` (verified to load).
-  - Instagram, X and Threads all use `KeepOnSpiking`.
+- Profile links in `site.social` are the source of truth for every external profile and for #56 and #60 (#61):
+  - Canonical site URL: `https://raulcardenasmontoya.me`. It is `site` in `astro.config.mjs` and drives
+    the canonical link, `og:url`, the sitemap and the Person JSON-LD; every profile should link it.
+  - LinkedIn is `https://www.linkedin.com/in/raul-cardenas-montoya`. Two pre-rename URLs still sit on other
+    profiles and must not be copied back: `https://www.linkedin.com/in/raul-cardenas-montoya-8aa09839a`
+    (the GitHub profile website field) and `https://www.linkedin.com/in/raul-montoya-cardenas-8aa09839a`
+    (on Hugging Face). Point those two profiles here instead.
+  - Instagram, X and Threads all use `KeepOnSpiking`. The Instagram account was renamed from
+    `raccooncity_resident`; no page or profile may link that handle again.
   - Never link Facebook; there is no Facebook account.
-- Every external profile (GitHub, X, LinkedIn, Hugging Face, Instagram, Threads, crates.io) should show "Raul Cardenas Montoya" and link `https://raulcardenasmontoya.me`.
+  - LinkedIn answers automated requests with HTTP 999, so its slug and headline can only be confirmed in a
+    browser. Do not change the URL above on the strength of a scripted check.
+- Every external profile (GitHub, X, LinkedIn, Hugging Face, Instagram, Threads, crates.io) should show
+  "Raul Cardenas Montoya" and link `https://raulcardenasmontoya.me`.
 
 For project cards, edit `src/data/projects.ts`. Add public links only when each repository, case study, or demo is ready to share. The included summaries intentionally avoid performance claims and invented outcomes.
 
