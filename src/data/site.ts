@@ -29,7 +29,7 @@ export interface FooterLink {
 // Footer order: contact, then code and research, then social. A new profile is
 // one line here; the layout holds no URLs.
 export const footerLinks: readonly FooterLink[] = [
-  { label: site.email, href: `mailto:${site.email}`, ariaLabel: `Email ${site.fullName}` },
+  { label: site.email, href: `mailto:${site.email}` },
   ...(site.resumePath ? [{ label: 'Résumé (PDF)', href: site.resumePath }] : []),
   { label: 'GitHub', href: site.social.github, external: true },
   { label: 'Hugging Face', href: site.social.huggingface, external: true },
