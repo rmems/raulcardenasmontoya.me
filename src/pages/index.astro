@@ -15,7 +15,7 @@ const stats = [
   { value: counts.mergedPrs, label: 'merged upstream pull requests', dated: `verified ${counts.mergedPrsVerifiedAt}`, href: '/artifacts/#upstream', external: false },
 ];
 // The upstream projects behind the merged-PR count, taken from the same snapshot.
-const upstreamRepos = [...Map.groupBy(upstreamPrs, (pr) => pr.repo)].map(([repo, prs]) => ({ repo, name: repo.split('/')[1], href: `https://github.com/${repo}`, merged: prs.length }));
+const upstreamRepos = [...upstreamPrs.reduce((acc, pr) => acc.set(pr.repo, (acc.get(pr.repo) ?? 0) + 1), new Map<string, number>())].map(([repo, merged]) => ({ repo, name: repo.split('/')[1], href: `https://github.com/${repo}`, merged }));
 ---
 <BaseLayout preloadSerif description={`Rust and Python infrastructure for agentic systems, synthetic data, and model evaluation: ${counts.crates} published Rust crates, ${counts.datasets} Hugging Face datasets, and a spiking-network demo that runs in your browser.`}>
   <NeuromorphicDemo>
