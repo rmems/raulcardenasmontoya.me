@@ -2,13 +2,11 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { site } from '../data/site';
 // rel="me" is the cross-link signal: it tells a crawler these profiles are the same person as this site.
-// The footer already carries it; every other profile link must too. Limen Neural is an org, so it takes
-// the plain rel and is published as `worksFor` in the Person JSON-LD instead.
+// The footer already carries it; every other profile link must too.
 const profileRel = 'me noopener noreferrer';
-const orgRel = 'noopener noreferrer';
 const profiles = [
   { label: 'GitHub', href: site.social.github, detail: '@rmems', rel: profileRel },
-  { label: 'Limen Neural', href: site.org.url, detail: '@Limen-Neural', rel: orgRel },
+  { label: 'Limen Neural', href: site.social.limenneural, detail: '@Limen-Neural', rel: profileRel },
   { label: 'LinkedIn', href: site.social.linkedin, detail: 'Raul Cardenas Montoya', rel: profileRel },
   { label: 'Hugging Face', href: site.social.huggingface, detail: '@rmems', rel: profileRel },
   { label: 'X', href: site.social.x, detail: '@KeepOnSpiking', rel: profileRel },

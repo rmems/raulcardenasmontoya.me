@@ -293,14 +293,12 @@ test('every profile link carries rel="me" and the 404 stays out of search result
   const contact = read('src/pages/contact.astro');
   const home = read('src/pages/index.astro');
 
-  // The footer is the only place that builds profile links from `footerLinks`; it sets rel="me" inline,
-  // except for the org, which opts out with `me: false`.
-  assert.match(layout, /rel=\{link\.external \? `\$\{link\.me === false \? '' : 'me '\}noopener noreferrer` : undefined\}/);
-  assert.match(read('src/data/site.ts'), /label: 'Limen Neural', href: site\.org\.url, external: true, me: false/);
+  // The footer is the only place that builds profile links from `footerLinks`; it sets rel="me" inline.
+  assert.match(layout, /rel=\{link\.external \? 'me noopener noreferrer' : undefined\}/);
+  assert.match(read('src/data/site.ts'), /label: 'Limen Neural', href: site\.social\.limenneural, external: true/);
   assert.match(contact, /const profileRel = 'me noopener noreferrer'/);
-  assert.match(contact, /const orgRel = 'noopener noreferrer'/);
   assert.match(contact, /profiles\.map\(\(profile\) => <a href=\{profile\.href\} target="_blank" rel=\{profile\.rel\}>/);
-  assert.match(contact, /label: 'Limen Neural', href: site\.org\.url, detail: '@Limen-Neural', rel: orgRel/);
+  assert.match(contact, /label: 'Limen Neural', href: site\.social\.limenneural, detail: '@Limen-Neural', rel: profileRel/);
   assert.match(home, /href=\{site\.social\.linkedin\} target="_blank" rel="me noopener noreferrer"/);
   assert.match(home, /href=\{site\.social\.github\} target="_blank" rel="me noopener noreferrer"/);
 
@@ -351,7 +349,9 @@ test('every profile URL in the source is a canonical site.social destination (#6
   // #56 and #60 take the LinkedIn slug and the Instagram handle from the handoff, so derive them from site.ts.
   const handoff = read('CONTENT.md');
   const linkedin = [...allowed].find((url) => url.startsWith('linkedin.com/in/'));
-  assert.ok(handoff.includes(`https://www.${linkedin}`), 'CONTENT.md names the canonical LinkedIn URL');
+  // The complete backticked URL, not a prefix: a stale slug starts with the canonical one, so `includes()` alone
+  // would still pass if the canonical entry were removed from CONTENT.md.
+  assert.ok(handoff.includes(`\`https://www.${linkedin}\``), 'CONTENT.md names the canonical LinkedIn URL in backticks');
   assert.match(handoff, /Instagram, X and Threads all use `KeepOnSpiking`/);
 });
 
@@ -363,12 +363,10 @@ test('identity carries the AI Engineer title, every profile link, and Person JSO
   assert.match(identity, /x: 'https:\/\/x\.com\/KeepOnSpiking'/);
   assert.match(identity, /cratesio: 'https:\/\/crates\.io\/users\/rmems'/);
   assert.doesNotMatch(identity, /cursor:/);
-  // The org is published, but as `worksFor`: `sameAs` lists pages about Raul, and an org is not one.
-  assert.match(identity, /org: \{ name: 'Limen Neural', url: 'https:\/\/github\.com\/Limen-Neural' \}/);
-  assert.doesNotMatch(identity, /social: \{[^}]*Limen-Neural/);
-  assert.match(layout, /worksFor: \{ '@type': 'Organization', name: site\.org\.name, url: site\.org\.url \}/);
-  assert.match(layout, /'@type': 'Person'/);
+  // Limen Neural is a profile destination like the rest: in `social`, in `sameAs`, and rel="me" on the site.
+  assert.match(identity, /limenneural: 'https:\/\/github\.com\/Limen-Neural'/);
   assert.match(layout, /sameAs: Object\.values\(site\.social\)/);
+  assert.match(layout, /'@type': 'Person'/);
   assert.match(layout, /application\/ld\+json/);
   assert.match(layout, /`\$\{site\.fullName\} — \$\{site\.title\}`/);
 });

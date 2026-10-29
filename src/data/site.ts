@@ -6,6 +6,7 @@ export const site = {
   email: 'montoyaraul34@gmail.com',
   social: {
     github: 'https://github.com/rmems',
+    limenneural: 'https://github.com/Limen-Neural',
     linkedin: 'https://www.linkedin.com/in/raul-cardenas-montoya',
     huggingface: 'https://huggingface.co/rmems',
     x: 'https://x.com/KeepOnSpiking',
@@ -15,11 +16,6 @@ export const site = {
   },
   /** Handle for twitter:site and twitter:creator; the profile URL lives in `social.x`. */
   xHandle: '@KeepOnSpiking',
-  /**
-   * The research org Raul maintains. An organisation is not another page about him, so it stays out of
-   * `social` (which feeds Person `sameAs`) and is published as `worksFor` instead.
-   */
-  org: { name: 'Limen Neural', url: 'https://github.com/Limen-Neural' },
   resumePath: '/resume.pdf',
 } as const;
 
@@ -29,8 +25,6 @@ export interface FooterLink {
   /** Spoken name; defaults to the label, plus "(opens in new tab)" for external links. */
   ariaLabel?: string;
   external?: boolean;
-  /** `rel="me"` claims the target represents Raul; set false for an org he maintains. */
-  me?: boolean;
 }
 
 // Footer order: contact, then code and research, then social. A new profile is
@@ -39,7 +33,7 @@ export const footerLinks: readonly FooterLink[] = [
   { label: site.email, href: `mailto:${site.email}` },
   ...(site.resumePath ? [{ label: 'Résumé (PDF)', href: site.resumePath }] : []),
   { label: 'GitHub', href: site.social.github, external: true },
-  { label: 'Limen Neural', href: site.org.url, external: true, me: false, ariaLabel: 'Limen Neural on GitHub (opens in new tab)' },
+  { label: 'Limen Neural', href: site.social.limenneural, external: true, ariaLabel: 'Limen Neural on GitHub (opens in new tab)' },
   { label: 'Hugging Face', href: site.social.huggingface, external: true },
   { label: 'crates.io', href: site.social.cratesio, external: true },
   { label: 'X', href: site.social.x, external: true, ariaLabel: 'Raul on X (opens in new tab)' },
