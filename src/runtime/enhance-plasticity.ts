@@ -33,6 +33,12 @@ import {
   type StimulusName,
 } from './plasticity-lab';
 
+// Absolute, like `wasm-session.ts`: the dev server only rewrites import
+// specifiers that begin with `.` or `/`, and a rewritten `/public` path is
+// refused as a module.
+const wasmModuleUrl = (): string =>
+  new URL(PLASTICITY_WASM_MODULE_URL, globalThis.location?.href ?? 'http://localhost/').href;
+
 /**
  * DOM half of the reward-modulated learning lab (`/labs/plasticity/`). The
  * static page is complete on its own; this binds the controls to a Rust/WASM
@@ -526,7 +532,7 @@ export function bindPlasticityLab(root: HTMLElement, options: BindPlasticityLabO
       golden = decodeEmbeddedGolden(goldenSource.textContent);
       let loaded: PlasticityWasmModule;
       try {
-        loaded = await (options.loadModule ?? (() => import(/* @vite-ignore */ PLASTICITY_WASM_MODULE_URL) as Promise<PlasticityWasmModule>))();
+        loaded = await (options.loadModule ?? (() => import(/* @vite-ignore */ wasmModuleUrl()) as Promise<PlasticityWasmModule>))();
         await (options.initModule ?? ((candidate) => candidate.default()))(loaded);
       } catch (error) {
         throw new PlasticityLabUnavailableError('wasm-init-failed', error instanceof Error ? error.message : String(error));

@@ -12,6 +12,12 @@ import {
   type OpenNirInspectionOptions,
 } from './nir-inspection';
 
+// Absolute, like `wasm-session.ts`: the dev server only rewrites import
+// specifiers that begin with `.` or `/`, and a rewritten `/public` path is
+// refused as a module.
+const wasmModuleUrl = (): string =>
+  new URL(NIR_WASM_MODULE_URL, globalThis.location?.href ?? 'http://localhost/').href;
+
 export const NIR_STATIC_STATUS =
   'Static render of the build-time nir-rs projection. Interactive inspection loads when JavaScript and WebAssembly are available.';
 export const NIR_LOADING_STATUS = 'Loading the Rust/WASM adapter to parse this graph with nir-rs…';
@@ -228,7 +234,7 @@ export function bindNirLab(root: HTMLElement, options: BindNirLabOptions = {}): 
       const opened = await open({
         loadModule:
           options.loadModule ??
-          (() => import(/* @vite-ignore */ NIR_WASM_MODULE_URL) as Promise<NirWasmModule>),
+          (() => import(/* @vite-ignore */ wasmModuleUrl()) as Promise<NirWasmModule>),
         loadEnvelope: () => load(envelopeUrl),
         // Build-emitted JSON string literal of the committed projection; only
         // compared byte for byte with the WASM output, never rendered.
