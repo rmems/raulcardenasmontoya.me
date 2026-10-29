@@ -99,7 +99,7 @@ export const projects: Project[] = [
       evidence:
         '{{crates}} published crates site-wide on crates.io with {{cratesTotalDownloads}} total downloads as of {{cratesAsOf}} (CI and mirror traffic included).',
       next: 'Hold the crate boundaries through the browser demo and plasticity lab compositions, and carry a network from simulator toward hardware export.',
-      headline: '{{crates}} published crates on crates.io',
+      headline: '{{crates}} published crates site-wide on crates.io',
       whyItMatters: 'Small crates with one concern each are easier to test, replace, and carry from a laptop demo to hardware.',
     },
   ),
