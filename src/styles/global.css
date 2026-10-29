@@ -896,4 +896,4 @@ button.button {
 .repo-description { max-width: 48rem; font-size: 0.95rem; line-height: 1.55; }
 .crate-links { display: flex; flex-wrap: wrap; gap: 0.3rem 1.2rem; font-family: var(--mono); font-size: 0.72rem; font-weight: 650; }
 
-.project-headline { margin: 0.2rem 0 0.6rem; color: var(--accent); font-weight: 700; }
+.project-card > p.project-headline { margin: 0.2rem 0 0.6rem; color: var(--accent); font-size: 1rem; font-weight: 700; line-height: 1.4; }
