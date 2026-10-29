@@ -92,6 +92,8 @@ jobs:
         uses: anthropics/claude-code-action@c3d45e8e941e1b2ad7b278c57482d9c5bf1f35b3 # v1.0.99
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # `gh pr view` and `gh pr edit` let @claude read and update a pull
+          # request's title and body; neither runs code from the PR branch.
           # Issue commands, plus the exact `npm run build` but only outside pull
           # requests. For PR events claude-code-action checks out the PR branch
           # (a fork's head included) before Claude runs, so a build there would
@@ -105,4 +107,4 @@ jobs:
           claude_args: |
             --model claude-sonnet-5-5
             --disallowedTools "Edit,MultiEdit,Write,NotebookEdit"
-            --allowedTools "Bash(gh issue create:*),Bash(gh issue list:*),Bash(gh issue view:*),Bash(gh issue comment:*)${{ (github.event_name == 'issues' || (github.event_name == 'issue_comment' && !github.event.issue.pull_request)) && ',Bash(npm run build)' || '' }}"
+            --allowedTools "Bash(gh issue create:*),Bash(gh issue list:*),Bash(gh issue view:*),Bash(gh issue comment:*),Bash(gh pr view:*),Bash(gh pr edit:*)${{ (github.event_name == 'issues' || (github.event_name == 'issue_comment' && !github.event.issue.pull_request)) && ',Bash(npm run build)' || '' }}"
