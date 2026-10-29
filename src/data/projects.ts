@@ -23,6 +23,11 @@ export interface Project {
    * a `{{token}}` filled from the dated snapshots, never typed by hand.
    */
   evidence?: string;
+  /**
+   * One verifiable headline result for the card, short enough to scan. Counts
+   * come from `{{token}}`s; text states only what the linked artifact shows.
+   */
+  headline?: string;
   /** One plain-language sentence saying why the work matters. No numbers, no outcome claims. */
   whyItMatters?: string;
   links: { label: string; href: string }[];
@@ -38,6 +43,7 @@ interface ProjectExtras {
   shippedLabel?: string;
   next?: string;
   evidence?: string;
+  headline?: string;
   whyItMatters?: string;
 }
 
@@ -49,8 +55,8 @@ const project = (
   technologies: string[],
   summary: string,
   questions: string[],
-  { links = [], featured = true, shipped, shippedLabel, next, evidence, whyItMatters }: ProjectExtras = {},
-): Project => ({ name, slug, status, category, technologies, summary, questions, shipped, shippedLabel, next, evidence, whyItMatters, links, featured });
+  { links = [], featured = true, shipped, shippedLabel, next, evidence, headline, whyItMatters }: ProjectExtras = {},
+): Project => ({ name, slug, status, category, technologies, summary, questions, shipped, shippedLabel, next, evidence, headline, whyItMatters, links, featured });
 
 export const projects: Project[] = [
   project(
@@ -71,6 +77,7 @@ export const projects: Project[] = [
       evidence:
         'engram-parser {{engramParserVersion}} on crates.io with {{engramParserDownloads}} downloads as of {{cratesAsOf}} (CI and mirror traffic included).',
       next: 'Widen MoE per-expert extraction coverage and keep the Safetensors and mmap paths behind features while holding wire compatibility with checked-in fixtures.',
+      headline: '{{engramParserDownloads}} crates.io downloads as of {{cratesAsOf}}',
       whyItMatters: 'Checkpoints arrive in different formats, and one careful reader means less glue code before research can start.',
     },
   ),
@@ -92,6 +99,7 @@ export const projects: Project[] = [
       evidence:
         '{{crates}} published crates site-wide on crates.io with {{cratesTotalDownloads}} total downloads as of {{cratesAsOf}} (CI and mirror traffic included).',
       next: 'Hold the crate boundaries through the browser demo and plasticity lab compositions, and carry a network from simulator toward hardware export.',
+      headline: '{{crates}} published crates on crates.io',
       whyItMatters: 'Small crates with one concern each are easier to test, replace, and carry from a laptop demo to hardware.',
     },
   ),
@@ -113,6 +121,7 @@ export const projects: Project[] = [
       evidence:
         '{{factoryDatasets}} datasets across {{factoryCollections}} Synthetic Factory collections, of {{datasets}} public datasets as of {{datasetsAsOf}}.',
       next: 'Keep the generator registry reviewed and the fail-closed rights policy, and extend deterministic curation with auditable compose and export gates.',
+      headline: '{{factoryDatasets}} public datasets on Hugging Face',
       whyItMatters: 'Training data is easier to trust when every line points back to the executable source that made it.',
     },
   ),
@@ -134,6 +143,7 @@ export const projects: Project[] = [
       evidence:
         'Consumes data from the Synthetic Factory collections; no separate crate or dataset published from this brief as of {{datasetsAsOf}}.',
       next: 'Keep every run sealed with manifest, telemetry digests and frozen split, and keep the held-out base-versus-SFT canary the gate before any capability claim.',
+      headline: 'Recorded run: SFT gain was formatting, not capability (10/16 base, 10/16 SFT)',
       whyItMatters: 'Post-training is easier to trust when every run can be rechecked from its manifest instead of its log line.',
     },
   ),
@@ -155,6 +165,7 @@ export const projects: Project[] = [
       evidence:
         'nir-rs {{nirVersion}} on crates.io with {{nirDownloads}} downloads as of {{cratesAsOf}} (CI and mirror traffic included).',
       next: 'Track the reference implementation on the wire for the standard node types, keeping native HDF5 opt-in.',
+      headline: '{{nirDownloads}} crates.io downloads as of {{cratesAsOf}}',
       whyItMatters: 'A shared interchange format lets a network move between simulators and hardware without being rewritten.',
     },
   ),
@@ -176,6 +187,7 @@ export const projects: Project[] = [
       evidence:
         'Infrastructure only; no crate or dataset is published from this brief as of {{cratesAsOf}}.',
       next: 'Keep the node reproducible from versioned configuration and keep the GPU and RTL runner paths inspectable.',
+      headline: 'Self-hosted GitHub Actions runner for GPU and RTL work',
       whyItMatters: 'Durable local workflows make experiments easier to inspect and repeat without depending on workstation state.',
     },
   ),
@@ -199,6 +211,7 @@ export const projects: Project[] = [
         '{{grokDatasets}} datasets in the Grok-1 dissection collection across {{grokCollections}} collections as of {{datasetsAsOf}}.',
       next:
         'The formulation is still being searched for. There is no trusted run artifact to cite yet, and the brief will name a result only once a run is published with its manifest.',
+      headline: '{{grokDatasets}} datasets in the Grok-1 dissection collection',
       whyItMatters: 'The cost of inference decides whether open-weight models can run on premises or at the edge.',
       links: [
         { label: 'Hugging Face collection', href: 'https://huggingface.co/collections/rmems/grok-1-dissection-and-ternary-packing-6a7927095f6a7ca444f003af' },

@@ -13,8 +13,32 @@ export const site = {
     threads: 'https://www.threads.com/@KeepOnSpiking',
     cratesio: 'https://crates.io/users/rmems',
   },
+  /** Handle for twitter:site and twitter:creator; the profile URL lives in `social.x`. */
+  xHandle: '@KeepOnSpiking',
   resumePath: '/resume.pdf',
 } as const;
+
+export interface FooterLink {
+  label: string;
+  href: string;
+  /** Spoken name; defaults to the label, plus "(opens in new tab)" for external links. */
+  ariaLabel?: string;
+  external?: boolean;
+}
+
+// Footer order: contact, then code and research, then social. A new profile is
+// one line here; the layout holds no URLs.
+export const footerLinks: readonly FooterLink[] = [
+  { label: site.email, href: `mailto:${site.email}`, ariaLabel: `Email ${site.fullName}` },
+  ...(site.resumePath ? [{ label: 'Résumé (PDF)', href: site.resumePath }] : []),
+  { label: 'GitHub', href: site.social.github, external: true },
+  { label: 'Hugging Face', href: site.social.huggingface, external: true },
+  { label: 'crates.io', href: site.social.cratesio, external: true },
+  { label: 'X', href: site.social.x, external: true, ariaLabel: 'Raul on X (opens in new tab)' },
+  { label: 'LinkedIn', href: site.social.linkedin, external: true, ariaLabel: 'Raul on LinkedIn (opens in new tab)' },
+  { label: 'Instagram', href: site.social.instagram, external: true, ariaLabel: 'Raul on Instagram (opens in new tab)' },
+  { label: 'Threads', href: site.social.threads, external: true, ariaLabel: 'Raul on Threads (opens in new tab)' },
+];
 
 // Evidence and Notes only show in the nav once their collections have a
 // published entry (decided at build time in SiteHeader.astro). The pages

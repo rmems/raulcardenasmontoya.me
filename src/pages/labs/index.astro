@@ -3,6 +3,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import ExecutionOrigin from '../../components/ExecutionOrigin.astro';
 import NirDiagramPreview from '../../components/NirDiagramPreview.astro';
 import PlasticityNetworkPreview from '../../components/PlasticityNetworkPreview.astro';
+import { ADAPTER_SOURCE_URL } from '../../data/live-runtime';
 import { labs } from '../../data/labs';
 import '../../styles/labs.css';
 ---
@@ -32,5 +33,11 @@ import '../../styles/labs.css';
         </li>
       ))}
     </ol>
+  </section>
+  <section class="section" aria-labelledby="how-the-demo-works" id="how-the-demo-works">
+    <p class="eyebrow">Homepage demo</p>
+    <h2 id="how-the-demo-works">How the live demo works.</h2>
+    <p>Every 50 ms the homepage turns your pointer, or a scripted path when nobody is interacting, into one <code>[x, y, pressure]</code> packet. <code>kinetic-signals</code> turns it into 16 features, <code>axon-encoder</code> encodes them as spikes, <code>neuromod</code> steps its LIF neurons, and <code>synaptic-wiring</code> owns the synapses and delays each pulse travels along. The <a href={ADAPTER_SOURCE_URL}>adapter crate</a> composes them into one WebAssembly module; the canvas only draws what it returns.</p>
+    <p>Before WebAssembly and WebGL start, and whenever they cannot, the drawing on the homepage is the same network: it is rendered at build time from the topology the browser bridge requires of every live snapshot.</p>
   </section>
 </BaseLayout>
