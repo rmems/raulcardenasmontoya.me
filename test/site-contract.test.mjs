@@ -305,6 +305,7 @@ test('every profile link carries rel="me" and the 404 stays out of search result
   // The 404 page is the one route a crawler must not rank, and no other page sets noindex.
   assert.match(read('src/pages/404.astro'), /<BaseLayout title="Page not found"[^>]*noindex>/);
   assert.match(layout, /\{noindex \? <meta name="robots" content="noindex" \/> : null\}/);
+  assert.match(layout, /const \{[^}]*\bnoindex = false(?=\s*[,}])[^}]*\} = Astro\.props;/, 'noindex must default to false');
   for (const page of ['src/pages/index.astro', 'src/pages/about.astro', 'src/pages/contact.astro', 'src/pages/work.astro']) {
     assert.doesNotMatch(read(page), /\bnoindex\b/, `${page} must stay indexable`);
   }
