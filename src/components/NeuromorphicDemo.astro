@@ -1,7 +1,7 @@
 ---
 import DemoTelemetry from './DemoTelemetry.astro';
 import ExecutionOrigin from './ExecutionOrigin.astro';
-import { ADAPTER_SOURCE_URL, crateLayerHref, crateLayerPin, liveCrateLayers } from '../data/live-runtime';
+import { crateLayerHref, crateLayerPin, liveCrateLayers } from '../data/live-runtime';
 import { STATIC_DEMO_STATUS } from '../runtime/demo-runtime';
 import { DEMO_TICK_MS } from '../runtime/demo-stimulus';
 import { DEFAULT_ENCODER_MODE, ENCODER_MODE_NAMES, auditedBrowserTopology } from '../runtime/neuromorphic-adapter';
@@ -91,8 +91,8 @@ const pulseSpeedLabel = `1/${Math.round(1 / PULSE_DISPLAY_SPEED)}`;
       <p class="demo-caption">What you're looking at: a small spiking neural network that runs in your browser when JavaScript and WebGL are available. It's built from four Rust crates I wrote and published, compiled to WebAssembly.</p>
     </div>
     <div class="hero-runtime-copy">
-      <p class="demo-copy">Every 50 ms the site turns your pointer, or a scripted path when nobody is interacting, into one <code>[x, y, pressure]</code> packet. <code>kinetic-signals</code> turns it into 16 features, <code>axon-encoder</code> encodes them as spikes, <code>neuromod</code> steps its LIF neurons, and <code>synaptic-wiring</code> owns the synapses and delays each pulse travels along. The <a href={ADAPTER_SOURCE_URL}>adapter crate</a> composes them into one WebAssembly module; the canvas only draws what it returns.</p>
-      <p class="demo-copy">Before WebAssembly and WebGL start, and whenever they cannot, the drawing above is the same network: it is rendered at build time from the topology the browser bridge requires of every live snapshot. Native CUDA and FPGA results are <a href="/evidence/">recorded separately</a> and never run in this browser, and recorded <a href="/protocol/">protocol data</a> has its own page.</p>
+      <p class="demo-copy">Your pointer becomes a stream of packets that four Rust crates turn into spikes and neuron updates, compiled to WebAssembly. The canvas only draws what they return. <a href="/labs/#how-the-demo-works">How the demo works</a> has the step-by-step contract.</p>
+      <p class="demo-copy">Native CUDA and FPGA results are <a href="/evidence/">recorded separately</a> and never run in this browser, and recorded <a href="/protocol/">protocol data</a> has its own page.</p>
     </div>
     <DemoTelemetry />
   </section>

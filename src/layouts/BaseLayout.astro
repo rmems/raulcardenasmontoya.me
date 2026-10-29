@@ -1,7 +1,7 @@
 ---
 import '../styles/global.css';
 import SiteHeader from '../components/SiteHeader.astro';
-import { site } from '../data/site';
+import { footerLinks, site } from '../data/site';
 interface Props { title?: string; description?: string; /** Pages whose heading uses the serif italic preload it, so the headline does not reflow. */ preloadSerif?: boolean; }
 const { title, description = site.description, preloadSerif = false } = Astro.props;
 const brandTitle = `${site.fullName} — ${site.title}`;
@@ -42,8 +42,12 @@ const socialImage = new URL('/assets/social-card.png', Astro.site);
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content={`${site.fullName} — AI/ML systems engineer, raulcardenasmontoya.me`} />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content={site.xHandle} />
+    <meta name="twitter:creator" content={site.xHandle} />
     <meta name="twitter:title" content={pageTitle} />
     <meta name="twitter:description" content={metaDescription} />
+    <meta name="twitter:image" content={socialImage} />
+    <meta name="twitter:image:alt" content={`${site.fullName} — AI/ML systems engineer, raulcardenasmontoya.me`} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -58,7 +62,7 @@ const socialImage = new URL('/assets/social-card.png', Astro.site);
       <main id="main-content"><slot /></main>
       <footer class="site-footer">
         <p>© {new Date().getFullYear()} {site.fullName}</p>
-        <p><a href={`mailto:${site.email}`}>{site.email}</a> · <a href={site.social.github} target="_blank" rel="noreferrer">GitHub</a> · <a href={site.social.linkedin} target="_blank" rel="noreferrer">LinkedIn</a> · <a href={site.social.instagram} target="_blank" rel="noreferrer">Instagram</a> · <a href={site.social.threads} target="_blank" rel="noreferrer">Threads</a> · <a href={site.resumePath}>Résumé (PDF)</a></p>
+        <nav aria-label="Contact and profiles"><ul class="footer-links">{footerLinks.map((link) => <li><a href={link.href} aria-label={link.ariaLabel ?? (link.external ? `${link.label} (opens in new tab)` : undefined)} target={link.external ? '_blank' : undefined} rel={link.external ? 'me noopener noreferrer' : undefined}>{link.label}</a></li>)}</ul></nav>
       </footer>
     </div>
   </body>
