@@ -286,6 +286,36 @@ test('public identity links use the verified profile destinations', () => {
   assert.match(identity, /threads: 'https:\/\/www\.threads\.com\/@KeepOnSpiking'/);
 });
 
+test('every profile link carries rel="me" and the 404 stays out of search results', () => {
+  const layout = read('src/layouts/BaseLayout.astro');
+  const contact = read('src/pages/contact.astro');
+  const home = read('src/pages/index.astro');
+
+  // The footer is the only place that builds profile links from `footerLinks`; it sets rel="me" inline.
+  assert.match(layout, /rel=\{link\.external \? 'me noopener noreferrer' : undefined\}/);
+  assert.match(contact, /const profileRel = 'me noopener noreferrer'/);
+  assert.match(contact, /profiles\.map\(\(profile\) => <a href=\{profile\.href\} target="_blank" rel=\{profileRel\}>/);
+  assert.match(home, /href=\{site\.social\.linkedin\} target="_blank" rel="me noopener noreferrer"/);
+  assert.match(home, /href=\{site\.social\.github\} target="_blank" rel="me noopener noreferrer"/);
+
+  // The 404 page is the one route a crawler must not rank, and no other page sets noindex.
+  assert.match(read('src/pages/404.astro'), /<BaseLayout title="Page not found"[^>]*noindex>/);
+  assert.match(layout, /\{noindex \? <meta name="robots" content="noindex" \/> : null\}/);
+  for (const page of ['src/pages/index.astro', 'src/pages/about.astro', 'src/pages/contact.astro', 'src/pages/work.astro']) {
+    assert.doesNotMatch(read(page), /\bnoindex\b/, `${page} must stay indexable`);
+  }
+});
+
+test('the head metadata names one title, one description and one site name', () => {
+  const layout = read('src/layouts/BaseLayout.astro');
+
+  assert.match(layout, /<meta property="og:site_name" content=\{site\.fullName\} \/>/);
+  // The card alt used to hardcode "AI/ML systems engineer", disagreeing with site.title and the JSON-LD jobTitle.
+  assert.doesNotMatch(layout, /AI\/ML systems engineer/);
+  assert.match(layout, /const socialImageAlt = `\$\{site\.fullName\} — \$\{site\.title\}, raulcardenasmontoya\.me`;/);
+  assert.equal([...layout.matchAll(/content=\{socialImageAlt\}/g)].length, 2, 'og:image:alt and twitter:image:alt');
+});
+
 test('every profile URL in the source is a canonical site.social destination (#61)', () => {
   const identity = read('src/data/site.ts');
   const bare = (url) => url.replace(/^https?:\/\/(?:www\.)?/, '');

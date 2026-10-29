@@ -2,8 +2,8 @@
 import '../styles/global.css';
 import SiteHeader from '../components/SiteHeader.astro';
 import { footerLinks, site } from '../data/site';
-interface Props { title?: string; description?: string; /** Pages whose heading uses the serif italic preload it, so the headline does not reflow. */ preloadSerif?: boolean; }
-const { title, description = site.description, preloadSerif = false } = Astro.props;
+interface Props { title?: string; description?: string; /** Pages whose heading uses the serif italic preload it, so the headline does not reflow. */ preloadSerif?: boolean; /** Keeps a route out of search results: the 404 page, and anything else that should not rank. */ noindex?: boolean; }
+const { title, description = site.description, preloadSerif = false, noindex = false } = Astro.props;
 const brandTitle = `${site.fullName} — ${site.title}`;
 const pageTitle = title ? `${brandTitle} · ${title}` : brandTitle;
 const metaDescription = description.startsWith(site.fullName) ? description : `${site.fullName} — ${site.title}. ${description}`;
@@ -21,6 +21,8 @@ const personJsonLd = {
 };
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
 const socialImage = new URL('/assets/social-card.png', Astro.site);
+// The card's alt names the same title the JSON-LD and the <title> use, so no metadata source disagrees.
+const socialImageAlt = `${site.fullName} — ${site.title}, raulcardenasmontoya.me`;
 ---
 <!doctype html>
 <html lang="en">
@@ -28,6 +30,7 @@ const socialImage = new URL('/assets/social-card.png', Astro.site);
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={metaDescription} />
+    {noindex ? <meta name="robots" content="noindex" /> : null}
     <meta name="theme-color" content="#f7f8fa" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0f1218" media="(prefers-color-scheme: dark)" />
     <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
@@ -37,17 +40,18 @@ const socialImage = new URL('/assets/social-card.png', Astro.site);
     <meta property="og:description" content={metaDescription} />
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:site_name" content={site.fullName} />
     <meta property="og:image" content={socialImage} />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content={`${site.fullName} — AI/ML systems engineer, raulcardenasmontoya.me`} />
+    <meta property="og:image:alt" content={socialImageAlt} />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content={site.xHandle} />
     <meta name="twitter:creator" content={site.xHandle} />
     <meta name="twitter:title" content={pageTitle} />
     <meta name="twitter:description" content={metaDescription} />
     <meta name="twitter:image" content={socialImage} />
-    <meta name="twitter:image:alt" content={`${site.fullName} — AI/ML systems engineer, raulcardenasmontoya.me`} />
+    <meta name="twitter:image:alt" content={socialImageAlt} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
