@@ -84,6 +84,13 @@ curl -s -o /dev/null -w '%{http_code}\n' http://localhost:3000/
   branches on it.
 - Checks run inside the container: `docker compose -f docker-compose.base44.yml exec -T web npm test`
   (same for `lint`, `typecheck`, `build`).
+- `astro.config.mjs` lists `three` in `vite.optimizeDeps.include`. The hero renderer loads it
+  lazily (`await import('three')` in `src/runtime/topology-renderer.ts`), which the dev server's dep
+  scanner cannot see; without the include, `astro dev` answers that request with 504 (outdated dep)
+  and the hero silently stays on its static diagram. Verify the live path by loading `/` and reading
+  `document.querySelector('[data-neuromorphic-demo]').dataset`: `mode: "live"`, `reason: "ok"`;
+  `mode: "fallback"` / `reason: "renderer-error"` means the renderer failed (the page itself still
+  renders, so an HTTP 200 proves nothing here).
 - The GitHub Pages deploy workflow is unchanged; this compose file is sandbox-only.
 
 ## Conventions visible in the repo
