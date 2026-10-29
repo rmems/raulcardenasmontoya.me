@@ -155,7 +155,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage/rust.lcov,coverage/lcov.info
           disable_search: true
-          override_commit: ${{ github.sha }}
+          override_commit: ${{ github.event.pull_request.head.sha || github.sha }}
           fail_ci_if_error: true
           use_oidc: ${{ steps.codecov_token.outputs.use_oidc == 'true' }}
           verbose: true
