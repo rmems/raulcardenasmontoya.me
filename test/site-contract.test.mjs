@@ -3,6 +3,8 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+// Files whose links are checked. Markdown is in on purpose: notes hold hand-written links.
+const isScanned = (path) => /\.(astro|css|json|md|mdx|mjs|ts)$/.test(path);
 
 test('portfolio content model exposes the three named projects and clear publishing placeholders', () => {
   assert.equal(existsSync(new URL('../src/data/projects.ts', import.meta.url)), true);
@@ -320,15 +322,23 @@ test('every profile URL in the source is a canonical site.social destination (#6
   const identity = read('src/data/site.ts');
   const bare = (url) => url.replace(/^https?:\/\/(?:www\.)?/, '');
   const allowed = new Set([...identity.matchAll(/https:\/\/[^'"\s]+/g)].map(([url]) => bare(url)));
-  // A profile destination written anywhere, with or without its scheme and `www`.
-  const profileUrl = /(?:https?:\/\/)?(?:www\.)?(?:linkedin\.com\/in|instagram\.com|threads\.com|x\.com|twitter\.com|facebook\.com)\/[^\s'"`<>)]*/g;
+  // A profile destination written anywhere, with or without its scheme and `www`. The lookbehind stops the
+  // match starting mid-hostname: `https://www.linux.com/news/` must not read as `x.com/news/`.
+  const profileUrl = /(?<![\w.-])(?:https?:\/\/)?(?:www\.)?(?:linkedin\.com\/in|instagram\.com|threads\.com|x\.com|twitter\.com|facebook\.com)\/[^\s'"`<>)]*/g;
 
   // The superseded LinkedIn slugs (still on other profiles) and the old Instagram handle never come back.
   assert.doesNotMatch(identity, /-8aa09839a|raccooncity_resident|facebook/i);
 
+  // Sample strings pin both review findings: a lookalike host is not a profile link, and markdown is scanned
+  // so a slug pasted into a note cannot ship.
+  const matched = (text) => [...text.matchAll(profileUrl)].map(([url]) => url);
+  assert.deepEqual(matched('See https://www.linux.com/news/ and https://notx.com/a for details.'), []);
+  assert.deepEqual(matched('[LinkedIn](https://www.linkedin.com/in/raul-cardenas-montoya)'), ['https://www.linkedin.com/in/raul-cardenas-montoya']);
+  assert.equal(isScanned('src/content/notes/first-field-note.md'), true);
+
   for (const file of readdirSync(new URL('../src', import.meta.url), { recursive: true })) {
     const path = `src/${file}`;
-    if (!/\.(astro|css|json|mjs|ts)$/.test(path)) continue;
+    if (!isScanned(path)) continue;
     for (const [url] of read(path).matchAll(profileUrl)) {
       assert.ok(allowed.has(bare(url)), `${path} links ${url}, which is not in site.social`);
     }
