@@ -308,7 +308,7 @@ export async function enhanceProtocolViewer(root: HTMLElement, options: Protocol
   try {
     inspector = await createProtocolInspector(
       options.loadWasmModule ??
-        (() => import(/* @vite-ignore */ PROTOCOL_WASM_MODULE_URL) as Promise<ProtocolWasmModule>),
+        (() => import(/* @vite-ignore */ new URL(PROTOCOL_WASM_MODULE_URL, globalThis.location?.href ?? 'http://localhost/').href) as Promise<ProtocolWasmModule>),
     );
   } catch (error) {
     setPage(
