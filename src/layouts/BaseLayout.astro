@@ -17,6 +17,8 @@ const personJsonLd = {
   image: new URL('/assets/raul-cardenas-montoya-512.jpg', Astro.site).href,
   description: site.description,
   sameAs: Object.values(site.social),
+  // Limen Neural is an organisation Raul maintains, so it is `worksFor`, not another page about him.
+  worksFor: { '@type': 'Organization', name: site.org.name, url: site.org.url },
   ...(site.email ? { email: site.email } : {}),
 };
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
@@ -66,7 +68,7 @@ const socialImageAlt = `${site.fullName} — ${site.title}, raulcardenasmontoya.
       <main id="main-content"><slot /></main>
       <footer class="site-footer">
         <p>© {new Date().getFullYear()} {site.fullName}</p>
-        <nav aria-label="Contact and profiles"><ul class="footer-links">{footerLinks.map((link) => <li><a href={link.href} aria-label={link.ariaLabel ?? (link.external ? `${link.label} (opens in new tab)` : undefined)} target={link.external ? '_blank' : undefined} rel={link.external ? 'me noopener noreferrer' : undefined}>{link.label}</a></li>)}</ul></nav>
+        <nav aria-label="Contact and profiles"><ul class="footer-links">{footerLinks.map((link) => <li><a href={link.href} aria-label={link.ariaLabel ?? (link.external ? `${link.label} (opens in new tab)` : undefined)} target={link.external ? '_blank' : undefined} rel={link.external ? `${link.me === false ? '' : 'me '}noopener noreferrer` : undefined}>{link.label}</a></li>)}</ul></nav>
       </footer>
     </div>
   </body>

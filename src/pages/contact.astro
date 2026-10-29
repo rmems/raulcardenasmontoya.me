@@ -2,17 +2,20 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { site } from '../data/site';
 // rel="me" is the cross-link signal: it tells a crawler these profiles are the same person as this site.
-// The footer already carries it; every other profile link must too.
+// The footer already carries it; every other profile link must too. Limen Neural is an org, so it takes
+// the plain rel and is published as `worksFor` in the Person JSON-LD instead.
 const profileRel = 'me noopener noreferrer';
+const orgRel = 'noopener noreferrer';
 const profiles = [
-  { label: 'GitHub', href: site.social.github, detail: '@rmems' },
-  { label: 'LinkedIn', href: site.social.linkedin, detail: 'Raul Cardenas Montoya' },
-  { label: 'Hugging Face', href: site.social.huggingface, detail: '@rmems' },
-  { label: 'X', href: site.social.x, detail: '@KeepOnSpiking' },
-  { label: 'Instagram', href: site.social.instagram, detail: '@KeepOnSpiking' },
-  { label: 'Threads', href: site.social.threads, detail: '@KeepOnSpiking' },
-  { label: 'crates.io', href: site.social.cratesio, detail: 'rmems' },
+  { label: 'GitHub', href: site.social.github, detail: '@rmems', rel: profileRel },
+  { label: 'Limen Neural', href: site.org.url, detail: '@Limen-Neural', rel: orgRel },
+  { label: 'LinkedIn', href: site.social.linkedin, detail: 'Raul Cardenas Montoya', rel: profileRel },
+  { label: 'Hugging Face', href: site.social.huggingface, detail: '@rmems', rel: profileRel },
+  { label: 'X', href: site.social.x, detail: '@KeepOnSpiking', rel: profileRel },
+  { label: 'Instagram', href: site.social.instagram, detail: '@KeepOnSpiking', rel: profileRel },
+  { label: 'Threads', href: site.social.threads, detail: '@KeepOnSpiking', rel: profileRel },
+  { label: 'crates.io', href: site.social.cratesio, detail: 'rmems', rel: profileRel },
 ];
 const hasPublicEmail = Boolean(site.email);
 ---
-<BaseLayout title="Contact" description="Email and public profiles. Open to junior and new-grad AI engineering roles, and to relocating."><section class="page-intro compact" aria-labelledby="contact-title"><p class="eyebrow">Contact</p><h1 id="contact-title">Email me.</h1><p>Email is the fastest way to reach me. I'm open to junior and new-grad AI engineering roles, and to relocating. My <a href={site.resumePath}>résumé is a one-page PDF</a>.</p><img class="contact-photo" src="/assets/raul-cardenas-montoya-contact-512.jpg" srcset="/assets/raul-cardenas-montoya-contact-256.jpg 256w, /assets/raul-cardenas-montoya-contact-512.jpg 512w" sizes="8rem" width="512" height="512" alt="Raul Cardenas Montoya smiling" loading="lazy" decoding="async" /></section><section class="contact-panel" aria-label="Contact links">{hasPublicEmail && <a href={`mailto:${site.email}`}><span>Email</span><strong>{site.email}</strong><span aria-hidden="true">↗</span></a>}{profiles.map((profile) => <a href={profile.href} target="_blank" rel={profileRel}><span>{profile.label}</span><strong>{profile.detail}</strong><span aria-hidden="true">↗</span></a>)}</section></BaseLayout>
+<BaseLayout title="Contact" description="Email and public profiles. Open to junior and new-grad AI engineering roles, and to relocating."><section class="page-intro compact" aria-labelledby="contact-title"><p class="eyebrow">Contact</p><h1 id="contact-title">Email me.</h1><p>Email is the fastest way to reach me. I'm open to junior and new-grad AI engineering roles, and to relocating. My <a href={site.resumePath}>résumé is a one-page PDF</a>.</p><img class="contact-photo" src="/assets/raul-cardenas-montoya-contact-512.jpg" srcset="/assets/raul-cardenas-montoya-contact-256.jpg 256w, /assets/raul-cardenas-montoya-contact-512.jpg 512w" sizes="8rem" width="512" height="512" alt="Raul Cardenas Montoya smiling" loading="lazy" decoding="async" /></section><section class="contact-panel" aria-label="Contact links">{hasPublicEmail && <a href={`mailto:${site.email}`}><span>Email</span><strong>{site.email}</strong><span aria-hidden="true">↗</span></a>}{profiles.map((profile) => <a href={profile.href} target="_blank" rel={profile.rel}><span>{profile.label}</span><strong>{profile.detail}</strong><span aria-hidden="true">↗</span></a>)}</section></BaseLayout>

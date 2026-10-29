@@ -22,6 +22,10 @@ Before publishing, update `src/data/site.ts`:
   the last one to fix:** its profile links the pre-rename `raul-montoya-cardenas-8aa09839a` slug and carries
   the site URL only as plain text in its bio; Instagram, X and Threads bios need a signed-in session to
   check.
+- `site.org` holds the Limen Neural org (`https://github.com/Limen-Neural`). It is published in the footer,
+  on `/contact/` and as `worksFor` in the Person JSON-LD, not in `site.social`: `sameAs` lists pages about
+  Raul, and an organisation he maintains is not one. Org links take plain `rel="noopener noreferrer"`
+  (`me: false`), never `rel="me"`.
 
 For project cards, edit `src/data/projects.ts`. Add public links only when each repository, case study, or demo is ready to share. The included summaries intentionally avoid performance claims and invented outcomes.
 

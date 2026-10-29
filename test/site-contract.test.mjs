@@ -293,10 +293,14 @@ test('every profile link carries rel="me" and the 404 stays out of search result
   const contact = read('src/pages/contact.astro');
   const home = read('src/pages/index.astro');
 
-  // The footer is the only place that builds profile links from `footerLinks`; it sets rel="me" inline.
-  assert.match(layout, /rel=\{link\.external \? 'me noopener noreferrer' : undefined\}/);
+  // The footer is the only place that builds profile links from `footerLinks`; it sets rel="me" inline,
+  // except for the org, which opts out with `me: false`.
+  assert.match(layout, /rel=\{link\.external \? `\$\{link\.me === false \? '' : 'me '\}noopener noreferrer` : undefined\}/);
+  assert.match(read('src/data/site.ts'), /label: 'Limen Neural', href: site\.org\.url, external: true, me: false/);
   assert.match(contact, /const profileRel = 'me noopener noreferrer'/);
-  assert.match(contact, /profiles\.map\(\(profile\) => <a href=\{profile\.href\} target="_blank" rel=\{profileRel\}>/);
+  assert.match(contact, /const orgRel = 'noopener noreferrer'/);
+  assert.match(contact, /profiles\.map\(\(profile\) => <a href=\{profile\.href\} target="_blank" rel=\{profile\.rel\}>/);
+  assert.match(contact, /label: 'Limen Neural', href: site\.org\.url, detail: '@Limen-Neural', rel: orgRel/);
   assert.match(home, /href=\{site\.social\.linkedin\} target="_blank" rel="me noopener noreferrer"/);
   assert.match(home, /href=\{site\.social\.github\} target="_blank" rel="me noopener noreferrer"/);
 
@@ -359,6 +363,10 @@ test('identity carries the AI Engineer title, every profile link, and Person JSO
   assert.match(identity, /x: 'https:\/\/x\.com\/KeepOnSpiking'/);
   assert.match(identity, /cratesio: 'https:\/\/crates\.io\/users\/rmems'/);
   assert.doesNotMatch(identity, /cursor:/);
+  // The org is published, but as `worksFor`: `sameAs` lists pages about Raul, and an org is not one.
+  assert.match(identity, /org: \{ name: 'Limen Neural', url: 'https:\/\/github\.com\/Limen-Neural' \}/);
+  assert.doesNotMatch(identity, /social: \{[^}]*Limen-Neural/);
+  assert.match(layout, /worksFor: \{ '@type': 'Organization', name: site\.org\.name, url: site\.org\.url \}/);
   assert.match(layout, /'@type': 'Person'/);
   assert.match(layout, /sameAs: Object\.values\(site\.social\)/);
   assert.match(layout, /application\/ld\+json/);
