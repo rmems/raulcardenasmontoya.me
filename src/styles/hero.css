@@ -2,8 +2,9 @@
  * Homepage hero with the live neuromorphic mesh (src/components/NeuromorphicDemo.astro).
  *
  * Desktop: copy on the left, the mesh beside it. Tablet: copy first, then the
- * mesh with its caption beside it. Mobile: the mesh below the calls to action
- * at a modest height. The copy never sits over the mesh, and the mesh box is
+ * mesh with its caption beside it. Mobile: the headline, then the mesh at a
+ * modest height, then the rest of the copy and the calls to action. The copy
+ * never sits over the mesh, and the mesh box is
  * reserved before any script runs, so WebGL taking over moves nothing.
  */
 
@@ -403,12 +404,26 @@
 }
 
 @media (max-width: 680px) {
+  /* The demo comes straight after the headline; the longer copy, actions and
+     proof points follow it. The text block dissolves into the hero grid so its
+     children can be ordered around the mesh. This is a visual reorder only:
+     the DOM (and so the reading and tab order) is unchanged. */
   .hero.hero-live {
-    row-gap: 2rem;
-    padding-top: 3.5rem;
+    grid-template-areas: none;
+    row-gap: 0;
+    padding-top: 1.75rem;
   }
 
-  .hero.hero-live h1 { font-size: min(11vw, 3.4rem); }
+  .hero-live > .hero-heading,
+  .hero-live > .hero-mesh { grid-area: auto; }
+
+  .hero-live > .hero-text { display: contents; }
+  .hero-live > .hero-heading { order: 0; }
+  .hero-live .hero-text > h1 { order: 1; margin-bottom: 1.5rem; }
+  .hero-live > .hero-mesh { order: 2; }
+  .hero-live .hero-text > :not(h1) { order: 3; }
+
+  .hero.hero-live h1 { font-size: min(10vw, 3rem); }
 
   .hero-mesh { grid-template-columns: minmax(0, 1fr); }
   .hero-mesh-stage { aspect-ratio: 4 / 3; }
