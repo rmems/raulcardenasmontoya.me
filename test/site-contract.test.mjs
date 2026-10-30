@@ -959,7 +959,7 @@ test('Evidence and Notes stay out of the nav until they have published entries; 
 test('the about page is first person and the main pages carry their own meta descriptions', () => {
   const about = read('src/pages/about.astro');
   assert.match(about, /<h1 id="about-title">About \{site\.fullName\}<\/h1>/);
-  assert.match(about, /<p>I'm \{site\.fullName\}, an AI engineer born in Los Angeles and raised in San Marcos, Texas/);
+  assert.match(about, /<p>I'm \{site\.fullName\}, an AI engineer born in Los Angeles and based in the Austin metropolitan area/);
   assert.match(about, /import '\.\.\/styles\/about\.css';/);
   const headings = [...about.matchAll(/<h2>([^<]+)<\/h2>/g)].map((match) => match[1]);
   assert.deepEqual(headings, ['Why I build AI', 'What I build', 'Education', 'Tools and contact']);
