@@ -959,11 +959,11 @@ test('Evidence and Notes stay out of the nav until they have published entries; 
 test('the about page is first person and the main pages carry their own meta descriptions', () => {
   const about = read('src/pages/about.astro');
   assert.match(about, /<h1 id="about-title">About \{site\.fullName\}<\/h1>/);
-  assert.match(about, /<p>I'm \{site\.fullName\}, an AI engineer born in Los Angeles and based in the Austin metropolitan area/);
+  assert.match(about, /<p>I'm \{site\.fullName\}, an AI engineer born in Los Angeles and raised in San Marcos, Texas/);
   assert.match(about, /import '\.\.\/styles\/about\.css';/);
   const headings = [...about.matchAll(/<h2>([^<]+)<\/h2>/g)].map((match) => match[1]);
   assert.deepEqual(headings, ['Why I build AI', 'What I build', 'Education', 'Tools and contact']);
-  assert.match(about, /description=\{`\$\{site\.fullName\} is an AI engineer in the Austin metropolitan area/);
+  assert.match(about, /description=\{`\$\{site\.fullName\} is an AI engineer in San Marcos, Texas/);
   assert.match(about, /Western Governors University, expected September 2027/);
   assert.match(about, /Texas State University \(Electrical Engineering, Spring 2026\), Concordia University Texas \(Computer Science, Fall 2025\), and Austin Community College \(2019–2020 and 2024–2025\)/);
   assert.doesNotMatch(about, /Concordia Texas University|2023/);
