@@ -4,7 +4,6 @@
 [![codecov](https://codecov.io/gh/rmems/raulcardenasmontoya.me/graph/badge.svg)](https://codecov.io/gh/rmems/raulcardenasmontoya.me)
 [![Qlty maintainability](https://qlty.sh/gh/rmems/projects/raulcardenasmontoya.me/maintainability.svg)](https://qlty.sh/gh/rmems/projects/raulcardenasmontoya.me)
 [![Qlty coverage](https://qlty.sh/gh/rmems/projects/raulcardenasmontoya.me/coverage.svg)](https://qlty.sh/gh/rmems/projects/raulcardenasmontoya.me)
-[![Quality gate](https://sonarcloud.io/api/project_badges/measure?project=rmems_shipoftheseus.dev&metric=alert_status)](https://sonarcloud.io/project/overview?id=rmems_shipoftheseus.dev)
 [![Codacy](https://img.shields.io/badge/Codacy-dashboard-222f29?logo=codacy)](https://app.codacy.com/gh/rmems/raulcardenasmontoya.me/dashboard)
 [![CodeRabbit reviews](https://img.shields.io/coderabbit/prs/github/rmems/raulcardenasmontoya.me?labelColor=171717&color=FF570A&label=CodeRabbit+Reviews)](https://coderabbit.ai)
 
