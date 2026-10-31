@@ -112,7 +112,7 @@ an encoding algorithm. Pointer/touch/demo telemetry flows through the stable,
 mode-independent input contract first — `kinetic-signals` z-score magnitudes
 clamped to `[0, 1]` on 16 channels — and then through exactly one selected
 upstream encoder per step: `DeltaEncoder`, `TemporalEncoder`, or `RateEncoder`
-(at the pinned `axon-encoder = 0.4.0`, `a562767`). Only the streaming
+(at `axon-encoder =0.6.0` from crates.io). Only the streaming
 `Encoder::encode_step` path is used; the batch `Encoder::encode` path on rate
 encoders draws from thread-local RNG and is never called, so every v1 mode is
 deterministic for identical ordered input. The per-tick order is fixed:
@@ -906,7 +906,7 @@ spike-event buffer, and #10's adaptive quality.
   (`STATIC · diagram`, `LIVE · Rust/WASM`, or `UNAVAILABLE · Rust/WASM`) and
   adds "simulating in this browser" only while live. A crate trail
   (`kinetic-signals → axon-encoder → neuromod → synaptic-wiring`) links each
-  layer to its pinned source tree (git dependencies) or crates.io release. The
+  layer to its crates.io release (or its pinned source tree, for a git dependency). The
   pins live in `src/data/live-runtime.ts`; the same test fails when they drift
   from `Cargo.toml` or `Cargo.lock`. They are plain anchors in static HTML: no
   script, no hydration, no layout work after load. The explanation below the
@@ -1187,7 +1187,7 @@ Reward / Penalty button → LabObservation (limbic_critic::Environment)
   `neuromod =0.7.0`. `Limen-Neural/plasticity-lab` `main` at
   `c80fac2eb96a140df9cfd999278bce414a329a56` requires `neuromod 0.7.0`, adds
   frozen evaluation, and forwards `wasm-js`; it is unpublished (its manifest
-  still says 0.2.1), so the adapter pins it by revision like `axon-encoder`.
+  still says 0.2.1), so the adapter pins it by revision; it is the only git dependency left.
   The labs graph resolves a single `neuromod 0.7.0`.
 
 ## Browser build profiles
@@ -1284,7 +1284,9 @@ decision above places it outside the browser.
 | Package | Canonical repository | Version | Exact commit | Selected features and command suffix | Result / exact blocker |
 | --- | --- | ---: | --- | --- | --- |
 | `kinetic-signals` | `rmems/kinetic-signals` | 0.5.0 | `e829a0d5826c0d1175b8878b024a69ce4e1d538b` | `--no-default-features` | **Pass** |
+| `kinetic-signals` | `rmems/kinetic-signals` | `=0.5.0` | crates.io checksum `ee861c5b89d21b02f96fc60dced9583f5393cb86f579d5e61298a900c66d0bf2`; source `3eb02dd7269b214a57bcf7fed219a87577f52969` per the published crate's `.cargo_vcs_info.json` (not the `e829a0d` commit audited above) | default | **Pass** on 2026-10-31 inside the adapter crate with `--locked`: `npm run validate:rust` (clippy, tests, `wasm32-unknown-unknown` check for the default and all-features graphs, and the browser dependency policy). Replaces the git pin. |
 | `axon-encoder` | `Limen-Neural/axon-encoder` | 0.4.0 | `a56276746569e5ecaa78e50882064858835b2438` | `--no-default-features --features serde,wasm-js` | **Pass**. The opt-in `wasm-js` feature enables the supported `getrandom` browser backend; the default-only graph remains intentionally unsupported. |
+| `axon-encoder` | `Limen-Neural/axon-encoder` | `=0.6.0` | crates.io checksum `a9a7cc719717f712b69baf57edb06c056b390a5a23c3fdca39d6e35f9ff59733`; source `bf5ded147f4fbfa433d4781bf02b1576ba6ce638` per the published crate's `.cargo_vcs_info.json` | `default-features = false, features = ["serde", "wasm-js"]` | **Pass** on 2026-10-31 inside the adapter crate with `--locked`: `npm run validate:rust`, including every golden trace fixture. The `wasm-js` feature first shipped in 0.5.0; 0.4.0 on crates.io has none, which is why the earlier pin was a git revision. Replaces the git pin. |
 | `neuromod` | `Limen-Neural/neuromod` (crates.io) | =0.7.0 | `a897cc9` (v0.7.0 tag) | `--no-default-features --features wasm-js` | **Pass**. The opt-in `wasm-js` feature enables the supported `getrandom` browser backend; the default-only graph remains intentionally unsupported. |
 | `synaptic-wiring` | `Limen-Neural/synaptic-wiring` | `=0.3.0` | crates.io checksum `311aed9804c027f786ed5385883bd22469f8cb87fe804b88f77162466b9137b2`; audited source/main `5f70762b4ef09346d0689a65a1a8b20531cfbdab` | `--no-default-features` | **Pass** |
 | `nir-rs` | `Limen-Neural/nir-rs` | 0.4.3 | `1043cbf7bc6acbece250c769b9c2c8f7c58ce681` | `--no-default-features --features serde` (`hdf5` excluded) | **Pass** |
