@@ -18,26 +18,8 @@ export interface LiveCrateLayer {
 }
 
 export const liveCrateLayers: readonly LiveCrateLayer[] = [
-  {
-    name: 'kinetic-signals',
-    role: 'pointer features',
-    version: '0.5.0',
-    source: {
-      kind: 'git',
-      repository: 'https://github.com/rmems/kinetic-signals',
-      revision: 'e829a0d5826c0d1175b8878b024a69ce4e1d538b',
-    },
-  },
-  {
-    name: 'axon-encoder',
-    role: 'spike encoding',
-    version: '0.4.0',
-    source: {
-      kind: 'git',
-      repository: 'https://github.com/Limen-Neural/axon-encoder',
-      revision: 'a56276746569e5ecaa78e50882064858835b2438',
-    },
-  },
+  { name: 'kinetic-signals', role: 'pointer features', version: '0.5.0', source: { kind: 'crates.io' } },
+  { name: 'axon-encoder', role: 'spike encoding', version: '0.6.0', source: { kind: 'crates.io' } },
   { name: 'neuromod', role: 'LIF neurons', version: '0.7.0', source: { kind: 'crates.io' } },
   { name: 'synaptic-wiring', role: 'synapses and delays', version: '0.3.0', source: { kind: 'crates.io' } },
 ];
