@@ -9,6 +9,8 @@
  */
 
 .hero.hero-live {
+  position: relative;
+  isolation: isolate;
   display: grid;
   /* 0.85fr of the 1440 px column pair: with the 1240 px shell, 2 × 3rem
      gutters and the 4.5rem gap, the mesh column is
@@ -87,13 +89,20 @@
   position: relative;
   width: 100%;
   aspect-ratio: 1 / 1;
+  overflow: hidden;
   border: 1px solid var(--line);
+  border-radius: 1.25rem;
+  /* The canvas is transparent (WebGL alpha). A coloured wash here shows
+     through every gap in the mesh and muddies the drawing, so the plate
+     stays a flat paper. */
   background: var(--paper-deep);
+  box-shadow: 0 0.4rem 1.2rem color-mix(in srgb, var(--ink) 10%, transparent);
 }
 
 .hero-mesh-static,
 .hero-mesh .demo-surface {
   position: absolute;
+  z-index: 2;
   top: 0;
   left: 0;
   width: 100%;
@@ -143,7 +152,16 @@
   display: grid;
   gap: 0.75rem;
   min-width: 0;
+  padding: 1rem;
+  border: 1px solid transparent;
+  border-radius: 1rem;
   color: var(--muted);
+  background:
+    linear-gradient(160deg, color-mix(in srgb, var(--surface) 88%, transparent), color-mix(in srgb, var(--paper-deep) 72%, transparent)) padding-box,
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 55%, transparent), color-mix(in srgb, var(--secondary) 45%, transparent), color-mix(in srgb, var(--spike) 35%, transparent)) border-box;
+  box-shadow:
+    0 1rem 2.2rem color-mix(in srgb, var(--ink) 9%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--surface) 70%, transparent);
   font-family: var(--mono);
   font-size: 0.72rem;
   line-height: 1.5;
@@ -199,6 +217,7 @@
   border: 1px solid var(--muted);
   border-radius: 999px;
   background: var(--spike);
+  box-shadow: 0 0 0.65rem color-mix(in srgb, var(--spike) 55%, transparent);
 }
 
 /* Synapses are edges, so their keys are short strokes, not dots. */
@@ -214,18 +233,25 @@
    hiding them never reflows the page. */
 .button.hero-mesh-play {
   position: absolute;
+  z-index: 5;
   right: 0.6rem;
   bottom: 0.6rem;
   min-width: 9.5em;
   justify-content: center;
   padding: 0.5rem 0.8rem;
-  background: var(--paper);
+  border-color: color-mix(in srgb, var(--accent) 65%, var(--secondary));
+  color: var(--paper);
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 55%, var(--secondary)));
+  box-shadow:
+    0 0.45rem 1.2rem color-mix(in srgb, var(--accent) 38%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--surface) 45%, transparent);
   font-family: var(--sans);
   font-size: 0.76rem;
 }
 
 .hero-mesh-input {
   position: absolute;
+  z-index: 5;
   bottom: 1.2rem;
   left: 0.75rem;
   display: none;
@@ -298,11 +324,20 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
+  padding: 0.28rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
   color: var(--ink);
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
   font-family: var(--mono);
   font-size: 0.72rem;
   font-weight: 650;
   cursor: pointer;
+}
+
+.hero-mesh-encoder label:has(> input:checked) {
+  border-color: color-mix(in srgb, var(--accent) 62%, var(--line));
+  box-shadow: 0 0 0.7rem color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
 .hero-mesh-encoder input { margin: 0; accent-color: var(--accent); }
@@ -311,6 +346,11 @@
 /* Room for the longest status message, so status changes do not reflow. */
 .hero-mesh .demo-status {
   min-height: 4.5em;
+  padding: 0.65rem 0.75rem 0.65rem 0.85rem;
+  border-left: 2px solid var(--accent);
+  border-radius: 0 0.6rem 0.6rem 0;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent-soft) 52%, transparent), transparent 78%);
+  box-shadow: inset 0 0 1.4rem color-mix(in srgb, var(--accent) 6%, transparent);
   font-family: var(--sans);
   font-size: 0.86rem;
 }
@@ -355,6 +395,219 @@
 }
 
 .hero-mesh-links a:hover { color: var(--accent); }
+
+/* ------------------------------------------------------------------ */
+/* Spectacle layer: gradient mesh, glass, HUD and entrance motion.     */
+/* Decorative only — every runtime hook, size and token above stays.   */
+/* ------------------------------------------------------------------ */
+
+.live-hero { position: relative; isolation: isolate; overflow-x: clip; }
+
+/* Gradient-mesh backdrop + fine grid behind the whole first screen. */
+.hero.hero-live::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0 -1rem;
+  content: '';
+  pointer-events: none;
+  background:
+    radial-gradient(34rem 22rem at 12% 8%, color-mix(in srgb, var(--accent) 17%, transparent), transparent 68%),
+    radial-gradient(30rem 20rem at 88% 18%, color-mix(in srgb, var(--secondary) 15%, transparent), transparent 68%),
+    radial-gradient(22rem 16rem at 62% 88%, color-mix(in srgb, var(--spike) 9%, transparent), transparent 70%);
+  opacity: 0.9;
+}
+
+.hero.hero-live::after {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  content: '';
+  pointer-events: none;
+  background:
+    linear-gradient(color-mix(in srgb, var(--line) 48%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--line) 48%, transparent) 1px, transparent 1px);
+  background-size: 3.5rem 3.5rem;
+  mask-image: radial-gradient(85% 70% at 50% 32%, black, transparent 78%);
+  -webkit-mask-image: radial-gradient(85% 70% at 50% 32%, black, transparent 78%);
+  opacity: 0.5;
+}
+
+.hero-live > .hero-heading { position: relative; }
+
+@supports ((background-clip: text) or (-webkit-background-clip: text)) {
+  .hero-live h1 em {
+    /* Text-safe stops only (secondary and spike are graphics, below 4.5:1). */
+    background-image: linear-gradient(100deg, var(--accent-strong) 0%, var(--accent) 36%, var(--teal-text) 74%, var(--spike-text));
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+}
+
+.hero-live .hero-stats strong {
+  text-shadow: 0 0 1.6rem color-mix(in srgb, var(--accent) 24%, transparent);
+}
+
+.hero-live .hero-stats a { position: relative; }
+
+.hero-live .hero-stats a::before {
+  position: absolute;
+  top: -1rem;
+  right: 0;
+  left: 0;
+  height: 2px;
+  content: '';
+  background: linear-gradient(90deg, var(--accent), var(--secondary), transparent);
+  opacity: 0.55;
+}
+
+/* Atmosphere stays off the drawing. The canvas is transparent, so orbs,
+   grid and scanlines composite into the mesh and wash the spikes out. */
+.hero-stage-aura { display: none; }
+
+.live-hero[data-mode='live'] .hero-mesh-stage {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+}
+
+/* Corner brackets + mono micro-labels, clear of the control strip. */
+.hero-stage-hud {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  pointer-events: none;
+  font-family: var(--mono);
+}
+
+.hero-stage-hud-label {
+  position: absolute;
+  top: 0.65rem;
+  left: 0.85rem;
+  color: color-mix(in srgb, var(--ink) 78%, var(--accent));
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  text-shadow: 0 0 0.8rem color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.hero-stage-hud-label--end { right: 0.85rem; left: auto; color: var(--muted); }
+
+.hero-stage-corner {
+  position: absolute;
+  width: 1.15rem;
+  height: 1.15rem;
+  border: 0 solid color-mix(in srgb, var(--accent) 72%, var(--surface));
+  filter: drop-shadow(0 0 0.35rem color-mix(in srgb, var(--accent) 55%, transparent));
+}
+
+.hero-stage-corner--tl { top: 0.45rem; left: 0.45rem; border-top-width: 2px; border-left-width: 2px; }
+.hero-stage-corner--tr { top: 0.45rem; right: 0.45rem; border-top-width: 2px; border-right-width: 2px; }
+.hero-stage-corner--bl { bottom: calc(var(--plate-controls) + 0.45rem); left: 0.45rem; border-bottom-width: 2px; border-left-width: 2px; }
+.hero-stage-corner--br { right: 0.45rem; bottom: calc(var(--plate-controls) + 0.45rem); border-right-width: 2px; border-bottom-width: 2px; }
+
+/* Telemetry as a HUD: glass blocks, glowing bars, raster and pip. */
+.live-hero .demo-telemetry {
+  border: 1px solid transparent;
+  border-radius: 1rem;
+  background:
+    linear-gradient(165deg, color-mix(in srgb, var(--surface) 86%, transparent), color-mix(in srgb, var(--paper-deep) 68%, transparent)) padding-box,
+    linear-gradient(120deg, color-mix(in srgb, var(--accent) 48%, transparent), color-mix(in srgb, var(--secondary) 38%, transparent)) border-box;
+  box-shadow: 0 1.2rem 2.6rem color-mix(in srgb, var(--ink) 8%, transparent);
+}
+
+.live-hero .demo-telemetry-summary { align-items: center; padding-inline: 1rem; }
+
+.live-hero .demo-telemetry-body { padding-inline: 1rem; }
+
+.live-hero .demo-telemetry-block {
+  padding: 1rem;
+  border: 1px solid color-mix(in srgb, var(--line) 82%, var(--accent));
+  border-radius: 0.85rem;
+  background: color-mix(in srgb, var(--surface) 64%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--surface) 60%, transparent);
+}
+
+.live-hero .demo-telemetry-layer {
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--line-strong));
+  color: color-mix(in srgb, var(--ink) 72%, var(--accent));
+  background: color-mix(in srgb, var(--accent-soft) 42%, transparent);
+}
+
+.live-hero .demo-telemetry-raster canvas {
+  border-color: color-mix(in srgb, var(--secondary) 42%, var(--line));
+  border-radius: 0.7rem;
+  box-shadow:
+    0 0 1.6rem color-mix(in srgb, var(--secondary) 14%, transparent),
+    inset 0 0 2rem color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.live-hero .demo-telemetry-feature-bar {
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--line));
+  border-radius: 999px;
+}
+
+.live-hero .demo-telemetry-feature-bar span {
+  background: linear-gradient(90deg, var(--accent), var(--secondary), var(--spike));
+  box-shadow: 0 0 0.6rem color-mix(in srgb, var(--secondary) 45%, transparent);
+}
+
+.live-hero .demo-telemetry-chip[data-spiked='true'] span {
+  box-shadow:
+    inset 0 -3px 0 var(--accent),
+    0 0 0.65rem color-mix(in srgb, var(--spike) 38%, transparent);
+}
+
+.hero-runtime { position: relative; isolation: isolate; overflow-x: clip; }
+
+.hero-runtime::before {
+  position: absolute;
+  z-index: -1;
+  inset: 12% auto auto 42%;
+  width: min(26rem, 55%);
+  aspect-ratio: 1;
+  content: '';
+  pointer-events: none;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 14%, transparent), transparent 68%);
+  filter: blur(1.4rem);
+}
+
+@media (prefers-color-scheme: dark) {
+  .hero-mesh-caption,
+  .live-hero .demo-telemetry {
+    background:
+      linear-gradient(160deg, color-mix(in srgb, var(--surface) 92%, transparent), color-mix(in srgb, var(--paper) 82%, transparent)) padding-box,
+      linear-gradient(135deg, color-mix(in srgb, var(--accent) 62%, transparent), color-mix(in srgb, var(--secondary) 48%, transparent), color-mix(in srgb, var(--spike) 38%, transparent)) border-box;
+  }
+}
+
+/* Entrance + ambient motion: transform/opacity only, never a hidden
+   base state, so no-JS and failed animations still show everything. */
+@media (prefers-reduced-motion: no-preference) {
+  .hero-live > .hero-heading { animation: hero-rise 700ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .hero-live .hero-text > h1 { animation: hero-rise 700ms 70ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .hero-live .hero-text > :not(h1) { animation: hero-rise 700ms 150ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .hero-live > .hero-mesh { animation: hero-rise 800ms 180ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .button.hero-mesh-play { transition: transform 180ms ease, box-shadow 180ms ease; }
+  .button.hero-mesh-play:hover { transform: translateY(-1px); }
+  .live-hero .demo-telemetry-feature-bar span { transition: transform 180ms ease; }
+  .hero-mesh-encoder label { transition: border-color 180ms ease, box-shadow 180ms ease; }
+}
+
+@keyframes hero-rise {
+  from { opacity: 0; transform: translateY(0.9rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-live > .hero-heading,
+  .hero-live .hero-text > h1,
+  .hero-live .hero-text > :not(h1),
+  .hero-live > .hero-mesh,
+  .button.hero-mesh-play,
+  .live-hero .demo-telemetry-feature-bar span,
+  .hero-mesh-encoder label {
+    animation: none;
+    transition: none;
+  }
+}
 
 /* How the live view is built, below the first screen. */
 .hero-runtime {
@@ -426,6 +679,8 @@
   .hero.hero-live h1 { font-size: min(10vw, 3rem); }
 
   .hero-mesh { grid-template-columns: minmax(0, 1fr); }
+  .hero-stage-hud-label--end { display: none; }
+  .hero-mesh-caption, .live-hero .demo-telemetry-body { padding-inline: 0.85rem; }
   .hero-mesh-stage { aspect-ratio: 4 / 3; }
   .hero-stats { margin-top: 1.6rem; }
 }

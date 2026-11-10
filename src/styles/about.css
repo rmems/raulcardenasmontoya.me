@@ -1,4 +1,44 @@
+/* /about/ — editorial magazine profile meets engineering notebook.
+   Page-scoped only: the global `.page-intro` / `.prose` classes are never
+   redefined unscoped here; About-specific flourishes are reached through
+   `.about-profile`, or through `:has(.about-profile)` which degrades to the
+   global styling in browsers without `:has`. */
+
+/* --- Intro: serif display title on this page only ----------------------- */
+
+main:has(.about-profile) .page-intro h1 {
+  font-family: var(--serif);
+  font-weight: 560;
+  letter-spacing: -0.02em;
+  line-height: 0.95;
+  text-wrap: balance;
+}
+
+main:has(.about-profile) .page-intro .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+main:has(.about-profile) .page-intro .eyebrow::after {
+  width: 2.75rem;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--secondary), var(--spike));
+  content: "";
+}
+
+main:has(.about-profile) .page-intro > p:last-of-type {
+  font-family: var(--serif);
+  font-size: clamp(1.18rem, 1.6vw + 0.9rem, 1.42rem);
+  font-style: italic;
+  line-height: 1.55;
+}
+
+/* --- Profile layout ------------------------------------------------------ */
+
 .about-profile {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(240px, 0.72fr) minmax(0, 1.3fr);
   gap: clamp(2rem, 6vw, 6rem);
@@ -7,11 +47,64 @@
   border-top: 1px solid var(--ink);
 }
 
-.about-profile figure { margin: 0; }
+/* Gradient rule laid over the ink hairline. */
+.about-profile::before {
+  position: absolute;
+  top: -2px;
+  left: 0;
+  width: min(11rem, 42%);
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--secondary), var(--spike));
+  content: "";
+  pointer-events: none;
+}
 
-.about-profile .prose h2 { margin: 2.5rem 0 0.75rem; }
+/* --- Portrait: glass card, gradient frame, duotone-leaning photo --------- */
 
-.about-profile .prose h2:first-child { margin-top: 0; }
+.about-profile figure {
+  margin: 0;
+  position: relative;
+  isolation: isolate;
+  min-width: 0;
+  padding: clamp(0.7rem, 1.8vw, 1rem);
+  border: 1px solid color-mix(in srgb, var(--line) 84%, transparent);
+  border-radius: 20px;
+  background:
+    linear-gradient(
+      155deg,
+      color-mix(in srgb, var(--surface) 94%, transparent),
+      color-mix(in srgb, var(--accent) 7%, var(--surface))
+    );
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--surface) 70%, transparent) inset,
+    0 26px 48px -34px color-mix(in srgb, var(--ink) 58%, transparent);
+}
+
+.about-profile figure::before {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent) 34%, transparent),
+    transparent 42%,
+    color-mix(in srgb, var(--secondary) 26%, transparent) 78%,
+    color-mix(in srgb, var(--spike) 22%, transparent)
+  );
+  content: "";
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.about-profile picture {
+  position: relative;
+  z-index: 1;
+  display: block;
+  overflow: hidden;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--accent) 10%, var(--paper));
+}
 
 .about-profile img {
   display: block;
@@ -21,15 +114,199 @@
   object-fit: cover;
   object-position: 45% 40%;
   border-radius: 12px;
+  /* Duotone-leaning treatment; a plain filter, so it simply renders
+     unfiltered where filters are unsupported. */
+  filter: saturate(0.86) contrast(1.06) sepia(0.14);
+  transition: transform 320ms ease, opacity 320ms ease;
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .about-profile figure:hover img {
+    transform: scale(1.018);
+  }
 }
 
 .about-profile figcaption {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 0.55rem;
+  align-items: baseline;
   margin-top: 0.8rem;
   color: var(--muted);
-  font-family: monospace;
+  font-family: var(--mono);
   font-size: 0.72rem;
   line-height: 1.5;
 }
+
+.about-profile figcaption::before {
+  flex: 0 0 auto;
+  width: 1.4rem;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--secondary));
+  content: "";
+  transform: translateY(-0.2em);
+}
+
+/* --- Reading column: numbered serif headings, generous rhythm ------------ */
+
+.about-profile .prose {
+  min-width: 0;
+  counter-reset: about-section;
+}
+
+.about-profile .prose h2 {
+  position: relative;
+  margin: 2.5rem 0 0.75rem;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: clamp(1.65rem, 1.2vw + 1.25rem, 2.15rem);
+  font-weight: 560;
+  letter-spacing: -0.015em;
+  line-height: 1.08;
+  text-wrap: balance;
+  counter-increment: about-section;
+}
+
+/* Notebook section marker: a mono index over a gradient node rule. */
+.about-profile .prose h2::before {
+  display: block;
+  margin-bottom: 0.55rem;
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  content: counter(about-section, decimal-leading-zero) " —";
+}
+
+.about-profile .prose h2::after {
+  display: block;
+  width: 3.25rem;
+  height: 3px;
+  margin-top: 0.65rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--secondary), var(--spike));
+  content: "";
+}
+
+.about-profile .prose h2:first-child {
+  margin-top: 0;
+}
+
+.about-profile .prose p {
+  line-height: 1.78;
+  text-wrap: pretty;
+}
+
+.about-profile .prose strong {
+  color: var(--ink);
+  font-weight: 700;
+  background-image: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--accent) 20%, transparent) 0 0.32em,
+    transparent 0.32em
+  );
+}
+
+.about-profile .prose em {
+  font-family: var(--serif);
+  font-size: 1.06em;
+}
+
+/* Drop cap on the opening paragraph, wide screens only. */
+@supports selector(.about-profile .prose p::first-letter) {
+  @media (min-width: 761px) {
+    .about-profile .prose h2:first-child + p::first-letter {
+      float: left;
+      padding: 0.06em 0.14em 0 0;
+      color: var(--accent);
+      font-family: var(--serif);
+      font-size: 3.35em;
+      font-weight: 560;
+      line-height: 0.78;
+    }
+  }
+}
+
+/* Pull-quote treatment, should a blockquote join the prose. */
+.about-profile .prose blockquote {
+  position: relative;
+  margin: 2rem 0;
+  padding: clamp(1.2rem, 3vw, 1.7rem) clamp(1.2rem, 3vw, 1.8rem);
+  border: 1px solid color-mix(in srgb, var(--line) 84%, transparent);
+  border-radius: 16px;
+  background:
+    linear-gradient(
+      150deg,
+      color-mix(in srgb, var(--surface) 94%, transparent),
+      color-mix(in srgb, var(--accent) 7%, var(--surface))
+    );
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: clamp(1.2rem, 1vw + 1rem, 1.42rem);
+  font-style: italic;
+  line-height: 1.5;
+}
+
+.about-profile .prose blockquote::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--accent), var(--secondary), var(--spike));
+  content: "";
+}
+
+.about-profile .prose blockquote p {
+  margin: 0;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+/* --- Inline links: gradient underline sweeping in on hover/focus --------- */
+
+.about-profile .prose a {
+  position: relative;
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.about-profile .prose a::after {
+  position: absolute;
+  right: 0;
+  bottom: -0.08em;
+  left: 0;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--secondary), var(--spike));
+  content: "";
+  opacity: 0.45;
+  transform: scaleX(0.35);
+  transform-origin: left center;
+  transition: transform 220ms ease, opacity 220ms ease;
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .about-profile .prose a:hover::after {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+.about-profile .prose a:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.about-profile .prose a:focus-visible::after {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+/* --- Narrow screens: single column, no drop cap, no sticky portrait ------ */
 
 @media (max-width: 760px) {
   .about-profile {
@@ -37,5 +314,47 @@
     padding-bottom: 4.5rem;
   }
 
-  .about-profile figure { max-width: 420px; }
+  .about-profile figure {
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .about-profile .prose h2 {
+    margin-top: 2.1rem;
+  }
+}
+
+@media (min-width: 761px) {
+  .about-profile figure {
+    position: sticky;
+    top: 1.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .about-profile img,
+  .about-profile .prose a::after {
+    transition: none !important;
+  }
+
+  .about-profile figure:hover img,
+  .about-profile .prose a:hover::after,
+  .about-profile .prose a:focus-visible::after {
+    transform: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .about-profile figure,
+  .about-profile .prose blockquote {
+    box-shadow: none;
+  }
+
+  .about-profile img {
+    filter: none;
+  }
+
+  .about-profile .prose strong {
+    background-image: none;
+  }
 }

@@ -1,0 +1,408 @@
+/*
+ * Editorial polish for secondary pages (work, notes, artifacts, contact,
+ * resume, evidence) — loaded after global.css from BaseLayout. Token-only:
+ * every colour derives from the global design tokens, so both schemes work.
+ * Motion is transform/opacity only and is killed by the reduced-motion
+ * block at the bottom (global.css also forces near-zero durations).
+ */
+
+/* ---- Scroll progress: pure CSS scroll-timeline, degrades to hidden ---- */
+.scroll-progress {
+  position: fixed;
+  inset: 0 auto auto 0;
+  z-index: 30;
+  width: 100%;
+  height: 3px;
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+  background: linear-gradient(90deg, var(--accent), var(--secondary), var(--spike));
+  pointer-events: none;
+}
+
+@supports (animation-timeline: scroll()) {
+  .scroll-progress {
+    animation: scroll-progress linear both;
+    animation-timeline: scroll(root block);
+  }
+}
+
+@keyframes scroll-progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+/* ---- Work: index rows + case studies ---- */
+.work-index a {
+  position: relative;
+  border-radius: 0 10px 10px 0;
+  transition: transform 220ms ease, opacity 220ms ease;
+}
+
+.work-index a::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  content: '';
+  background: linear-gradient(180deg, var(--accent), var(--secondary));
+  transform: scaleY(0);
+  transform-origin: center top;
+  transition: transform 220ms ease, opacity 220ms ease;
+}
+
+.work-index a:hover,
+.work-index a:focus-visible {
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  box-shadow: none;
+}
+
+.work-index a:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.work-index a:hover span,
+.work-index a:focus-visible span { color: var(--accent); }
+
+.case-study-header h2 {
+  background: linear-gradient(100deg, var(--ink) 55%, var(--accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .case-study-header h2 { color: transparent; -webkit-text-fill-color: transparent; }
+  .case-study-header h2 em, .case-study-header h2 a { color: var(--accent); -webkit-text-fill-color: var(--accent); }
+}
+
+.case-study { position: relative; }
+
+/* The category line sits in a shrinking grid track. Let it wrap instead of widening the page. */
+.case-study-header > div { min-width: 0; }
+
+.case-study-header .eyebrow {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.case-study-header .eyebrow::before {
+  display: inline-block;
+  margin-inline-end: 0.6rem;
+  vertical-align: middle;
+}
+
+.case-study::before {
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: min(38%, 22rem);
+  height: 3px;
+  content: '';
+  background: linear-gradient(90deg, var(--accent), var(--secondary), transparent);
+}
+
+.question-list li { transition: transform 180ms ease, opacity 180ms ease; }
+.question-list li::before { transition: transform 180ms ease, opacity 180ms ease; }
+
+/* ---- Notes: index entries as hovering editorial rows ---- */
+.note-entry {
+  position: relative;
+  border-radius: 12px;
+  transition: transform 220ms ease, opacity 220ms ease;
+}
+
+.note-entry:hover,
+.note-entry:focus-within {
+  background: color-mix(in srgb, var(--surface) 82%, var(--accent-soft));
+  box-shadow: 0 14px 34px -18px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.note-entry h2 a {
+  position: relative;
+  color: inherit;
+  transition: transform 220ms ease, opacity 220ms ease;
+}
+
+.note-entry h2 a::after {
+  position: absolute;
+  right: 0;
+  bottom: -0.08em;
+  left: 0;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--secondary));
+  content: '';
+  opacity: 0.4;
+  transform: scaleX(0.28);
+  transform-origin: left center;
+  transition: transform 220ms ease, opacity 220ms ease;
+}
+
+.note-entry:hover h2 a,
+.note-entry h2 a:focus-visible { color: var(--accent); }
+
+.note-entry h2 a:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+.note-article header { position: relative; }
+
+.note-article header::before {
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: min(7.5rem, 42%);
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--secondary), var(--spike));
+  content: '';
+  pointer-events: none;
+}
+.note-body a { text-decoration-color: var(--accent); text-decoration-thickness: 2px; }
+.note-body blockquote {
+  margin: 0 0 1.35rem;
+  padding: 0.4rem 0 0.4rem 1.1rem;
+  border-left: 3px solid var(--accent);
+  font-family: var(--serif);
+  font-size: 1.18em;
+  font-style: italic;
+}
+
+/* ---- Contact / resume: tactile rows and panels ---- */
+.contact-panel > * {
+  position: relative;
+  border-radius: 0 10px 10px 0;
+  transition: transform 200ms ease, opacity 200ms ease;
+}
+
+.contact-panel > *::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  content: '';
+  background: linear-gradient(180deg, var(--accent), var(--secondary));
+  transform: scaleY(0);
+  transform-origin: center top;
+  transition: transform 200ms ease, opacity 200ms ease;
+}
+
+.contact-panel > *:hover,
+.contact-panel > *:focus-visible {
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  box-shadow: none;
+}
+
+.contact-panel > *:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.contact-panel > *:hover strong,
+.contact-panel > *:focus-visible strong { color: var(--accent); }
+
+.resume-panel,
+.page-intro { position: relative; }
+
+.resume-panel::before,
+.page-intro::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: min(11rem, 42%);
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--secondary), var(--spike));
+  content: '';
+  pointer-events: none;
+}
+
+/* ---- Artifacts / crates / repos: living lists ---- */
+.artifact-list li, .repo-list li, .crate-list li {
+  border-radius: 0 10px 10px 0;
+  transition: transform 200ms ease, opacity 200ms ease;
+}
+
+.artifact-list li:hover, .repo-list li:hover, .crate-list li:hover {
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+  box-shadow: none;
+}
+
+.crate-head a, .repo-head a {
+  position: relative;
+  transition: transform 200ms ease, opacity 200ms ease;
+}
+
+.crate-head a::after, .repo-head a::after {
+  position: absolute;
+  right: 0;
+  bottom: -0.12em;
+  left: 0;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--secondary));
+  content: '';
+  opacity: 0.45;
+  transform: scaleX(0.35);
+  transform-origin: left center;
+  transition: transform 220ms ease, opacity 220ms ease;
+}
+
+.crate-head a:hover, .repo-head a:hover,
+.crate-head a:focus-visible, .repo-head a:focus-visible { text-decoration: none; }
+
+.crate-head a:focus-visible, .repo-head a:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.artifacts-jump a {
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  text-decoration: none;
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+
+.artifacts-jump a:hover,
+.artifacts-jump a:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.artifacts-jump a:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* ---- Evidence / native cards: instrument glow on hover ---- */
+.native-evidence-card {
+  border-radius: 14px;
+  transition: transform 220ms ease, opacity 220ms ease;
+}
+
+.native-evidence-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line-strong));
+  box-shadow: 0 18px 40px -20px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+/* ---- Home extras not owned elsewhere: stat proof points ---- */
+.hero-stats a { border-radius: 10px; transition: transform 200ms ease, opacity 200ms ease; }
+
+.hero-stats a:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.hero-stats a:hover strong,
+.hero-stats a:focus-visible strong {
+  background: linear-gradient(90deg, var(--accent), var(--secondary));
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .hero-stats a:hover strong,
+  .hero-stats a:focus-visible strong {
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+  }
+}
+
+/* Hover travel stays inside the shell gutter, so a row never widens the page. */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .work-index a:hover,
+  .work-index a:focus-visible,
+  .contact-panel > *:hover,
+  .contact-panel > *:focus-visible,
+  .question-list li:hover { transform: translateX(4px); }
+
+  .work-index a:hover::before,
+  .work-index a:focus-visible::before,
+  .contact-panel > *:hover::before,
+  .contact-panel > *:focus-visible::before { transform: scaleY(1); }
+
+  .question-list li:hover::before { transform: translateX(2px) scale(1.15); }
+
+  .note-entry:hover,
+  .note-entry:focus-within,
+  .hero-stats a:hover,
+  .hero-stats a:focus-visible { transform: translateY(-2px); }
+
+  .note-entry:hover h2 a::after,
+  .note-entry h2 a:focus-visible::after,
+  .crate-head a:hover::after,
+  .crate-head a:focus-visible::after,
+  .repo-head a:hover::after,
+  .repo-head a:focus-visible::after {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+
+  .artifact-list li:hover,
+  .repo-list li:hover,
+  .crate-list li:hover { transform: translateX(4px); }
+
+  .artifacts-jump a:hover,
+  .artifacts-jump a:focus-visible { transform: translateY(-1px); }
+
+  .native-evidence-card:hover { transform: translateY(-3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-progress { animation: none !important; transform: scaleX(0) !important; }
+
+  .work-index a,
+  .work-index a::before,
+  .question-list li,
+  .question-list li::before,
+  .note-entry,
+  .note-entry h2 a,
+  .note-entry h2 a::after,
+  .contact-panel > *,
+  .contact-panel > *::before,
+  .artifact-list li,
+  .repo-list li,
+  .crate-list li,
+  .crate-head a,
+  .crate-head a::after,
+  .repo-head a,
+  .repo-head a::after,
+  .artifacts-jump a,
+  .native-evidence-card,
+  .hero-stats a {
+    transition: none !important;
+  }
+
+  .work-index a:hover,
+  .work-index a:focus-visible,
+  .work-index a:hover::before,
+  .work-index a:focus-visible::before,
+  .question-list li:hover,
+  .question-list li:hover::before,
+  .note-entry:hover,
+  .note-entry:focus-within,
+  .contact-panel > *:hover,
+  .contact-panel > *:focus-visible,
+  .contact-panel > *:hover::before,
+  .contact-panel > *:focus-visible::before,
+  .artifact-list li:hover,
+  .repo-list li:hover,
+  .crate-list li:hover,
+  .artifacts-jump a:hover,
+  .artifacts-jump a:focus-visible,
+  .native-evidence-card:hover,
+  .hero-stats a:hover,
+  .hero-stats a:focus-visible { transform: none !important; }
+}
+
+@media (forced-colors: active) {
+  .case-study-header h2,
+  .case-study-header h2 em,
+  .case-study-header h2 a,
+  .hero-stats a:hover strong,
+  .hero-stats a:focus-visible strong {
+    background: none;
+    color: CanvasText;
+    -webkit-text-fill-color: currentColor;
+  }
+}

@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import '../styles/polish.css';
 import SiteHeader from '../components/SiteHeader.astro';
 import { footerLinks, site } from '../data/site';
 interface Props { title?: string; description?: string; /** Pages whose heading uses the serif italic preload it, so the headline does not reflow. */ preloadSerif?: boolean; /** Keeps a route out of search results: the 404 page, and anything else that should not rank. */ noindex?: boolean; }
@@ -61,6 +62,7 @@ const socialImageAlt = `${site.fullName} — ${site.title}, raulcardenasmontoya.
   </head>
   <body>
     <a class="skip-link" href="#main-content">Skip to content</a>
+    <div class="scroll-progress" aria-hidden="true"></div>
     <div class="page-shell">
       <SiteHeader currentPath={Astro.url.pathname} />
       <main id="main-content"><slot /></main>
