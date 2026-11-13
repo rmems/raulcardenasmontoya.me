@@ -1,11 +1,16 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import process from 'node:process';
 import test from 'node:test';
 
-import { ALLOWED_GIT_SOURCES, gitSourceViolations, LOCKFILE, lockfilePackages } from '../scripts/verify-lockfile-sources.mjs';
+import { ALLOWED_GIT_SOURCES, gitSourceViolations, LOCKFILE, lockfilePackages, main } from '../scripts/verify-lockfile-sources.mjs';
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const fixture = (name) => readFileSync(new URL(`./fixtures/cargo-lock/${name}`, import.meta.url), 'utf8');
+const fixturePath = (name) => fileURLToPath(new URL(`./fixtures/cargo-lock/${name}`, import.meta.url));
+const guardScript = fileURLToPath(new URL('../scripts/verify-lockfile-sources.mjs', import.meta.url));
 
 test('the allowlist is empty, so every adapter dependency resolves from crates.io', () => {
   assert.equal(ALLOWED_GIT_SOURCES.size, 0);
@@ -27,8 +32,40 @@ test('the guard fails on a lockfile that carries a git source', () => {
   assert.deepEqual(allowlisted, []);
 });
 
+test('the guard rejects an indented or spaced-out source field', () => {
+  const lockfile = [
+    '[[package]]',
+    '  name = "sneaky-lab"',
+    '  version  =  "0.3.0"',
+    '  source   =   "git+https://github.com/example/sneaky-lab.git?rev=deadbeefdeadbeefdeadbeefdeadbeefdeadbeef#deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"',
+    '',
+  ].join('\n');
+
+  const { violations } = gitSourceViolations(lockfile);
+  assert.equal(violations.length, 1, 'indented source is still detected');
+  assert.match(violations[0], /^sneaky-lab 0\.3\.0: git source git\+/);
+});
+
 test('the guard accepts a registry-only lockfile', () => {
   assert.deepEqual(gitSourceViolations(fixture('registry-only.lock')), { violations: [], allowlisted: [] });
+});
+
+test('the CLI entrypoint exits non-zero on a git source and zero on a registry-only lockfile', () => {
+  const failing = spawnSync(process.execPath, [guardScript, fixturePath('git-source.lock')], { encoding: 'utf8' });
+  assert.notEqual(failing.status, 0, 'a git source fails the guard');
+  assert.match(failing.stderr, /resolves dependencies from git/);
+
+  const passing = spawnSync(process.execPath, [guardScript, fixturePath('registry-only.lock')], { encoding: 'utf8' });
+  assert.equal(passing.status, 0, 'a registry-only lockfile passes');
+  assert.match(passing.stdout, /Lockfile source policy passed/);
+
+  const committed = spawnSync(process.execPath, [guardScript], { encoding: 'utf8' });
+  assert.equal(committed.status, 0, 'the committed lockfile passes');
+});
+
+test('main reports the checked path and rejects a git source without spawning', async () => {
+  await assert.doesNotReject(main(fixturePath('registry-only.lock')));
+  await assert.rejects(main(fixturePath('git-source.lock')), /resolves dependencies from git/);
 });
 
 test('an allowlist entry is bound to the exact reviewed source, not just the name', () => {
@@ -66,10 +103,18 @@ test('lockfilePackages reads name, version, and source for every package', () =>
   assert.match(packages[2].source, /^git\+/);
 });
 
-test('the git-source guard runs from validate:rust and CI', () => {
+test('the git-source guard runs before any cargo command in validate:rust and CI', () => {
   const packageJson = JSON.parse(read('package.json'));
   const workflow = read('.github/workflows/quality.yml');
 
-  assert.match(packageJson.scripts['validate:rust'], /node scripts\/verify-lockfile-sources\.mjs/);
-  assert.match(workflow, /node scripts\/verify-lockfile-sources\.mjs/);
+  const script = packageJson.scripts['validate:rust'];
+  const guardAt = script.indexOf('node scripts/verify-lockfile-sources.mjs');
+  const cargoAt = script.indexOf('cargo ');
+  assert.notEqual(guardAt, -1, 'validate:rust runs the guard');
+  assert.ok(guardAt < cargoAt, 'the guard runs before cargo resolves the adapter graph');
+
+  const workflowGuardAt = workflow.indexOf('node scripts/verify-lockfile-sources.mjs');
+  const workflowCargoAt = workflow.indexOf('cargo clippy');
+  assert.notEqual(workflowGuardAt, -1, 'CI runs the guard');
+  assert.ok(workflowGuardAt < workflowCargoAt, 'CI rejects git sources before cargo resolves the graph');
 });

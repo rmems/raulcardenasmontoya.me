@@ -1338,8 +1338,9 @@ cargo +1.99.0 check --manifest-path crates/neuromorphic-adapter/Cargo.toml --loc
 Result: **Pass** for both. The default profile covers `kinetic-signals`,
 `axon-encoder`, `neuromod`, `synaptic-wiring` and `corpus-ipc`. `--all-features`
 (the labs profile: `nir`, `protocol` and `plasticity`) adds `nir-rs`,
-`plasticity-lab` and `limbic-critic`. Both use the revisions in `Cargo.lock` and
-the adapter's own feature selection, not each row's selected suffix.
+`plasticity-lab` and `limbic-critic`. Both use the locked dependency versions
+and checksums in `Cargo.lock` and the adapter's own feature selection, not each
+row's selected suffix.
 `myelin-accelerator`, which is in neither graph, was not re-audited on 1.99.0.
 
 Merging this ADR and RM-1639 closes only the architecture decision. The exact

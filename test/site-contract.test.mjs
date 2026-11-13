@@ -825,6 +825,11 @@ test('the plasticity lab is static-first, keeps reward state apart from spike st
   assert.match(page, /bridge::to_neuromodulators/);
   assert.match(page, /train_step_with_modulators_and_rng/);
   assert.match(page, /run_eval_with_rng/);
+  // The page shows the pinned release, its source tag, and the published
+  // archive digest, so a visitor can audit the crates.io artifact from the page.
+  assert.match(page, /PLASTICITY_LAB_ARCHIVE_SHA256/);
+  assert.match(page, /PLASTICITY_LAB_SOURCE_SHA/);
+  assert.match(page, /archive SHA-256/);
 
   // Bounded buffers, throttled rendering, pausing, and reduced motion.
   assert.match(runtime, /createSpikeRaster/);

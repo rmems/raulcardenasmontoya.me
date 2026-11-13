@@ -30,12 +30,12 @@ export const ALLOWED_GIT_SOURCES = new Map();
 export function lockfilePackages(lockfile) {
   return lockfile
     .replaceAll('\r\n', '\n')
-    .split(/^\[\[package\]\]$/m)
+    .split(/^\s*\[\[package\]\]\s*$/m)
     .slice(1)
     .map((block) => ({
-      name: block.match(/^name = "([^"]+)"$/m)?.[1] ?? null,
-      version: block.match(/^version = "([^"]+)"$/m)?.[1] ?? null,
-      source: block.match(/^source = "([^"]+)"$/m)?.[1] ?? null,
+      name: block.match(/^\s*name\s*=\s*"([^"]+)"\s*$/m)?.[1] ?? null,
+      version: block.match(/^\s*version\s*=\s*"([^"]+)"\s*$/m)?.[1] ?? null,
+      source: block.match(/^\s*source\s*=\s*"([^"]+)"\s*$/m)?.[1] ?? null,
     }))
     .filter((pkg) => pkg.name !== null);
 }
@@ -63,20 +63,22 @@ export function gitSourceViolations(lockfile, allowed = ALLOWED_GIT_SOURCES) {
   return { violations, allowlisted };
 }
 
-async function main() {
-  const lockfile = await readFile(resolve(repository, LOCKFILE), 'utf8');
+export async function main(lockfilePath) {
+  const path = lockfilePath ?? resolve(repository, LOCKFILE);
+  const label = lockfilePath ?? LOCKFILE;
+  const lockfile = await readFile(path, 'utf8');
   const { violations, allowlisted } = gitSourceViolations(lockfile);
 
   if (violations.length > 0) {
     throw new Error(
-      `${LOCKFILE} resolves dependencies from git; pin them to a crates.io release so the lockfile checksum audits them:\n${violations.join('\n')}`,
+      `${label} resolves dependencies from git; pin them to a crates.io release so the lockfile checksum audits them:\n${violations.join('\n')}`,
     );
   }
 
   const note = allowlisted.length > 0 ? ` Allowlisted git sources: ${allowlisted.join('; ')}.` : '';
-  process.stdout.write(`Lockfile source policy passed: no unapproved git sources in ${LOCKFILE}.${note}\n`);
+  process.stdout.write(`Lockfile source policy passed: no unapproved git sources in ${label}.${note}\n`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  await main();
+  await main(process.argv[2]);
 }
