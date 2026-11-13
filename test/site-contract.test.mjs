@@ -617,7 +617,7 @@ test('the browser adapter keeps corpus-ipc on its no-default surface without Zer
   const profiles = read('scripts/wasm-profiles.mjs');
   const packageJson = read('package.json');
 
-  assert.match(cargoToml, /^corpus-ipc = \{ version = "=0\.1\.0", default-features = false \}$/m);
+  assert.match(cargoToml, /^corpus-ipc = \{ version = "=0\.2\.1", default-features = false \}$/m);
   assert.doesNotMatch(cargoToml, /corpus-ipc[^\n]*features = \[/);
   for (const name of ['zmq', 'zeromq', 'axum', 'axum-core', 'tokio', 'tokio-macros', 'hyper', 'tower', 'mio', 'socket2']) {
     assert.match(policy, new RegExp(`'${name}',`), `${name} must stay forbidden in the browser graph`);
@@ -625,6 +625,7 @@ test('the browser adapter keeps corpus-ipc on its no-default surface without Zer
   assert.match(policy, /NATIVE_BUILD_PACKAGES = new Set\(\['bindgen', 'cc', 'cmake', 'pkg-config', 'vcpkg'\]\)/);
   assert.match(policy, /feature === 'server' \|\| feature === 'zmq'/);
   assert.match(packageJson, /node scripts\/verify-browser-dependencies\.mjs/);
+  assert.match(packageJson, /node scripts\/verify-lockfile-sources\.mjs/);
 
   // The protocol decode path is a labs-only cargo feature.
   assert.match(cargoToml, /^protocol = \["dep:serde_json", "dep:sha2"\]$/m);
@@ -824,6 +825,11 @@ test('the plasticity lab is static-first, keeps reward state apart from spike st
   assert.match(page, /bridge::to_neuromodulators/);
   assert.match(page, /train_step_with_modulators_and_rng/);
   assert.match(page, /run_eval_with_rng/);
+  // The page shows the pinned release, its source tag, and the published
+  // archive digest, so a visitor can audit the crates.io artifact from the page.
+  assert.match(page, /PLASTICITY_LAB_ARCHIVE_SHA256/);
+  assert.match(page, /PLASTICITY_LAB_SOURCE_SHA/);
+  assert.match(page, /archive SHA-256/);
 
   // Bounded buffers, throttled rendering, pausing, and reduced motion.
   assert.match(runtime, /createSpikeRaster/);

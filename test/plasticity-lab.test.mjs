@@ -181,11 +181,11 @@ test('the provenance the page shows matches the locked crates', () => {
   assert.match(manifest, new RegExp(`^limbic-critic = \\{ version = "=${lab.LIMBIC_CRITIC_VERSION.replaceAll('.', '\\.')}", optional = true \\}$`, 'm'));
   assert.match(
     manifest,
-    new RegExp(`^plasticity-lab = \\{ git = "${lab.PLASTICITY_LAB_REPOSITORY}\\.git", rev = "${lab.PLASTICITY_LAB_REVISION}", default-features = false, features = \\["critic", "wasm-js"\\], optional = true \\}$`, 'm'),
+    new RegExp(`^plasticity-lab = \\{ version = "=${lab.PLASTICITY_LAB_CRATE_VERSION.replaceAll('.', '\\.')}", default-features = false, features = \\["critic", "wasm-js"\\], optional = true \\}$`, 'm'),
   );
   assert.match(manifest, /^plasticity = \["dep:limbic-critic", "dep:plasticity-lab"\]$/m);
   assert.ok(lock.includes(`name = "limbic-critic"\nversion = "${lab.LIMBIC_CRITIC_VERSION}"\nsource = "registry+https://github.com/rust-lang/crates.io-index"\nchecksum = "${lab.LIMBIC_CRITIC_CHECKSUM}"`));
-  assert.ok(lock.includes(`name = "plasticity-lab"\nversion = "${lab.PLASTICITY_LAB_CRATE_VERSION}"\nsource = "git+${lab.PLASTICITY_LAB_REPOSITORY}.git?rev=${lab.PLASTICITY_LAB_REVISION}#${lab.PLASTICITY_LAB_REVISION}"`));
+  assert.ok(lock.includes(`name = "plasticity-lab"\nversion = "${lab.PLASTICITY_LAB_CRATE_VERSION}"\nsource = "registry+https://github.com/rust-lang/crates.io-index"\nchecksum = "${lab.PLASTICITY_LAB_ARCHIVE_SHA256}"`));
   assert.ok(lock.includes(`name = "neuromod"\nversion = "${lab.NEUROMOD_VERSION}"`));
   assert.equal(lock.split('name = "neuromod"\n').length - 1, 1, 'one neuromod for the homepage adapter and plasticity-lab');
   assert.equal(lab.PLASTICITY_GOLDEN_PATH, GOLDEN_PATH);

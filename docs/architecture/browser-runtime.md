@@ -363,12 +363,18 @@ enables (`public/wasm/neuromorphic-adapter-labs/`; see
 view: ZeroMQ, the Axum IPC service, proxying, and streaming never run in the
 browser.
 
-- **Locked surface.** `corpus-ipc = { version = "=0.1.0", default-features =
+- **Locked surface.** `corpus-ipc = { version = "=0.2.1", default-features =
   false }` in `crates/neuromorphic-adapter/Cargo.toml`. Source
-  `Limen-Neural/corpus-ipc@d99e6544d7925dc0ccfe69fdff372352b0a9d041` (also
-  recorded in the published crate's `.cargo_vcs_info.json`); crates.io archive
-  SHA-256 `eec6624caf88783f1c35109fe1c27615fc85c986249d480c8efabb72d5f92081`,
+  `Limen-Neural/corpus-ipc@b12059f841e6cf7aa27fd3e6dc3748bc519b3203` (the
+  `v0.2.1` tag, also recorded in the published crate's `.cargo_vcs_info.json`);
+  crates.io archive SHA-256
+  `6acf2ecca63743f455b77fb1fef96afd39af0cf621277c5bad56c78d6aff28bf`,
   which is the `corpus-ipc` checksum in `crates/neuromorphic-adapter/Cargo.lock`.
+  The bump from `=0.1.0` was a clean, one-line manifest change: `CURRENT`,
+  `MIN_SUPPORTED`, and `LEGACY_UNVERSIONED` all stay `1`, no wire schema or
+  decode API changed, and the committed wire-v1 fixtures re-encode byte-for-byte,
+  so no fixture or adapter code changed. 0.2.x adds optional `zmq` and `server`
+  surfaces and switches `thiserror` to 2.x; neither reaches the browser graph.
   No `corpus-ipc` features are selected, so `zmq` and `server` are off.
   `scripts/verify-browser-dependencies.mjs` fails, in every profile, if
   `zmq`, `zeromq`, `axum`, `axum-core`, `tokio`, `tokio-macros`, `hyper`,
@@ -1182,12 +1188,12 @@ Reward / Penalty button → LabObservation (limbic_critic::Environment)
   `stepWithRewardInput`, which consumes the slot. Reset, New episode, and the
   scripted session clear it, because the step it was meant for no longer
   comes. The reward panel shows what is queued.
-- **Why a git revision.** crates.io `plasticity-lab 0.2.1` requires
-  `neuromod ^0.6`, which cannot share a graph with the adapter's
-  `neuromod =0.7.0`. `Limen-Neural/plasticity-lab` `main` at
-  `c80fac2eb96a140df9cfd999278bce414a329a56` requires `neuromod 0.7.0`, adds
-  frozen evaluation, and forwards `wasm-js`; it is unpublished (its manifest
-  still says 0.2.1), so the adapter pins it by revision; it is the only git dependency left.
+- **Why a crates.io release.** crates.io `plasticity-lab 0.2.1` required
+  `neuromod ^0.6`, which could not share a graph with the adapter's
+  `neuromod =0.7.0`, so the adapter pinned `Limen-Neural/plasticity-lab`
+  `main` by revision. Release `0.3.0` (2026-11-13) requires `neuromod 0.7.0`
+  and forwards `wasm-js`, so the pin is now `plasticity-lab = "=0.3.0"` with
+  a `Cargo.lock` checksum and no git source anywhere in the adapter's graph.
   The labs graph resolves a single `neuromod 0.7.0`.
 
 ## Browser build profiles
@@ -1258,6 +1264,12 @@ setup, not the file.
 - `npm run validate:rust` runs clippy, `cargo test`, and the wasm32
   `cargo check` twice: for the default build and with `--all-features` (the
   labs configuration, `nir` + `protocol` + `plasticity`).
+- `scripts/verify-lockfile-sources.mjs` fails if
+  `crates/neuromorphic-adapter/Cargo.lock` resolves any package from a
+  `git+` source. A git source carries no `Cargo.lock` checksum, so its `rev`
+  is the only pin and cannot be audited by archive digest. The allowlist is
+  empty: `plasticity-lab = "=0.3.0"` removed the last one (GitHub #162).
+  `npm run validate:rust` and the Quality workflow both run it.
 - `scripts/verify-browser-dependencies.mjs` resolves each profile's graph
   separately: the native-dependency rules apply to both; `nir-rs`,
   `plasticity-lab`, and `limbic-critic` are required in `labs` and absent from
@@ -1294,10 +1306,11 @@ decision above places it outside the browser.
 | `limbic-critic` | `Limen-Neural/limbic-critic` | 0.3.0 | `9bf0c79f5a47fac9c5b921dd9011b013d1ae52bb` | `--no-default-features` | **Pass** |
 | `limbic-critic` | `Limen-Neural/limbic-critic` | `=0.3.0` | crates.io checksum `0afb84406e35b755770254f4418c4b7b92b79c089f10e5c671b9ae2016a79329` (the `Cargo.lock` checksum); source `9bf0c79f5a47fac9c5b921dd9011b013d1ae52bb` per the published crate's `.cargo_vcs_info.json` (the commit audited above); no dependencies | default (it has no features) | **Pass** on 2026-10-09 inside the adapter crate with `--locked --features plasticity`; approved as the lab's reward-shaping map behind the adapter's `plasticity` feature, labs package only (see [Reward-modulated learning lab](#reward-modulated-learning-lab-github-17--linear-rm-1654)). |
 | `plasticity-lab` | `Limen-Neural/plasticity-lab` | 0.1.0 | `d47ae33914b6a3044d0539b851cd83621b7f1f4b` | `--no-default-features --features critic` | **Blocked:** its `neuromod 0.6.0` git dependency reaches `getrandom 0.4.3`, which emits the missing-`wasm_js` compile error. |
-| `plasticity-lab` | `Limen-Neural/plasticity-lab` | crates.io 0.2.1 | crates.io release | — | **Not usable:** requires `neuromod ^0.6.0`, which conflicts with the adapter's `neuromod =0.7.0`. |
+| `plasticity-lab` | `Limen-Neural/plasticity-lab` | crates.io 0.2.1 | crates.io release | — | **Not usable:** required `neuromod ^0.6.0`, which conflicts with the adapter's `neuromod =0.7.0`. |
 | `plasticity-lab` | `Limen-Neural/plasticity-lab` | git (manifest says 0.2.1, unpublished) | `c80fac2eb96a140df9cfd999278bce414a329a56` (`main`); git sources carry no `Cargo.lock` checksum, the revision is the pin | `default-features = false, features = ["critic", "wasm-js"]` | **Pass** on 2026-10-09 inside the adapter crate with `--locked --features plasticity`: one `neuromod 0.7.0` in the graph, no `-sys`, C build tooling, HDF5, ZeroMQ, Tokio, or Axum crates; approved behind the adapter's `plasticity` feature, labs package only. |
+| `plasticity-lab` | `Limen-Neural/plasticity-lab` | `=0.3.0` | crates.io checksum `72f86eaaf1c5264396fccaa526e059a3435547e78d2c7220e938789d75a3a7c8`; audited source/tag `v0.3.0` = `c8e6c160bc49af0ab853f0e9016a84193ed6de2d` | `default-features = false, features = ["critic", "wasm-js"]` | **Pass** on 2026-11-13 inside the adapter crate with `--locked --all-features`: one `neuromod 0.7.0` in the graph, no `-sys`, C build tooling, HDF5, ZeroMQ, Tokio, or Axum crates. Replaces the git pin; approved behind the adapter's `plasticity` feature, labs package only. |
 | `myelin-accelerator` | `Limen-Neural/myelin-accelerator` | 0.2.0 | `26651ca0edf96b080cd5ef89045543c453bd786c` | `--no-default-features` (`cuda` excluded) | **Pass**, using the crate's non-CUDA stub PTX build path; still excluded from the browser dependency graph. |
-| `corpus-ipc` | `Limen-Neural/corpus-ipc` | `=0.1.0` | crates.io checksum `eec6624caf88783f1c35109fe1c27615fc85c986249d480c8efabb72d5f92081`; audited source/tag `d99e6544d7925dc0ccfe69fdff372352b0a9d041` | `--no-default-features` (`zmq` and `server` excluded) | **Pass**; approved for the V1 browser adapter/recorded viewer as the canonical protocol/provenance schema and validation layer. |
+| `corpus-ipc` | `Limen-Neural/corpus-ipc` | `=0.2.1` | crates.io checksum `6acf2ecca63743f455b77fb1fef96afd39af0cf621277c5bad56c78d6aff28bf`; audited source/tag `v0.2.1` = `b12059f841e6cf7aa27fd3e6dc3748bc519b3203` | `--no-default-features` (`zmq` and `server` excluded) | **Pass**; approved for the V1 browser adapter/recorded viewer as the canonical protocol/provenance schema and validation layer. |
 
 Every row used:
 
@@ -1332,7 +1345,11 @@ the adapter's own feature selection, not each row's selected suffix.
 Merging this ADR and RM-1639 closes only the architecture decision. The exact
 upstream browser-entropy fixes above unblock full RM-1640/GitHub #4 dispatch,
 plus RM-1650/GitHub #14 and RM-1651/GitHub #15. The former `plasticity-lab`
-V2 blocker is resolved at revision `c80fac2`, which depends on `neuromod 0.7.0`
-and forwards its opt-in `wasm-js` feature (GitHub #17 / RM-1654).
+V2 blocker is resolved by crates.io release `0.3.0`, which depends on
+`neuromod 0.7.0` and forwards its opt-in `wasm-js` feature
+(GitHub #17 / RM-1654, GitHub #162). The 1.99.0 pass above predates that
+release; the current checksum-pinned lock (with `plasticity-lab 0.3.0` from
+crates.io) is re-checked on every run by the locked target checks in
+`npm run validate:rust` and the Quality workflow.
 The site must pin the Rust toolchain, commit its dependency lockfile, and run
 locked target checks in CI before enabling the live browser simulation.

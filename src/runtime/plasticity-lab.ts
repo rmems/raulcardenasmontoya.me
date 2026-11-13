@@ -40,8 +40,12 @@ export const PLASTICITY_REDUCED_MOTION_RUN_HZ = 1;
 export const LIMBIC_CRITIC_VERSION = '0.3.0';
 export const LIMBIC_CRITIC_CHECKSUM = '0afb84406e35b755770254f4418c4b7b92b79c089f10e5c671b9ae2016a79329';
 export const PLASTICITY_LAB_REPOSITORY = 'https://github.com/Limen-Neural/plasticity-lab';
-export const PLASTICITY_LAB_REVISION = 'c80fac2eb96a140df9cfd999278bce414a329a56';
-export const PLASTICITY_LAB_CRATE_VERSION = '0.2.1';
+/** crates.io release pinned by the adapter; the audited tag is `v${…}`. */
+export const PLASTICITY_LAB_CRATE_VERSION = '0.3.0';
+/** Tag `v0.3.0` commit, the published archive's source revision. */
+export const PLASTICITY_LAB_SOURCE_SHA = 'c8e6c160bc49af0ab853f0e9016a84193ed6de2d';
+/** crates.io archive SHA-256, identical to the `Cargo.lock` checksum. */
+export const PLASTICITY_LAB_ARCHIVE_SHA256 = '72f86eaaf1c5264396fccaa526e059a3435547e78d2c7220e938789d75a3a7c8';
 export const NEUROMOD_VERSION = '0.7.0';
 export const PLASTICITY_GOLDEN_PATH = 'src/data/plasticity/scripted-session.v1.json';
 

@@ -19,7 +19,7 @@ backed by a small Rust crate (`crates/neuromorphic-adapter`). It deploys to GitH
 | `src/content/native-evidence/` | Recorded CUDA/FPGA evidence as versioned JSON artifacts (`CONTENT.md`) |
 | `src/runtime/`, `src/native-evidence/` | Browser runtime for WASM demos; native-evidence parser, loader, catalog and view code |
 | `crates/neuromorphic-adapter/` | Rust → `wasm32-unknown-unknown` adapter (own `Cargo.lock`, `rust-toolchain.toml`) |
-| `scripts/verify-*.mjs` | WASM adapter, browser and browser-dependency verification |
+| `scripts/verify-*.mjs` | WASM adapter, browser, browser-dependency and lockfile-source verification |
 | `test/*.test.mjs` (+ `test/fixtures/`) | `node --test` suite |
 | `docs/coverage-and-quality.md` | Codecov/Qlty coverage, CI secrets, local `npm run coverage` |
 | `docs/architecture/` | Browser runtime and native-evidence architecture |

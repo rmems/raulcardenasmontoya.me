@@ -8,8 +8,10 @@ import {
   MODULATOR_NAMES,
   NEUROMOD_VERSION,
   PLASTICITY_GOLDEN_PATH,
+  PLASTICITY_LAB_ARCHIVE_SHA256,
+  PLASTICITY_LAB_CRATE_VERSION,
   PLASTICITY_LAB_REPOSITORY,
-  PLASTICITY_LAB_REVISION,
+  PLASTICITY_LAB_SOURCE_SHA,
   REWARD_EVENT_LABELS,
   STIMULUS_LABELS,
   f32FromBits,
@@ -39,8 +41,9 @@ const finalWeights = golden.final_weight_bits.map(f32FromBits);
 const finalThresholds = golden.final_threshold_bits.map(f32FromBits);
 const generatorUrl = `${PORTFOLIO_REPOSITORY_URL}/blob/${PORTFOLIO_DEFAULT_REF}/${golden.generator}`;
 const goldenUrl = `${PORTFOLIO_REPOSITORY_URL}/blob/${PORTFOLIO_DEFAULT_REF}/${PLASTICITY_GOLDEN_PATH}`;
-const revisionUrl = `${PLASTICITY_LAB_REPOSITORY}/tree/${PLASTICITY_LAB_REVISION}`;
-const shortRevision = PLASTICITY_LAB_REVISION.slice(0, 7);
+const revisionUrl = `${PLASTICITY_LAB_REPOSITORY}/tree/v${PLASTICITY_LAB_CRATE_VERSION}`;
+const shortRevision = PLASTICITY_LAB_SOURCE_SHA.slice(0, 7);
+const shortArchiveSha = PLASTICITY_LAB_ARCHIVE_SHA256.slice(0, 12);
 const goldenRows = golden.steps.map((step) => ({
   ...step,
   dopamine: f32FromBits(step.modulator_bits[0]),
@@ -74,7 +77,7 @@ const channelPattern = (channel: number) => (channel < 2 ? 'A' : 'B');
         </div>
         <div>
           <dt>Crates</dt>
-          <dd>limbic-critic {LIMBIC_CRITIC_VERSION}, plasticity-lab at <a href={revisionUrl} target="_blank" rel="noreferrer"><code>{shortRevision}</code></a> (critic bridge), neuromod {NEUROMOD_VERSION}.</dd>
+          <dd>limbic-critic {LIMBIC_CRITIC_VERSION}, plasticity-lab {PLASTICITY_LAB_CRATE_VERSION} (<a href={revisionUrl} target="_blank" rel="noreferrer"><code>{shortRevision}</code></a>, archive SHA-256 <code>{shortArchiveSha}…</code>, critic bridge), neuromod {NEUROMOD_VERSION}.</dd>
         </div>
         <div>
           <dt>Runs in</dt>

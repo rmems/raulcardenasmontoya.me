@@ -9,7 +9,7 @@ The crate that powers the homepage demo, `neuromorphic-adapter`, is deliberately
 
 ## The rule
 
-Dependencies point from the adapter to those crates, never back. The crates stay browser-agnostic: Three.js, DOM types, workers and wasm-bindgen do not appear in their APIs. And a failing dependency is an upstream compatibility blocker, not permission to add a site-local substitute. When plasticity-lab's published release still required an older neuromod than the adapter uses, the fix was to pin the git revision that targets the current neuromod and record it in the lockfile, not to copy the training loop into the site.
+Dependencies point from the adapter to those crates, never back. The crates stay browser-agnostic: Three.js, DOM types, workers and wasm-bindgen do not appear in their APIs. And a failing dependency is an upstream compatibility blocker, not permission to add a site-local substitute. When plasticity-lab's published release still required an older neuromod than the adapter uses, the fix was to pin the git revision that targets the current neuromod and record it in the lockfile, not to copy the training loop into the site. When the maintainers then published a release that accepts the current neuromod, the git pin went away and the lockfile kept only a crates.io checksum, which is why a guard now rejects any git source that tries to come back.
 
 ## What it costs
 

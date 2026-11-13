@@ -400,12 +400,16 @@ test('the protocol decode path ships only in the labs package', () => {
 test('recorded provenance matches the locked crate pin and lockfile', () => {
   const cargoToml = readSource('../crates/neuromorphic-adapter/Cargo.toml');
   const cargoLock = readSource('../crates/neuromorphic-adapter/Cargo.lock');
-  assert.match(cargoToml, /^corpus-ipc = \{ version = "=0\.1\.0", default-features = false \}$/m);
+  const pinned = `corpus-ipc = { version = "=${provenance.CORPUS_IPC_VERSION}", default-features = false }`;
+  assert.ok(
+    cargoToml.split(/\r?\n/).includes(pinned),
+    'Cargo.toml pins corpus-ipc to the recorded version on its own line',
+  );
   const lockEntry = cargoLock.match(/name = "corpus-ipc"\r?\nversion = "([^"]+)"\r?\nsource = "[^"]+"\r?\nchecksum = "([0-9a-f]{64})"/);
   assert.ok(lockEntry, 'corpus-ipc is locked from crates.io with a checksum');
   assert.equal(lockEntry[1], provenance.CORPUS_IPC_VERSION);
   assert.equal(lockEntry[2], provenance.CORPUS_IPC_ARCHIVE_SHA256);
-  assert.equal(provenance.CORPUS_IPC_SOURCE_SHA, 'd99e6544d7925dc0ccfe69fdff372352b0a9d041');
+  assert.equal(provenance.CORPUS_IPC_SOURCE_SHA, 'b12059f841e6cf7aa27fd3e6dc3748bc519b3203');
 
   const doc = readSource('../docs/architecture/browser-runtime.md');
   for (const value of [provenance.CORPUS_IPC_SOURCE_SHA, provenance.CORPUS_IPC_ARCHIVE_SHA256]) {

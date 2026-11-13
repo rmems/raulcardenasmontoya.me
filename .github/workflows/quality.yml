@@ -36,6 +36,8 @@ jobs:
         with:
           node-version: 22.12.0
           cache: npm
+      - name: Reject git-sourced adapter dependencies
+        run: node scripts/verify-lockfile-sources.mjs
       - name: Validate the locked Rust adapter
         run: |
           cargo fmt --manifest-path crates/neuromorphic-adapter/Cargo.toml --check
