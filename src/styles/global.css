@@ -1214,3 +1214,14 @@ button.button {
 .project-card > p.project-headline { margin: 0.2rem 0 0.6rem; color: var(--accent); font-size: 1rem; font-weight: 700; line-height: 1.4; }
 
 .page-photo { display: block; width: 8rem; height: auto; margin-top: 1.6rem; border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-md); }
+
+/* Forced colours drop background images, so gradient-clipped text would be a
+   transparent fill over nothing. Give it the system text colour instead. */
+@media (forced-colors: active) {
+  .hero h1 em,
+  .page-intro h1 em {
+    background: none;
+    color: CanvasText;
+    -webkit-text-fill-color: currentColor;
+  }
+}

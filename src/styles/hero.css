@@ -694,3 +694,11 @@
 @media (max-width: 360px) {
   .hero.hero-live h1 { font-size: min(12vw, 2.8rem); }
 }
+
+@media (forced-colors: active) {
+  .hero-live h1 em {
+    background-image: none;
+    color: CanvasText;
+    -webkit-text-fill-color: currentColor;
+  }
+}

@@ -473,3 +473,11 @@
     transform: none;
   }
 }
+
+/* Forced colours strip the gradient fill, which would leave the bar empty. */
+@media (forced-colors: active) {
+  .demo-telemetry-feature-bar span {
+    background: CanvasText;
+    forced-color-adjust: none;
+  }
+}

@@ -357,4 +357,8 @@ main:has(.about-profile) .page-intro > p:last-of-type {
   .about-profile .prose strong {
     background-image: none;
   }
+
+  /* The gradient ::after underline is stripped; restore a real one. */
+  .about-profile .prose a { text-decoration: underline; }
+  .about-profile .prose a::after { display: none; }
 }
