@@ -32,6 +32,7 @@ const pulseSpeedLabel = `1/${Math.round(1 / PULSE_DISPLAY_SPEED)}`;
     <div class="hero-text"><slot /></div>
     <figure class="hero-mesh" data-demo-viewport>
       <div class="hero-mesh-stage">
+        <span class="hero-stage-aura" aria-hidden="true"></span>
         <div class="demo-surface" data-demo-surface role="img" aria-label="Live drawing of the same network, from Rust/WASM snapshots" hidden></div>
         <svg class="hero-mesh-static" viewBox={mesh.viewBox} role="img" aria-labelledby="hero-mesh-title hero-mesh-desc">
           <title id="hero-mesh-title">Static drawing of the live network</title>
@@ -46,6 +47,7 @@ const pulseSpeedLabel = `1/${Math.round(1 / PULSE_DISPLAY_SPEED)}`;
         </svg>
         <p class="hero-mesh-input"><span data-input="scripted">input: scripted path</span><span data-input="pointer">input: your pointer</span></p>
         <button type="button" class="button button-secondary hero-mesh-play" data-demo-play hidden>Play animation</button>
+        <span class="hero-stage-hud" aria-hidden="true"><span class="hero-stage-hud-label">SNN // LIVE MESH</span><span class="hero-stage-hud-label hero-stage-hud-label--end">RUST → WASM</span><span class="hero-stage-corner hero-stage-corner--tl"></span><span class="hero-stage-corner hero-stage-corner--tr"></span><span class="hero-stage-corner hero-stage-corner--bl"></span><span class="hero-stage-corner hero-stage-corner--br"></span></span>
       </div>
       <figcaption class="hero-mesh-caption">
         <p class="hero-mesh-motion-note">Your device asks for reduced motion, so the network waits until you press Play. Once it runs, pulses travel along the synapses but the view holds still (the lightest quality mode hides pulses entirely), and Pause stops it at any time.</p>

@@ -34,12 +34,41 @@
 .lab-entry .execution-origin { margin-bottom: 0.6rem; }
 
 .lab-preview {
+  position: relative;
   width: 100%;
   min-width: 0;
   margin: 0;
   padding: 1rem;
   border: 1px solid var(--line-strong);
-  background: var(--paper-deep);
+  border-radius: 0.5rem;
+  background:
+    linear-gradient(165deg, color-mix(in srgb, var(--surface) 94%, var(--accent-soft)), var(--paper-deep) 72%);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--surface) 72%, transparent),
+    0 1rem 2rem -1.4rem color-mix(in srgb, var(--shadow-ink) 55%, transparent);
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+/* Gradient hairline along the top edge of the instrument frame. */
+.lab-preview::before {
+  position: absolute;
+  inset: -1px -1px auto;
+  height: 2px;
+  border-radius: 0.5rem 0.5rem 0 0;
+  background: linear-gradient(90deg, var(--accent), var(--secondary) 55%, var(--spike));
+  content: '';
+  opacity: 0.75;
+}
+
+.lab-entry:hover .lab-preview,
+.lab-entry:focus-within .lab-preview {
+  border-color: color-mix(in srgb, var(--secondary) 55%, var(--line-strong));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--surface) 72%, transparent),
+    0 1.4rem 2.4rem -1.4rem color-mix(in srgb, var(--shadow-ink) 60%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--secondary) 22%, transparent),
+    0 0 1.6rem -0.4rem color-mix(in srgb, var(--secondary) 38%, transparent);
+  transform: translateY(-3px);
 }
 
 .lab-preview svg { display: block; width: 100%; height: auto; }
@@ -55,18 +84,29 @@
 
 .lab-preview figcaption {
   margin-top: 0.7rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
   color: var(--muted);
   font-family: var(--mono);
   font-size: 0.72rem;
+  letter-spacing: 0.02em;
   line-height: 1.5;
 }
 
 .lab-preview-edges path { color: var(--line-strong); stroke: var(--line-strong); stroke-width: 1.5; }
-.lab-preview-nodes rect { fill: var(--surface); stroke: var(--ink); stroke-width: 1.25; }
+.lab-preview-nodes rect {
+  fill: var(--surface);
+  stroke: var(--ink);
+  stroke-width: 1.25;
+  filter: drop-shadow(0 2px 3px color-mix(in srgb, var(--shadow-ink) 22%, transparent));
+}
 .lab-preview-node-name { fill: var(--ink); font-family: var(--mono); font-size: 15px; font-weight: 650; }
 .lab-preview-synapses line { stroke: var(--accent); stroke-opacity: 0.75; stroke-linecap: round; }
 .lab-preview-channels circle { fill: var(--muted); }
-.lab-preview-neurons circle { fill: var(--spike); }
+.lab-preview-neurons circle {
+  fill: var(--spike);
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--spike) 62%, transparent));
+}
 .lab-preview-label { fill: var(--ink); font-family: var(--mono); font-size: 11px; }
 
 @media (min-width: 901px) {
@@ -83,6 +123,7 @@
 }
 
 .lab-entry h2 a { text-decoration: none; }
+.lab-entry h2 a:hover { color: var(--accent); }
 
 .lab-entry-copy > p {
   max-width: 42rem;
@@ -90,3 +131,23 @@
 }
 
 .lab-entry .technology-list { margin: 1rem 0 0.8rem; }
+.lab-entry .technology-list li {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+}
+
+.lab-entry .text-link {
+  padding-bottom: 0.2rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 48%, transparent);
+}
+
+/* The shared gradient underline sweeps in on hover; hide the resting rule
+   then so the link never shows two lines. */
+.lab-entry .text-link:hover,
+.lab-entry .text-link:focus-visible { border-bottom-color: transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lab-preview { transition: none; }
+  .lab-entry:hover .lab-preview,
+  .lab-entry:focus-within .lab-preview { transform: none; }
+}

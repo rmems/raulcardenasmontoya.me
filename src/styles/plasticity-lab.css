@@ -66,26 +66,114 @@
   overflow-wrap: anywhere;
 }
 
+.plasticity-readout dd { font-family: var(--mono); font-size: 0.84rem; }
+
+/* Status readout: same HUD pill treatment as the NIR lab. States are set
+   by enhance-plasticity.ts on [data-plasticity-lab]:
+   static -> loading -> ready | unavailable. */
 .plasticity-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
   margin: 0;
-  font-size: 0.95rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--surface) 72%, transparent);
+  font-family: var(--mono);
+  font-size: 0.84rem;
   line-height: 1.5;
 }
 
+.plasticity-status::before {
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-top: 0.38rem;
+  border-radius: 50%;
+  background: var(--muted);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--muted) 22%, transparent);
+  content: '';
+}
+
+.plasticity-lab[data-plasticity-state='ready'] .plasticity-status {
+  border-color: color-mix(in srgb, var(--secondary) 62%, var(--line-strong));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--surface) 72%, transparent),
+    0 0 1.1rem -0.3rem color-mix(in srgb, var(--secondary) 55%, transparent);
+}
+.plasticity-lab[data-plasticity-state='ready'] .plasticity-status::before {
+  background: var(--secondary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--secondary) 24%, transparent), 0 0 0.6rem color-mix(in srgb, var(--secondary) 75%, transparent);
+}
+
+.plasticity-lab[data-plasticity-state='loading'] .plasticity-status {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line-strong));
+}
+.plasticity-lab[data-plasticity-state='loading'] .plasticity-status::before {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent), 0 0 0.6rem color-mix(in srgb, var(--accent) 70%, transparent);
+  animation: plasticity-status-pulse 1.15s ease-in-out infinite;
+}
+
+.plasticity-lab[data-plasticity-state='unavailable'] .plasticity-status {
+  border-color: color-mix(in srgb, var(--spike) 58%, var(--line-strong));
+}
+.plasticity-lab[data-plasticity-state='unavailable'] .plasticity-status::before {
+  background: var(--spike);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--spike) 20%, transparent), 0 0 0.6rem color-mix(in srgb, var(--spike) 68%, transparent);
+}
+
+/* Golden replay verdict (data-plasticity-golden="match" | "mismatch"). It is
+   only cleared by Reset, so it marks the golden-check readout, not the live
+   status: stepping after a failed replay must not keep the live lamp red. */
+.plasticity-lab[data-plasticity-golden='match'] [data-plasticity-field='golden-check'],
+.plasticity-lab[data-plasticity-golden='mismatch'] [data-plasticity-field='golden-check'] {
+  padding-left: 0.7rem;
+  border-left: 3px solid color-mix(in srgb, var(--secondary) 70%, var(--line-strong));
+}
+.plasticity-lab[data-plasticity-golden='mismatch'] [data-plasticity-field='golden-check'] {
+  border-left-color: var(--spike);
+}
+
+@keyframes plasticity-status-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.78); }
+}
+
+/* Console control deck. */
 .plasticity-controls {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
   gap: 1rem 1.5rem;
-  padding: 1rem 0;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
+  padding: 1rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 0.5rem;
+  background:
+    linear-gradient(165deg, color-mix(in srgb, var(--surface) 94%, var(--accent-soft)), var(--paper-deep) 78%);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--surface) 72%, transparent),
+    0 1rem 2rem -1.4rem color-mix(in srgb, var(--shadow-ink) 55%, transparent);
+}
+
+.plasticity-controls::before {
+  position: absolute;
+  inset: -1px -1px auto;
+  height: 2px;
+  border-radius: 0.5rem 0.5rem 0 0;
+  background: linear-gradient(90deg, var(--accent), var(--secondary) 60%, var(--spike));
+  content: '';
+  opacity: 0.75;
+  pointer-events: none;
 }
 
 .plasticity-stimulus {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem 1rem;
+  gap: 0.4rem;
   min-width: 0;
   margin: 0;
   padding: 0;
@@ -96,6 +184,7 @@
   width: 100%;
   margin-bottom: 0.4rem;
   padding: 0;
+  color: var(--accent);
   font-family: var(--mono);
   font-size: 0.72rem;
   font-weight: 650;
@@ -107,8 +196,23 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
+  padding: 0.38rem 0.6rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
   cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
 }
+
+.plasticity-stimulus label:hover { border-color: var(--accent); }
+
+.plasticity-stimulus label:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0.8rem -0.25rem color-mix(in srgb, var(--accent) 65%, transparent);
+}
+
+.plasticity-stimulus input { accent-color: var(--accent); }
 
 .plasticity-stimulus input:focus-visible {
   outline: 3px solid var(--accent);
@@ -123,11 +227,19 @@
 
 .plasticity-buttons .button {
   padding: 0.6rem 0.85rem;
+  border-radius: 0.35rem;
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--surface) 72%, transparent);
+  transition: transform 150ms ease, background 150ms ease, border-color 150ms ease, box-shadow 150ms ease, color 150ms ease;
 }
+
+.plasticity-buttons .button:hover { transform: translateY(-1px); }
+.plasticity-buttons .button:active { transform: translateY(0); }
 
 .plasticity-buttons .button[aria-pressed='true'] {
   color: var(--paper);
   background: var(--ink);
+  box-shadow: 0 0 1rem -0.3rem color-mix(in srgb, var(--secondary) 70%, transparent);
 }
 
 .plasticity-reward-button {
@@ -138,11 +250,13 @@
 .plasticity-reward-button:hover {
   color: var(--paper);
   background: var(--accent);
+  box-shadow: 0 0 1.1rem -0.25rem color-mix(in srgb, var(--accent) 75%, transparent);
 }
 
 .plasticity-penalty-button:hover {
   color: var(--paper);
   background: var(--ink);
+  box-shadow: 0 0 1.1rem -0.25rem color-mix(in srgb, var(--spike) 65%, transparent);
 }
 
 .plasticity-panels {
@@ -153,28 +267,45 @@
 }
 
 .plasticity-panel {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   align-content: start;
   gap: 0.9rem;
   min-width: 0;
   padding: clamp(1rem, 2.5vw, 1.5rem);
+  border-radius: 0.5rem;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--surface) 72%, transparent),
+    0 1rem 2rem -1.4rem color-mix(in srgb, var(--shadow-ink) 52%, transparent);
 }
 
 /* Reward and modulators: a dashed signal frame, never shared with spike state. */
 .plasticity-panel-reward {
   border: 1px dashed var(--accent);
-  background: var(--paper-deep);
+  background:
+    linear-gradient(165deg, color-mix(in srgb, var(--surface) 92%, var(--accent-soft)), var(--paper-deep) 78%);
 }
 
 /* Neurons, spikes, and weights: a solid ink frame. */
 .plasticity-panel-network {
   border: 1px solid var(--ink);
+  background:
+    linear-gradient(165deg, color-mix(in srgb, var(--surface) 96%, var(--accent-soft)), var(--surface) 70%);
 }
 
 .plasticity-panel-probe {
   grid-column: 1 / -1;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--ink);
+  background:
+    linear-gradient(165deg, color-mix(in srgb, var(--surface) 94%, var(--accent-soft)), var(--paper-deep) 80%);
+}
+
+.plasticity-lab[data-plasticity-state='ready'] .plasticity-panel-network {
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--surface) 72%, transparent),
+    0 1rem 2rem -1.4rem color-mix(in srgb, var(--shadow-ink) 52%, transparent),
+    0 0 1.6rem -0.6rem color-mix(in srgb, var(--secondary) 38%, transparent);
 }
 
 .plasticity-panel header {
@@ -207,6 +338,8 @@
   display: inline-block;
   padding: 0 0.35rem;
   border: 1px solid var(--line-strong);
+  border-radius: 0.25rem;
+  background: color-mix(in srgb, var(--surface) 76%, transparent);
   font-family: var(--mono);
   font-size: 0.72rem;
   line-height: 1.6;
@@ -245,19 +378,26 @@
   height: 0.6rem;
   overflow: hidden;
   border: 1px solid var(--line-strong);
+  border-radius: 999px;
   background: var(--paper);
+  box-shadow: inset 0 1px 2px color-mix(in srgb, var(--shadow-ink) 18%, transparent);
 }
 
 .plasticity-meter span {
   position: absolute;
   inset: 0;
-  background: var(--accent);
+  border-radius: inherit;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 72%, var(--secondary)), var(--accent));
+  box-shadow: 0 0 0.55rem color-mix(in srgb, var(--accent) 55%, transparent);
   transform: scaleX(0);
   transform-origin: left center;
   transition: transform 120ms ease-out;
 }
 
-.plasticity-modulators li[data-modulator='norepinephrine'] .plasticity-meter span { background: var(--ink); }
+.plasticity-modulators li[data-modulator='norepinephrine'] .plasticity-meter span {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--ink) 72%, var(--secondary)), var(--ink));
+  box-shadow: 0 0 0.55rem color-mix(in srgb, var(--secondary) 45%, transparent);
+}
 
 .plasticity-modulator-value {
   font-family: var(--mono);
@@ -274,8 +414,12 @@
 .plasticity-figure canvas {
   display: block;
   width: 100%;
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
+  border-radius: 0.35rem;
   background: var(--paper);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--surface) 60%, transparent),
+    0 0 1.2rem -0.5rem color-mix(in srgb, var(--accent) 42%, transparent);
 }
 
 canvas[data-plasticity-raster] { height: 7.5rem; }
@@ -295,11 +439,13 @@ canvas[data-plasticity-modulator-strip] { height: 4.5rem; }
   font-size: 0.82rem;
 }
 
-.plasticity-event-log li[data-event='reward'] { color: var(--accent); }
+.plasticity-event-log li[data-event='reward'] { color: var(--accent); font-weight: 650; }
+.plasticity-event-log li[data-event='penalty'] { color: var(--ink); font-weight: 650; }
 
 .plasticity-table-wrap {
   max-width: 100%;
   overflow-x: auto;
+  scrollbar-color: var(--line-strong) transparent;
 }
 
 .plasticity-table {
@@ -310,8 +456,13 @@ canvas[data-plasticity-modulator-strip] { height: 4.5rem; }
 
 .plasticity-table caption {
   margin-bottom: 0.35rem;
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 0.72rem;
   font-weight: 650;
+  letter-spacing: 0.06em;
   text-align: left;
+  text-transform: uppercase;
 }
 
 .plasticity-table th,
@@ -332,7 +483,13 @@ canvas[data-plasticity-modulator-strip] { height: 4.5rem; }
   color: var(--muted);
   font-size: 0.72rem;
   font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--paper-deep) 58%, transparent);
 }
+
+.plasticity-table tbody tr { transition: background 140ms ease; }
+.plasticity-table tbody tr:hover { background: color-mix(in srgb, var(--accent-soft) 38%, transparent); }
 
 .plasticity-table small { color: var(--muted); }
 
@@ -379,6 +536,7 @@ canvas[data-plasticity-modulator-strip] { height: 4.5rem; }
 }
 
 .plasticity-golden-table tr[data-golden-event='reward'] td { color: var(--accent); }
+.plasticity-golden-table tr[data-golden-event='penalty'] td { font-weight: 650; }
 .plasticity-golden-table tr[data-new-episode] th,
 .plasticity-golden-table tr[data-new-episode] td { border-top: 1px solid var(--ink); }
 
@@ -391,6 +549,11 @@ canvas[data-plasticity-modulator-strip] { height: 4.5rem; }
 .plasticity-golden-note {
   max-width: 52rem;
   margin: 0;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 0.35rem 0.35rem 0;
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
   color: var(--muted);
   font-size: 0.9rem;
 }
@@ -407,4 +570,20 @@ canvas[data-plasticity-modulator-strip] { height: 4.5rem; }
   .plasticity-readout div { grid-template-columns: minmax(0, 1fr); gap: 0.25rem; }
   .plasticity-modulators li { grid-template-columns: minmax(0, 6.4rem) minmax(0, 1fr) minmax(0, 2.4rem); }
   .plasticity-layer { white-space: normal; }
+  .plasticity-status { border-radius: 0.5rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plasticity-buttons .button,
+  .plasticity-stimulus label,
+  .plasticity-table tbody tr { transition: none; }
+  .plasticity-buttons .button:hover,
+  .plasticity-buttons .button:active { transform: none; }
+  .plasticity-meter span { transition: none; }
+  .plasticity-lab[data-plasticity-state='loading'] .plasticity-status::before { animation: none; }
+}
+
+/* Touch screens keep :hover after a tap; do not leave the lift stuck on. */
+@media (hover: none) {
+  .plasticity-buttons .button:hover { transform: none; }
 }
