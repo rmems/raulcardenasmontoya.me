@@ -424,3 +424,9 @@
   .protocol-check-actions .button:active { transform: none; }
   .protocol-viewer[data-protocol-state='loading'] .protocol-page-status::before { animation: none; }
 }
+
+/* Touch screens keep :hover after a tap; do not leave the lift stuck on. */
+@media (hover: none) {
+  .protocol-fixture:hover,
+  .protocol-check-actions .button:hover { transform: none; }
+}

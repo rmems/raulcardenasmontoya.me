@@ -434,3 +434,8 @@
   .nir-operator:hover { transform: none; }
   .nir-lab[data-nir-state='loading'] .nir-status::before { animation: none; }
 }
+
+/* Touch screens keep :hover after a tap; do not leave the lift stuck on. */
+@media (hover: none) {
+  .nir-operator:hover { transform: none; }
+}

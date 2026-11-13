@@ -1181,6 +1181,14 @@ button.button {
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation: none !important; }
+  /* Near-zero transitions turn hover lifts into jumps; keep these still. */
+  .brand:hover .monogram,
+  .header-profile:hover,
+  .button-primary:hover,
+  .button-secondary:hover,
+  .project-card:hover,
+  .home-about figure:hover img { transform: none; }
+  .button-primary:hover::after { transform: translateX(-120%); }
 }
 
 .artifacts-section h3 { margin: 2rem 0 0.6rem; }

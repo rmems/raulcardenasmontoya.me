@@ -582,3 +582,8 @@ canvas[data-plasticity-modulator-strip] { height: 4.5rem; }
   .plasticity-meter span { transition: none; }
   .plasticity-lab[data-plasticity-state='loading'] .plasticity-status::before { animation: none; }
 }
+
+/* Touch screens keep :hover after a tap; do not leave the lift stuck on. */
+@media (hover: none) {
+  .plasticity-buttons .button:hover { transform: none; }
+}
