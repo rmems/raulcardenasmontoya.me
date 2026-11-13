@@ -7,12 +7,15 @@ import { ALLOWED_GIT_SOURCES, gitSourceViolations, LOCKFILE, lockfilePackages } 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const fixture = (name) => readFileSync(new URL(`./fixtures/cargo-lock/${name}`, import.meta.url), 'utf8');
 
-test('the committed adapter lockfile has no unapproved git sources', () => {
+test('the allowlist is empty, so every adapter dependency resolves from crates.io', () => {
+  assert.equal(ALLOWED_GIT_SOURCES.size, 0);
+});
+
+test('the committed adapter lockfile resolves every package from crates.io', () => {
   const { violations, allowlisted } = gitSourceViolations(read(LOCKFILE));
 
   assert.deepEqual(violations, []);
-  // The only allowed git source is plasticity-lab, pending its crates.io release.
-  assert.deepEqual(allowlisted.map((entry) => entry.split(' ')[0]), ['plasticity-lab']);
+  assert.deepEqual(allowlisted, [], 'no git sources remain allowlisted');
 });
 
 test('the guard fails on a lockfile that carries a git source', () => {
@@ -28,31 +31,27 @@ test('the guard accepts a registry-only lockfile', () => {
   assert.deepEqual(gitSourceViolations(fixture('registry-only.lock')), { violations: [], allowlisted: [] });
 });
 
-test('the guard detects the real plasticity-lab git source when it is not allowlisted', () => {
-  // Proves the committed git source is actually seen: with an empty allowlist,
-  // the same lockfile that passes above now fails.
-  const { violations } = gitSourceViolations(read(LOCKFILE), new Map());
-
-  assert.equal(violations.length, 1);
-  assert.match(violations[0], /^plasticity-lab .*: git source git\+https:\/\/github\.com\/Limen-Neural\/plasticity-lab\.git\?rev=/);
-});
-
-test('the allowlist is bound to the exact reviewed source, not just the name', () => {
-  const allowlisted = ALLOWED_GIT_SOURCES.get('plasticity-lab');
-  assert.ok(allowlisted?.source, 'plasticity-lab is pinned to a reviewed source');
-
-  // Same package name, a different rev: must fail rather than ride on the name.
-  const otherRev = [
+test('an allowlist entry is bound to the exact reviewed source, not just the name', () => {
+  const allowed = new Map([
+    ['plasticity-lab', { source: 'git+https://github.com/Limen-Neural/plasticity-lab.git?rev=aaaa#aaaa', reason: 'test fixture (#162)' }],
+  ]);
+  const lockfile = [
     '[[package]]',
     'name = "plasticity-lab"',
     'version = "0.3.0"',
-    'source = "git+https://github.com/Limen-Neural/plasticity-lab.git?rev=1111111111111111111111111111111111111111#1111111111111111111111111111111111111111"',
+    'source = "git+https://github.com/Limen-Neural/plasticity-lab.git?rev=aaaa#aaaa"',
+    '',
+    '[[package]]',
+    'name = "plasticity-lab"',
+    'version = "0.3.0"',
+    'source = "git+https://github.com/example/plasticity-lab.git?rev=bbbb#bbbb"',
     '',
   ].join('\n');
-  const { violations } = gitSourceViolations(otherRev);
+  const { violations, allowlisted } = gitSourceViolations(lockfile, allowed);
 
+  assert.deepEqual(allowlisted, ['plasticity-lab 0.3.0: git+https://github.com/Limen-Neural/plasticity-lab.git?rev=aaaa#aaaa']);
   assert.equal(violations.length, 1);
-  assert.match(violations[0], /^plasticity-lab 0\.3\.0: git source .* is not the reviewed allowlisted source/);
+  assert.match(violations[0], /plasticity-lab 0\.3\.0: git source .* is not the reviewed allowlisted source/);
 });
 
 test('lockfilePackages reads name, version, and source for every package', () => {
@@ -73,12 +72,4 @@ test('the git-source guard runs from validate:rust and CI', () => {
 
   assert.match(packageJson.scripts['validate:rust'], /node scripts\/verify-lockfile-sources\.mjs/);
   assert.match(workflow, /node scripts\/verify-lockfile-sources\.mjs/);
-});
-
-test('the allowlist documents why each git source is still allowed', () => {
-  for (const [name, { source, reason }] of ALLOWED_GIT_SOURCES) {
-    assert.match(source, /^git\+/, `${name} pins a git source string`);
-    assert.ok(reason.length > 20, `${name} needs a reason`);
-    assert.match(reason, /#162/, `${name} names the tracking issue`);
-  }
 });

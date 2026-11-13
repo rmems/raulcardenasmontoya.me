@@ -262,8 +262,9 @@ checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
 
 [[package]]
 name = "plasticity-lab"
-version = "0.2.1"
-source = "git+https://github.com/Limen-Neural/plasticity-lab.git?rev=c80fac2eb96a140df9cfd999278bce414a329a56#c80fac2eb96a140df9cfd999278bce414a329a56"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "72f86eaaf1c5264396fccaa526e059a3435547e78d2c7220e938789d75a3a7c8"
 dependencies = [
  "limbic-critic",
  "neuromod",

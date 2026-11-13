@@ -20,20 +20,11 @@ export const LOCKFILE = 'crates/neuromorphic-adapter/Cargo.lock';
  * different URL or `rev` is a different dependency, so it fails the guard and
  * must be reviewed as a new allowlist entry.
  *
- * `plasticity-lab`: crates.io 0.2.1 requires `neuromod ^0.6`, which conflicts
- * with the adapter's `neuromod =0.7.0`, so the `plasticity` feature pins `main`
- * at a `rev`. Remove this entry once the neuromod-0.7 release ships
- * (GitHub #162, task 1) and the pin moves to crates.io.
+ * The map is empty: every adapter dependency resolves from crates.io. Adding an
+ * entry means an unreviewable git pin is back in the browser graph, so pair it
+ * with the tracking issue that removes it.
  */
-export const ALLOWED_GIT_SOURCES = new Map([
-  [
-    'plasticity-lab',
-    {
-      source: 'git+https://github.com/Limen-Neural/plasticity-lab.git?rev=c80fac2eb96a140df9cfd999278bce414a329a56#c80fac2eb96a140df9cfd999278bce414a329a56',
-      reason: 'crates.io 0.2.1 requires neuromod ^0.6; pinned to `main` at rev c80fac2e until the neuromod-0.7 release ships (#162)',
-    },
-  ],
-]);
+export const ALLOWED_GIT_SOURCES = new Map();
 
 /** The `[[package]]` entries of a lockfile as `{ name, version, source }`. */
 export function lockfilePackages(lockfile) {

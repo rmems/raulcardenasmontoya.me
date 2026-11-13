@@ -428,10 +428,10 @@ fn the_lab_starts_from_the_documented_network() {
 }
 
 #[test]
-fn the_lab_links_the_pinned_plasticity_lab_revision_and_limbic_critic() {
+fn the_lab_links_the_pinned_plasticity_lab_release_and_limbic_critic() {
     let lock = LOCKFILE.replace("\r\n", "\n");
     assert!(lock.contains(
-        "name = \"plasticity-lab\"\nversion = \"0.2.1\"\nsource = \"git+https://github.com/Limen-Neural/plasticity-lab.git?rev=c80fac2eb96a140df9cfd999278bce414a329a56#c80fac2eb96a140df9cfd999278bce414a329a56\""
+        "name = \"plasticity-lab\"\nversion = \"0.3.0\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"72f86eaaf1c5264396fccaa526e059a3435547e78d2c7220e938789d75a3a7c8\""
     ));
     assert!(lock.contains(
         "name = \"limbic-critic\"\nversion = \"0.3.0\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"0afb84406e35b755770254f4418c4b7b92b79c089f10e5c671b9ae2016a79329\""
