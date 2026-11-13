@@ -88,11 +88,16 @@ export function gitSourceViolations(lockfile, allowed = ALLOWED_GIT_SOURCES) {
 }
 
 export async function main(lockfilePath) {
-  // Resolve the real path inside the repository and refuse anything that
-  // escapes it (including a symlink), so the CLI argument cannot read an
-  // arbitrary file.
+  // Reject a lexical escape first (deterministic, no existence needed), then
+  // re-check the real path so a symlink inside the repository that targets an
+  // external file is refused too. The CLI argument cannot read an arbitrary
+  // file either way.
   const label = lockfilePath ?? LOCKFILE;
-  const path = realpathSync(resolve(repository, lockfilePath ?? LOCKFILE));
+  const lexical = resolve(repository, label);
+  if (lexical !== repository && !lexical.startsWith(repository + sep)) {
+    throw new Error(`Refusing to read a lockfile outside the repository: ${label}`);
+  }
+  const path = realpathSync(lexical);
   if (path !== repository && !path.startsWith(repository + sep)) {
     throw new Error(`Refusing to read a lockfile outside the repository: ${label}`);
   }

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { readFileSync, rmSync, symlinkSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import process from 'node:process';
@@ -73,12 +74,16 @@ test('main reads inside the repository and refuses a path that escapes it', asyn
 });
 
 test('main refuses a symlink that points outside the repository', { skip: skipWithoutSymlinks }, async () => {
+  const outside = mkdtempSync(join(tmpdir(), 'lockfile-guard-'));
+  const target = join(outside, 'external.lock');
+  writeFileSync(target, '[[package]]\nname = "outside"\n');
   const link = join(repositoryRoot, 'test', 'fixtures', `escape-${process.pid}.lock`);
-  symlinkSync('/etc/passwd', link);
+  symlinkSync(target, link);
   try {
     await assert.rejects(main(link), /outside the repository/);
   } finally {
     rmSync(link, { force: true });
+    rmSync(outside, { recursive: true, force: true });
   }
 });
 
