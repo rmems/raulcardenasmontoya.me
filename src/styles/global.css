@@ -184,16 +184,6 @@ body::before {
   to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes gradient-pan {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-}
-
-@keyframes status-pulse {
-  0%, 100% { box-shadow: 0 0 0 3px var(--accent-soft); }
-  50% { box-shadow: 0 0 0 3px var(--accent-soft), 0 0 0 6px transparent; }
-}
-
 a {
   color: inherit;
   text-decoration-thickness: 1px;
@@ -428,17 +418,15 @@ code {
   font-weight: 450;
 }
 
-/* Animated gradient over the (still text-safe) stops; falls back to the
+/* Static gradient over the (still text-safe) stops; falls back to the
    solid --accent colour above where background-clip: text is unsupported. */
 @supports ((background-clip: text) or (-webkit-background-clip: text)) {
   .hero h1 em,
   .page-intro h1 em {
     background: var(--gradient-text);
-    background-size: 180% 100%;
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    animation: gradient-pan 9s ease-in-out infinite;
   }
 }
 
@@ -627,7 +615,6 @@ button.button {
   border-radius: 50%;
   background: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
-  animation: status-pulse 2.8s ease-in-out infinite;
 }
 
 .project-category {

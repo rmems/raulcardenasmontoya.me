@@ -582,7 +582,8 @@
    base state, so no-JS and failed animations still show everything. */
 @media (prefers-reduced-motion: no-preference) {
   .hero-live > .hero-heading { animation: hero-rise 700ms cubic-bezier(0.22, 1, 0.36, 1) both; }
-  .hero-live .hero-text > h1 { animation: hero-rise 700ms 70ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+  /* The headline is the LCP element: it slides in but never starts hidden. */
+  .hero-live .hero-text > h1 { animation: hero-shift 700ms 70ms cubic-bezier(0.22, 1, 0.36, 1) both; }
   .hero-live .hero-text > :not(h1) { animation: hero-rise 700ms 150ms cubic-bezier(0.22, 1, 0.36, 1) both; }
   .hero-live > .hero-mesh { animation: hero-rise 800ms 180ms cubic-bezier(0.22, 1, 0.36, 1) both; }
   .button.hero-mesh-play { transition: transform 180ms ease, box-shadow 180ms ease; }
@@ -594,6 +595,11 @@
 @keyframes hero-rise {
   from { opacity: 0; transform: translateY(0.9rem); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes hero-shift {
+  from { transform: translateY(0.9rem); }
+  to { transform: translateY(0); }
 }
 
 @media (prefers-reduced-motion: reduce) {
