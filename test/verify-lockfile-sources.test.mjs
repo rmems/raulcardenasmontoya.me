@@ -37,6 +37,24 @@ test('the guard detects the real plasticity-lab git source when it is not allowl
   assert.match(violations[0], /^plasticity-lab .*: git source git\+https:\/\/github\.com\/Limen-Neural\/plasticity-lab\.git\?rev=/);
 });
 
+test('the allowlist is bound to the exact reviewed source, not just the name', () => {
+  const allowlisted = ALLOWED_GIT_SOURCES.get('plasticity-lab');
+  assert.ok(allowlisted?.source, 'plasticity-lab is pinned to a reviewed source');
+
+  // Same package name, a different rev: must fail rather than ride on the name.
+  const otherRev = [
+    '[[package]]',
+    'name = "plasticity-lab"',
+    'version = "0.3.0"',
+    'source = "git+https://github.com/Limen-Neural/plasticity-lab.git?rev=1111111111111111111111111111111111111111#1111111111111111111111111111111111111111"',
+    '',
+  ].join('\n');
+  const { violations } = gitSourceViolations(otherRev);
+
+  assert.equal(violations.length, 1);
+  assert.match(violations[0], /^plasticity-lab 0\.3\.0: git source .* is not the reviewed allowlisted source/);
+});
+
 test('lockfilePackages reads name, version, and source for every package', () => {
   const packages = lockfilePackages(fixture('git-source.lock'));
 
@@ -58,7 +76,8 @@ test('the git-source guard runs from validate:rust and CI', () => {
 });
 
 test('the allowlist documents why each git source is still allowed', () => {
-  for (const [name, reason] of ALLOWED_GIT_SOURCES) {
+  for (const [name, { source, reason }] of ALLOWED_GIT_SOURCES) {
+    assert.match(source, /^git\+/, `${name} pins a git source string`);
     assert.ok(reason.length > 20, `${name} needs a reason`);
     assert.match(reason, /#162/, `${name} names the tracking issue`);
   }

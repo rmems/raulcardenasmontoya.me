@@ -15,9 +15,10 @@ const repository = resolve(import.meta.dirname, '..');
 export const LOCKFILE = 'crates/neuromorphic-adapter/Cargo.lock';
 
 /**
- * Git-sourced packages allowed while their crates.io release is unpublished.
- * Each entry is a dependency the browser package cannot audit by checksum, so
- * this map should shrink to empty and stay there.
+ * Git-sourced packages allowed while their crates.io release is unpublished,
+ * keyed by package name and pinned to the exact reviewed `source` string. A
+ * different URL or `rev` is a different dependency, so it fails the guard and
+ * must be reviewed as a new allowlist entry.
  *
  * `plasticity-lab`: crates.io 0.2.1 requires `neuromod ^0.6`, which conflicts
  * with the adapter's `neuromod =0.7.0`, so the `plasticity` feature pins `main`
@@ -25,7 +26,13 @@ export const LOCKFILE = 'crates/neuromorphic-adapter/Cargo.lock';
  * (GitHub #162, task 1) and the pin moves to crates.io.
  */
 export const ALLOWED_GIT_SOURCES = new Map([
-  ['plasticity-lab', 'crates.io 0.2.1 requires neuromod ^0.6; pinned to `main` until the neuromod-0.7 release ships (#162)'],
+  [
+    'plasticity-lab',
+    {
+      source: 'git+https://github.com/Limen-Neural/plasticity-lab.git?rev=c80fac2eb96a140df9cfd999278bce414a329a56#c80fac2eb96a140df9cfd999278bce414a329a56',
+      reason: 'crates.io 0.2.1 requires neuromod ^0.6; pinned to `main` at rev c80fac2e until the neuromod-0.7 release ships (#162)',
+    },
+  ],
 ]);
 
 /** The `[[package]]` entries of a lockfile as `{ name, version, source }`. */
@@ -43,17 +50,21 @@ export function lockfilePackages(lockfile) {
 }
 
 /**
- * Every git source in the lockfile that is not allowlisted, as
- * `name version: source`. Empty means clean. The allowlisted ones are returned
- * separately so a caller can report them without failing.
+ * Every git source in the lockfile that is not an allowlisted name pinned to
+ * exactly its reviewed source, as `name version: …`. Empty means clean. The
+ * allowlisted ones are returned separately so a caller can report them without
+ * failing.
  */
 export function gitSourceViolations(lockfile, allowed = ALLOWED_GIT_SOURCES) {
   const violations = [];
   const allowlisted = [];
   for (const pkg of lockfilePackages(lockfile)) {
     if (!pkg.source?.startsWith('git+')) continue;
-    if (allowed.has(pkg.name)) {
+    const entry = allowed.get(pkg.name);
+    if (entry?.source === pkg.source) {
       allowlisted.push(`${pkg.name} ${pkg.version}: ${pkg.source}`);
+    } else if (entry) {
+      violations.push(`${pkg.name} ${pkg.version}: git source ${pkg.source} is not the reviewed allowlisted source ${entry.source}`);
     } else {
       violations.push(`${pkg.name} ${pkg.version}: git source ${pkg.source}`);
     }
