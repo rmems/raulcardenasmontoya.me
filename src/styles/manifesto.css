@@ -57,7 +57,7 @@
   font-weight: 450;
 }
 
-@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+@supports ((-webkit-background-clip: text) or (background-clip: text)) and (color: color-mix(in srgb, red, blue)) {
   .manifesto-hero h1 em {
     background-image: linear-gradient(
       100deg,
@@ -429,7 +429,7 @@
   line-height: 1;
 }
 
-@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+@supports ((-webkit-background-clip: text) or (background-clip: text)) and (color: color-mix(in srgb, red, blue)) {
   .manifesto-principle-index {
     background-image: linear-gradient(
       140deg,
