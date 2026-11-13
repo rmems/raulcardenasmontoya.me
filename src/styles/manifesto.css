@@ -92,7 +92,7 @@
   border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
   border-radius: 999px;
   background: linear-gradient(140deg, var(--accent), var(--secondary), var(--spike));
-  box-shadow: 0 18px 34px -24px color-mix(in srgb, var(--ink) 60%, transparent);
+  box-shadow: 0 18px 34px -24px color-mix(in srgb, var(--shadow-ink) 60%, transparent);
   object-fit: cover;
   filter: saturate(0.88) contrast(1.05) sepia(0.12);
 }
@@ -337,7 +337,7 @@
       color-mix(in srgb, var(--surface) 94%, transparent),
       color-mix(in srgb, var(--accent) 8%, var(--paper-deep))
     );
-  box-shadow: 0 22px 40px -34px color-mix(in srgb, var(--ink) 58%, transparent);
+  box-shadow: 0 22px 40px -34px color-mix(in srgb, var(--shadow-ink) 58%, transparent);
   color: var(--ink);
 }
 
@@ -399,7 +399,7 @@
       color-mix(in srgb, var(--surface) 94%, transparent),
       color-mix(in srgb, var(--accent) 6%, var(--surface))
     );
-  box-shadow: 0 18px 34px -32px color-mix(in srgb, var(--ink) 55%, transparent);
+  box-shadow: 0 18px 34px -32px color-mix(in srgb, var(--shadow-ink) 55%, transparent);
   transition: transform 200ms ease, opacity 200ms ease;
 }
 
@@ -534,7 +534,7 @@
       color-mix(in srgb, var(--accent) 10%, var(--surface)),
       color-mix(in srgb, var(--secondary) 7%, var(--paper-deep))
     );
-  box-shadow: 0 24px 44px -36px color-mix(in srgb, var(--ink) 60%, transparent);
+  box-shadow: 0 24px 44px -36px color-mix(in srgb, var(--shadow-ink) 60%, transparent);
 }
 
 .manifesto-coda::before {

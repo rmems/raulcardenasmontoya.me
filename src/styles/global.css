@@ -51,6 +51,8 @@
      --spike-text 6.0:1 on --paper (slightly lower, still >=4.5:1, on
      --paper-deep). --gradient-* is graphics / large-display only. */
   --surface-raised: #ffffff;
+  /* Shadow base: --ink is near-white in dark mode, which turns shadows into halos. */
+  --shadow-ink: #0f172a;
   --surface-glass: rgb(255 255 255 / 68%);
   --header-glass: rgb(247 248 250 / 94%);
   --accent-strong: #3730a3;
@@ -107,6 +109,7 @@
        --accent-strong 7.6:1, --teal-text 9.6:1, --spike-text 7.4:1 on
        --paper. --gradient-* is graphics / large-display only. */
     --surface-raised: #1c222e;
+    --shadow-ink: #000000;
     --surface-glass: rgb(22 26 34 / 66%);
     --header-glass: rgb(15 18 24 / 94%);
     --accent-strong: #a5a0ff;

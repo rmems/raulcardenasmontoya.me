@@ -184,7 +184,7 @@
     linear-gradient(165deg, color-mix(in srgb, var(--surface) 94%, var(--accent-soft)), var(--paper-deep) 76%);
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, var(--surface) 72%, transparent),
-    0 1rem 2rem -1.4rem color-mix(in srgb, var(--ink) 50%, transparent);
+    0 1rem 2rem -1.4rem color-mix(in srgb, var(--shadow-ink) 50%, transparent);
   transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 }
 
@@ -203,7 +203,7 @@
   border-color: color-mix(in srgb, var(--accent) 52%, var(--line-strong));
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, var(--surface) 72%, transparent),
-    0 1.3rem 2.2rem -1.4rem color-mix(in srgb, var(--ink) 58%, transparent);
+    0 1.3rem 2.2rem -1.4rem color-mix(in srgb, var(--shadow-ink) 58%, transparent);
   transform: translateY(-2px);
 }
 
@@ -224,7 +224,7 @@
   border-color: color-mix(in srgb, var(--secondary) 58%, var(--ink));
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, var(--surface) 72%, transparent),
-    0 1rem 2rem -1.4rem color-mix(in srgb, var(--ink) 50%, transparent),
+    0 1rem 2rem -1.4rem color-mix(in srgb, var(--shadow-ink) 50%, transparent),
     0 0 1.4rem -0.5rem color-mix(in srgb, var(--secondary) 48%, transparent);
 }
 
@@ -243,7 +243,7 @@
   border-color: color-mix(in srgb, var(--spike) 62%, var(--line-strong));
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, var(--surface) 72%, transparent),
-    0 1rem 2rem -1.4rem color-mix(in srgb, var(--ink) 50%, transparent),
+    0 1rem 2rem -1.4rem color-mix(in srgb, var(--shadow-ink) 50%, transparent),
     0 0 1.4rem -0.5rem color-mix(in srgb, var(--spike) 42%, transparent);
 }
 
@@ -285,7 +285,7 @@
   border-radius: 0.35rem;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--surface) 88%, var(--paper-deep)), var(--paper));
-  box-shadow: inset 0 1px 3px color-mix(in srgb, var(--ink) 14%, transparent);
+  box-shadow: inset 0 1px 3px color-mix(in srgb, var(--shadow-ink) 14%, transparent);
   font-family: var(--mono);
   font-size: 0.72rem;
   line-height: 1.5;

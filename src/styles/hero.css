@@ -96,7 +96,7 @@
      through every gap in the mesh and muddies the drawing, so the plate
      stays a flat paper. */
   background: var(--paper-deep);
-  box-shadow: 0 0.4rem 1.2rem color-mix(in srgb, var(--ink) 10%, transparent);
+  box-shadow: 0 0.4rem 1.2rem color-mix(in srgb, var(--shadow-ink) 10%, transparent);
 }
 
 .hero-mesh-static,
@@ -160,7 +160,7 @@
     linear-gradient(160deg, color-mix(in srgb, var(--surface) 88%, transparent), color-mix(in srgb, var(--paper-deep) 72%, transparent)) padding-box,
     linear-gradient(135deg, color-mix(in srgb, var(--accent) 55%, transparent), color-mix(in srgb, var(--secondary) 45%, transparent), color-mix(in srgb, var(--spike) 35%, transparent)) border-box;
   box-shadow:
-    0 1rem 2.2rem color-mix(in srgb, var(--ink) 9%, transparent),
+    0 1rem 2.2rem color-mix(in srgb, var(--shadow-ink) 9%, transparent),
     inset 0 1px 0 color-mix(in srgb, var(--surface) 70%, transparent);
   font-family: var(--mono);
   font-size: 0.72rem;
@@ -510,7 +510,7 @@
   background:
     linear-gradient(165deg, color-mix(in srgb, var(--surface) 86%, transparent), color-mix(in srgb, var(--paper-deep) 68%, transparent)) padding-box,
     linear-gradient(120deg, color-mix(in srgb, var(--accent) 48%, transparent), color-mix(in srgb, var(--secondary) 38%, transparent)) border-box;
-  box-shadow: 0 1.2rem 2.6rem color-mix(in srgb, var(--ink) 8%, transparent);
+  box-shadow: 0 1.2rem 2.6rem color-mix(in srgb, var(--shadow-ink) 8%, transparent);
 }
 
 .live-hero .demo-telemetry-summary { align-items: center; padding-inline: 1rem; }
