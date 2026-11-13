@@ -483,8 +483,19 @@
 
 /* Forced colours strip the gradient fill, which would leave the bar empty. */
 @media (forced-colors: active) {
-  .demo-telemetry-feature-bar span {
+  .demo-telemetry-feature-bar span,
+  .live-hero .demo-telemetry-feature-bar span {
     background: CanvasText;
+    box-shadow: none;
+    forced-color-adjust: none;
+  }
+
+  /* A selected neuron chip's only state is its fill, which forced colours
+     would flatten to the unselected colour. */
+  .demo-telemetry-chip input:checked + span {
+    border-color: Highlight;
+    color: HighlightText;
+    background: Highlight;
     forced-color-adjust: none;
   }
 }
