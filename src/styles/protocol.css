@@ -199,13 +199,7 @@
   pointer-events: none;
 }
 
-.protocol-fixture:hover {
-  border-color: color-mix(in srgb, var(--accent) 52%, var(--line-strong));
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--surface) 72%, transparent),
-    0 1.3rem 2.2rem -1.4rem color-mix(in srgb, var(--shadow-ink) 58%, transparent);
-  transform: translateY(-2px);
-}
+.protocol-fixture:hover { transform: translateY(-2px); }
 
 .protocol-fixture h3 {
   margin: 0;
@@ -255,6 +249,15 @@
 .protocol-fixture[data-protocol-status='rejected'] .protocol-fixture-status::before {
   background: var(--spike);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--spike) 20%, transparent), 0 0 0.6rem color-mix(in srgb, var(--spike) 68%, transparent);
+}
+
+/* After the state rules, and more specific than them, so verified cards get
+   the hover frame too. A rejected card keeps its alarm frame on hover. */
+.protocol-fixture:not([data-protocol-status='rejected']):hover {
+  border-color: color-mix(in srgb, var(--accent) 52%, var(--line-strong));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--surface) 72%, transparent),
+    0 1.3rem 2.2rem -1.4rem color-mix(in srgb, var(--shadow-ink) 58%, transparent);
 }
 
 .protocol-bytes {

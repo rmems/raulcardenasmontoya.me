@@ -125,16 +125,16 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--spike) 20%, transparent), 0 0 0.6rem color-mix(in srgb, var(--spike) 68%, transparent);
 }
 
-/* Golden replay verdict (data-plasticity-golden="match" | "mismatch"). */
-.plasticity-lab[data-plasticity-golden='match'] .plasticity-status {
-  border-color: color-mix(in srgb, var(--secondary) 62%, var(--line-strong));
+/* Golden replay verdict (data-plasticity-golden="match" | "mismatch"). It is
+   only cleared by Reset, so it marks the golden-check readout, not the live
+   status: stepping after a failed replay must not keep the live lamp red. */
+.plasticity-lab[data-plasticity-golden='match'] [data-plasticity-field='golden-check'],
+.plasticity-lab[data-plasticity-golden='mismatch'] [data-plasticity-field='golden-check'] {
+  padding-left: 0.7rem;
+  border-left: 3px solid color-mix(in srgb, var(--secondary) 70%, var(--line-strong));
 }
-.plasticity-lab[data-plasticity-golden='mismatch'] .plasticity-status {
-  border-color: color-mix(in srgb, var(--spike) 58%, var(--line-strong));
-}
-.plasticity-lab[data-plasticity-golden='mismatch'] .plasticity-status::before {
-  background: var(--spike);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--spike) 20%, transparent), 0 0 0.6rem color-mix(in srgb, var(--spike) 68%, transparent);
+.plasticity-lab[data-plasticity-golden='mismatch'] [data-plasticity-field='golden-check'] {
+  border-left-color: var(--spike);
 }
 
 @keyframes plasticity-status-pulse {

@@ -317,6 +317,13 @@
   box-shadow: 0 0 0.8rem -0.25rem color-mix(in srgb, var(--secondary) 65%, transparent);
 }
 
+/* Checked and spiked: keep the spike marker under the selection glow. */
+.demo-telemetry-chip[data-spiked='true'] input:checked + span {
+  box-shadow:
+    inset 0 -3px 0 var(--accent),
+    0 0 0.8rem -0.25rem color-mix(in srgb, var(--secondary) 65%, transparent);
+}
+
 .demo-telemetry-chip input:focus-visible + span {
   outline: 3px solid var(--accent);
   outline-offset: 2px;
