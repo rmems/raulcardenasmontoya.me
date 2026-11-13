@@ -102,6 +102,8 @@
   display: flex;
   align-items: flex-start;
   gap: 0.5rem;
+  /* `anywhere` lets the status text shrink below its longest token. */
+  overflow-wrap: anywhere;
   padding: 0.55rem 0.7rem;
   border: 1px solid var(--line-strong);
   border-radius: 0.4rem;
