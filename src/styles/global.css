@@ -52,7 +52,7 @@
      --paper-deep). --gradient-* is graphics / large-display only. */
   --surface-raised: #ffffff;
   --surface-glass: rgb(255 255 255 / 68%);
-  --header-glass: rgb(247 248 250 / 78%);
+  --header-glass: rgb(247 248 250 / 94%);
   --accent-strong: #3730a3;
   --teal-text: #0f766e;
   --spike-text: #be123c;
@@ -108,7 +108,7 @@
        --paper. --gradient-* is graphics / large-display only. */
     --surface-raised: #1c222e;
     --surface-glass: rgb(22 26 34 / 66%);
-    --header-glass: rgb(15 18 24 / 76%);
+    --header-glass: rgb(15 18 24 / 94%);
     --accent-strong: #a5a0ff;
     --teal-text: #5eead4;
     --spike-text: #fda4af;
@@ -252,8 +252,9 @@ code {
   background-color: var(--header-glass);
   background-image: linear-gradient(115deg, color-mix(in srgb, var(--accent) 11%, transparent), transparent 34%, transparent 68%, color-mix(in srgb, var(--secondary) 9%, transparent));
   box-shadow: var(--shadow-sm);
-  -webkit-backdrop-filter: blur(16px) saturate(1.45);
-  backdrop-filter: blur(16px) saturate(1.45);
+  /* No backdrop-filter: the header scrolls over the live WebGL mesh, and a
+     blur there re-samples the canvas every frame (about half the frame rate
+     while scrolling the homepage). A near-opaque tint reads the same. */
 }
 
 /* Gradient hairline under the glass header. */
@@ -501,8 +502,6 @@ button.button {
   background-color: var(--surface-glass);
   background-image: linear-gradient(180deg, color-mix(in srgb, var(--surface) 62%, transparent), transparent 70%);
   box-shadow: var(--shadow-sm), inset 0 1px 0 color-mix(in srgb, var(--surface) 80%, transparent);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
 }
 .button-secondary:hover { color: var(--paper); background: var(--accent); border-color: var(--accent); box-shadow: var(--glow-accent); transform: translateY(-2px); }
 .button-secondary:active { transform: translateY(0); box-shadow: var(--shadow-sm); }
