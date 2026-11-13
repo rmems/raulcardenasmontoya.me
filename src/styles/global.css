@@ -133,8 +133,7 @@
 
 html {
   scroll-behavior: smooth;
-  /* Clears the sticky glass header when jumping to an anchor. */
-  scroll-padding-top: 8.5rem;
+  scroll-padding-top: 2rem;
   scrollbar-color: var(--line-strong) var(--paper);
 }
 
@@ -240,8 +239,7 @@ code {
 }
 
 .site-header {
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 30;
   min-height: 94px;
   display: grid;
@@ -255,6 +253,15 @@ code {
   /* No backdrop-filter: the header scrolls over the live WebGL mesh, and a
      blur there re-samples the canvas every frame (about half the frame rate
      while scrolling the homepage). A near-opaque tint reads the same. */
+}
+
+/* Sticky only where the header is one short row and the screen is tall
+   enough. On phones and at large text sizes it wraps to two or more rows and
+   would cover much of the viewport (WCAG 1.4.10), so it scrolls away there.
+   em, not px: a larger browser text size raises the threshold with it. */
+@media (min-width: 60em) and (min-height: 37.5em) {
+  html { scroll-padding-top: 8.5rem; }
+  .site-header { position: sticky; top: 0; }
 }
 
 /* Gradient hairline under the glass header. */
