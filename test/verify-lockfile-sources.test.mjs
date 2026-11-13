@@ -9,7 +9,7 @@ import { ALLOWED_GIT_SOURCES, gitSourceViolations, LOCKFILE, lockfilePackages, m
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const fixture = (name) => readFileSync(new URL(`./fixtures/cargo-lock/${name}`, import.meta.url), 'utf8');
-const fixturePath = (name) => fileURLToPath(new URL(`./fixtures/cargo-lock/${name}`, import.meta.url));
+const fixtureRelative = (name) => `test/fixtures/cargo-lock/${name}`;
 const guardScript = fileURLToPath(new URL('../scripts/verify-lockfile-sources.mjs', import.meta.url));
 
 test('the allowlist is empty, so every adapter dependency resolves from crates.io', () => {
@@ -51,11 +51,11 @@ test('the guard accepts a registry-only lockfile', () => {
 });
 
 test('the CLI entrypoint exits non-zero on a git source and zero on a registry-only lockfile', () => {
-  const failing = spawnSync(process.execPath, [guardScript, fixturePath('git-source.lock')], { encoding: 'utf8' });
+  const failing = spawnSync(process.execPath, [guardScript, fixtureRelative('git-source.lock')], { encoding: 'utf8' });
   assert.notEqual(failing.status, 0, 'a git source fails the guard');
   assert.match(failing.stderr, /resolves dependencies from git/);
 
-  const passing = spawnSync(process.execPath, [guardScript, fixturePath('registry-only.lock')], { encoding: 'utf8' });
+  const passing = spawnSync(process.execPath, [guardScript, fixtureRelative('registry-only.lock')], { encoding: 'utf8' });
   assert.equal(passing.status, 0, 'a registry-only lockfile passes');
   assert.match(passing.stdout, /Lockfile source policy passed/);
 
@@ -63,9 +63,10 @@ test('the CLI entrypoint exits non-zero on a git source and zero on a registry-o
   assert.equal(committed.status, 0, 'the committed lockfile passes');
 });
 
-test('main reports the checked path and rejects a git source without spawning', async () => {
-  await assert.doesNotReject(main(fixturePath('registry-only.lock')));
-  await assert.rejects(main(fixturePath('git-source.lock')), /resolves dependencies from git/);
+test('main reads inside the repository and refuses a path that escapes it', async () => {
+  await assert.doesNotReject(main(fixtureRelative('registry-only.lock')));
+  await assert.rejects(main(fixtureRelative('git-source.lock')), /resolves dependencies from git/);
+  await assert.rejects(main('../../../../etc/passwd'), /outside the repository/);
 });
 
 test('an allowlist entry is bound to the exact reviewed source, not just the name', () => {

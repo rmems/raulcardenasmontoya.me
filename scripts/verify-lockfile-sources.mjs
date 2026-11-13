@@ -8,7 +8,7 @@
 // build without any lockfile diff. This guard fails on any `git+` source that
 // is not explicitly allowlisted below; `npm run validate:rust` runs it.
 import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const repository = resolve(import.meta.dirname, '..');
@@ -26,18 +26,41 @@ export const LOCKFILE = 'crates/neuromorphic-adapter/Cargo.lock';
  */
 export const ALLOWED_GIT_SOURCES = new Map();
 
-/** The `[[package]]` entries of a lockfile as `{ name, version, source }`. */
+/** The unquoted value of `key = "value"`, or null when the line is not that. */
+function quotedValue(line, key) {
+  const eq = line.indexOf('=');
+  if (eq === -1 || line.slice(0, eq).trim() !== key) return null;
+  const value = line.slice(eq + 1).trim();
+  return value.length >= 2 && value.startsWith('"') && value.endsWith('"') ? value.slice(1, -1) : null;
+}
+
+/**
+ * The `[[package]]` entries of a lockfile as `{ name, version, source }`. A
+ * line scan rather than a regex, so indented or space-padded keys (valid TOML)
+ * still parse and no pattern can backtrack on a crafted lockfile.
+ */
 export function lockfilePackages(lockfile) {
-  return lockfile
-    .replaceAll('\r\n', '\n')
-    .split(/^\s*\[\[package\]\]\s*$/m)
-    .slice(1)
-    .map((block) => ({
-      name: block.match(/^\s*name\s*=\s*"([^"]+)"\s*$/m)?.[1] ?? null,
-      version: block.match(/^\s*version\s*=\s*"([^"]+)"\s*$/m)?.[1] ?? null,
-      source: block.match(/^\s*source\s*=\s*"([^"]+)"\s*$/m)?.[1] ?? null,
-    }))
-    .filter((pkg) => pkg.name !== null);
+  const packages = [];
+  let current = null;
+  for (const rawLine of lockfile.replaceAll('\r\n', '\n').split('\n')) {
+    const line = rawLine.trim();
+    if (line === '[[package]]') {
+      current = { name: null, version: null, source: null };
+      packages.push(current);
+      continue;
+    }
+    if (current === null) continue;
+    // A different table header ends the package block.
+    if (line.startsWith('[')) {
+      current = null;
+      continue;
+    }
+    for (const key of ['name', 'version', 'source']) {
+      const value = quotedValue(line, key);
+      if (value !== null) current[key] = value;
+    }
+  }
+  return packages.filter((pkg) => pkg.name !== null);
 }
 
 /**
@@ -64,8 +87,13 @@ export function gitSourceViolations(lockfile, allowed = ALLOWED_GIT_SOURCES) {
 }
 
 export async function main(lockfilePath) {
-  const path = lockfilePath ?? resolve(repository, LOCKFILE);
+  // Resolve inside the repository and refuse paths that escape it, so the CLI
+  // argument cannot read an arbitrary file.
+  const path = resolve(repository, lockfilePath ?? LOCKFILE);
   const label = lockfilePath ?? LOCKFILE;
+  if (path !== repository && !path.startsWith(repository + sep)) {
+    throw new Error(`Refusing to read a lockfile outside the repository: ${label}`);
+  }
   const lockfile = await readFile(path, 'utf8');
   const { violations, allowlisted } = gitSourceViolations(lockfile);
 
