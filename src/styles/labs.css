@@ -141,6 +141,11 @@
   border-bottom: 1px solid color-mix(in srgb, var(--accent) 48%, transparent);
 }
 
+/* The shared gradient underline sweeps in on hover; hide the resting rule
+   then so the link never shows two lines. */
+.lab-entry .text-link:hover,
+.lab-entry .text-link:focus-visible { border-bottom-color: transparent; }
+
 @media (prefers-reduced-motion: reduce) {
   .lab-preview { transition: none; }
   .lab-entry:hover .lab-preview,

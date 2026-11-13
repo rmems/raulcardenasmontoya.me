@@ -37,7 +37,8 @@
 .work-index a {
   position: relative;
   border-radius: 0 10px 10px 0;
-  transition: transform 220ms ease, opacity 220ms ease;
+  /* Extends global.css's colour/background/shadow fades instead of replacing them. */
+  transition: color 180ms ease, background-color 180ms ease, box-shadow 180ms ease, transform 220ms ease, opacity 220ms ease;
 }
 
 .work-index a::before {
@@ -110,7 +111,7 @@
 .note-entry {
   position: relative;
   border-radius: 12px;
-  transition: transform 220ms ease, opacity 220ms ease;
+  transition: background-color 180ms ease, box-shadow 180ms ease, transform 220ms ease, opacity 220ms ease;
 }
 
 .note-entry:hover,
@@ -174,7 +175,7 @@
 .contact-panel > * {
   position: relative;
   border-radius: 0 10px 10px 0;
-  transition: transform 200ms ease, opacity 200ms ease;
+  transition: background-color 180ms ease, box-shadow 180ms ease, transform 200ms ease, opacity 200ms ease;
 }
 
 .contact-panel > *::before {
