@@ -15,7 +15,7 @@ import {
   type ProtocolInspector,
   type ProtocolWasmModule,
 } from './inspector';
-import { PROTOCOL_WASM_MODULE_URL, isProtocolVariant, type ProtocolVariant } from './provenance';
+import { CORPUS_IPC_VERSION, PROTOCOL_WASM_MODULE_URL, isProtocolVariant, type ProtocolVariant } from './provenance';
 
 export type ProtocolCheckKind = 'flip-byte' | 'future-version';
 
@@ -329,7 +329,7 @@ export async function enhanceProtocolViewer(root: HTMLElement, options: Protocol
       if (container) renderInspection(container, inspection);
       bytesById.set(card.id, bytes);
       verified += 1;
-      setCardStatus(card, 'verified', 'Verified, decoded, and validated in this browser by corpus-ipc 0.1.0 (Rust/WASM).');
+      setCardStatus(card, 'verified', `Verified, decoded, and validated in this browser by corpus-ipc ${CORPUS_IPC_VERSION} (Rust/WASM).`);
     } catch (error) {
       const failure = failureOf(error);
       setCardStatus(card, 'rejected', `Rejected · ${failure.code}. ${failure.message}`, failure.code);

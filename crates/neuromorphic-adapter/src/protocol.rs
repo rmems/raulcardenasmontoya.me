@@ -5,7 +5,7 @@
 //! profile enables (`public/wasm/neuromorphic-adapter-labs/`). The default
 //! homepage package keeps only `WireCompatibility::CURRENT` from `corpus-ipc`.
 //!
-//! The adapter never re-describes the IPC schema. `corpus-ipc =0.1.0`
+//! The adapter never re-describes the IPC schema. `corpus-ipc =0.2.1`
 //! (`default-features = false`: no `zmq`, no `server`) owns the envelope,
 //! wire-version window, payload types, limits, and validation. This module
 //! only orders the ingress steps, classifies their failures into stable reason

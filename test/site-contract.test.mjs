@@ -617,7 +617,7 @@ test('the browser adapter keeps corpus-ipc on its no-default surface without Zer
   const profiles = read('scripts/wasm-profiles.mjs');
   const packageJson = read('package.json');
 
-  assert.match(cargoToml, /^corpus-ipc = \{ version = "=0\.1\.0", default-features = false \}$/m);
+  assert.match(cargoToml, /^corpus-ipc = \{ version = "=0\.2\.1", default-features = false \}$/m);
   assert.doesNotMatch(cargoToml, /corpus-ipc[^\n]*features = \[/);
   for (const name of ['zmq', 'zeromq', 'axum', 'axum-core', 'tokio', 'tokio-macros', 'hyper', 'tower', 'mio', 'socket2']) {
     assert.match(policy, new RegExp(`'${name}',`), `${name} must stay forbidden in the browser graph`);
@@ -625,6 +625,7 @@ test('the browser adapter keeps corpus-ipc on its no-default surface without Zer
   assert.match(policy, /NATIVE_BUILD_PACKAGES = new Set\(\['bindgen', 'cc', 'cmake', 'pkg-config', 'vcpkg'\]\)/);
   assert.match(policy, /feature === 'server' \|\| feature === 'zmq'/);
   assert.match(packageJson, /node scripts\/verify-browser-dependencies\.mjs/);
+  assert.match(packageJson, /node scripts\/verify-lockfile-sources\.mjs/);
 
   // The protocol decode path is a labs-only cargo feature.
   assert.match(cargoToml, /^protocol = \["dep:serde_json", "dep:sha2"\]$/m);

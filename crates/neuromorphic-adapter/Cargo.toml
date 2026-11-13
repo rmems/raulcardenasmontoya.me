@@ -23,7 +23,7 @@ plasticity = ["dep:limbic-critic", "dep:plasticity-lab"]
 
 [dependencies]
 axon-encoder = { version = "=0.6.0", default-features = false, features = ["serde", "wasm-js"] }
-corpus-ipc = { version = "=0.1.0", default-features = false }
+corpus-ipc = { version = "=0.2.1", default-features = false }
 kinetic-signals = "=0.5.0"
 js-sys = "=0.3.103"
 limbic-critic = { version = "=0.3.0", optional = true }

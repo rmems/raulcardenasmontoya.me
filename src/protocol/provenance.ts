@@ -7,13 +7,13 @@
  * adapter's own exports. Nothing here re-describes the IPC schema.
  */
 export const CORPUS_IPC_CRATE = 'corpus-ipc';
-export const CORPUS_IPC_VERSION = '0.1.0';
-export const CORPUS_IPC_REQUIREMENT = '=0.1.0';
+export const CORPUS_IPC_VERSION = '0.2.1';
+export const CORPUS_IPC_REQUIREMENT = '=0.2.1';
 export const CORPUS_IPC_SOURCE_REPOSITORY = 'https://github.com/Limen-Neural/corpus-ipc';
 /** Audited source tag, also recorded in the crate's `.cargo_vcs_info.json`. */
-export const CORPUS_IPC_SOURCE_SHA = 'd99e6544d7925dc0ccfe69fdff372352b0a9d041';
+export const CORPUS_IPC_SOURCE_SHA = 'b12059f841e6cf7aa27fd3e6dc3748bc519b3203';
 /** crates.io archive SHA-256, identical to the `Cargo.lock` checksum. */
-export const CORPUS_IPC_ARCHIVE_SHA256 = 'eec6624caf88783f1c35109fe1c27615fc85c986249d480c8efabb72d5f92081';
+export const CORPUS_IPC_ARCHIVE_SHA256 = '6acf2ecca63743f455b77fb1fef96afd39af0cf621277c5bad56c78d6aff28bf';
 export const CORPUS_IPC_FEATURES = 'default-features = false (no zmq, no server)';
 export const CORPUS_IPC_LOCKFILE = 'crates/neuromorphic-adapter/Cargo.lock';
 export const PROTOCOL_TRANSPORT = 'Offline: checked-in fixture bytes. No ZeroMQ, HTTP service, proxy, or live producer.';
