@@ -217,12 +217,12 @@
 }
 
 /* ---- Artifacts / crates / repos: living lists ---- */
-.artifact-list li, .repo-list li, .crate-list li {
+.repo-list li, .crate-list li {
   border-radius: 0 10px 10px 0;
   transition: transform 200ms ease, opacity 200ms ease;
 }
 
-.artifact-list li:hover, .repo-list li:hover, .crate-list li:hover {
+.repo-list li:hover, .crate-list li:hover {
   background: color-mix(in srgb, var(--accent) 5%, transparent);
   box-shadow: none;
 }
@@ -274,16 +274,8 @@
   outline-offset: 3px;
 }
 
-/* ---- Evidence / native cards: instrument glow on hover ---- */
-.native-evidence-card {
-  border-radius: 14px;
-  transition: transform 220ms ease, opacity 220ms ease;
-}
-
-.native-evidence-card:hover {
-  border-color: color-mix(in srgb, var(--accent) 55%, var(--line-strong));
-  box-shadow: 0 18px 40px -20px color-mix(in srgb, var(--accent) 60%, transparent);
-}
+/* Evidence cards: base, hover colour and transition live in global.css; only
+   the motion-gated lift is below. */
 
 /* ---- Home extras not owned elsewhere: stat proof points ---- */
 .hero-stats a { border-radius: 10px; transition: transform 200ms ease, opacity 200ms ease; }
@@ -345,7 +337,7 @@
   .artifacts-jump a:hover,
   .artifacts-jump a:focus-visible { transform: translateY(-1px); }
 
-  .native-evidence-card:hover { transform: translateY(-3px); }
+  .native-evidence-card:hover { transform: translateY(-2px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
