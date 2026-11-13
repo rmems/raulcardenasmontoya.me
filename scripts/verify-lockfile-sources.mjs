@@ -8,10 +8,11 @@
 // build without any lockfile diff. This guard fails on any `git+` source that
 // is not explicitly allowlisted below; `npm run validate:rust` runs it.
 import { readFile } from 'node:fs/promises';
+import { realpathSync } from 'node:fs';
 import { resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const repository = resolve(import.meta.dirname, '..');
+const repository = realpathSync(resolve(import.meta.dirname, '..'));
 export const LOCKFILE = 'crates/neuromorphic-adapter/Cargo.lock';
 
 /**
@@ -87,10 +88,11 @@ export function gitSourceViolations(lockfile, allowed = ALLOWED_GIT_SOURCES) {
 }
 
 export async function main(lockfilePath) {
-  // Resolve inside the repository and refuse paths that escape it, so the CLI
-  // argument cannot read an arbitrary file.
-  const path = resolve(repository, lockfilePath ?? LOCKFILE);
+  // Resolve the real path inside the repository and refuse anything that
+  // escapes it (including a symlink), so the CLI argument cannot read an
+  // arbitrary file.
   const label = lockfilePath ?? LOCKFILE;
+  const path = realpathSync(resolve(repository, lockfilePath ?? LOCKFILE));
   if (path !== repository && !path.startsWith(repository + sep)) {
     throw new Error(`Refusing to read a lockfile outside the repository: ${label}`);
   }

@@ -400,9 +400,10 @@ test('the protocol decode path ships only in the labs package', () => {
 test('recorded provenance matches the locked crate pin and lockfile', () => {
   const cargoToml = readSource('../crates/neuromorphic-adapter/Cargo.toml');
   const cargoLock = readSource('../crates/neuromorphic-adapter/Cargo.lock');
+  const pinned = `corpus-ipc = { version = "=${provenance.CORPUS_IPC_VERSION}", default-features = false }`;
   assert.ok(
-    cargoToml.includes(`corpus-ipc = { version = "=${provenance.CORPUS_IPC_VERSION}", default-features = false }`),
-    'Cargo.toml pins corpus-ipc to the recorded version',
+    cargoToml.split(/\r?\n/).includes(pinned),
+    'Cargo.toml pins corpus-ipc to the recorded version on its own line',
   );
   const lockEntry = cargoLock.match(/name = "corpus-ipc"\r?\nversion = "([^"]+)"\r?\nsource = "[^"]+"\r?\nchecksum = "([0-9a-f]{64})"/);
   assert.ok(lockEntry, 'corpus-ipc is locked from crates.io with a checksum');

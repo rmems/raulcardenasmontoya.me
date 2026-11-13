@@ -1,16 +1,19 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readFileSync, rmSync, symlinkSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import process from 'node:process';
 import test from 'node:test';
 
 import { ALLOWED_GIT_SOURCES, gitSourceViolations, LOCKFILE, lockfilePackages, main } from '../scripts/verify-lockfile-sources.mjs';
+import { skipWithoutSymlinks } from './platform-capabilities.mjs';
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const fixture = (name) => readFileSync(new URL(`./fixtures/cargo-lock/${name}`, import.meta.url), 'utf8');
 const fixtureRelative = (name) => `test/fixtures/cargo-lock/${name}`;
 const guardScript = fileURLToPath(new URL('../scripts/verify-lockfile-sources.mjs', import.meta.url));
+const repositoryRoot = fileURLToPath(new URL('..', import.meta.url));
 
 test('the allowlist is empty, so every adapter dependency resolves from crates.io', () => {
   assert.equal(ALLOWED_GIT_SOURCES.size, 0);
@@ -69,6 +72,16 @@ test('main reads inside the repository and refuses a path that escapes it', asyn
   await assert.rejects(main('../../../../etc/passwd'), /outside the repository/);
 });
 
+test('main refuses a symlink that points outside the repository', { skip: skipWithoutSymlinks }, async () => {
+  const link = join(repositoryRoot, 'test', 'fixtures', `escape-${process.pid}.lock`);
+  symlinkSync('/etc/passwd', link);
+  try {
+    await assert.rejects(main(link), /outside the repository/);
+  } finally {
+    rmSync(link, { force: true });
+  }
+});
+
 test('an allowlist entry is bound to the exact reviewed source, not just the name', () => {
   const allowed = new Map([
     ['plasticity-lab', { source: 'git+https://github.com/Limen-Neural/plasticity-lab.git?rev=aaaa#aaaa', reason: 'test fixture (#162)' }],
@@ -115,7 +128,8 @@ test('the git-source guard runs before any cargo command in validate:rust and CI
   assert.ok(guardAt < cargoAt, 'the guard runs before cargo resolves the adapter graph');
 
   const workflowGuardAt = workflow.indexOf('node scripts/verify-lockfile-sources.mjs');
-  const workflowCargoAt = workflow.indexOf('cargo clippy');
+  const firstCargo = workflow.search(/^\s+cargo\s/m);
   assert.notEqual(workflowGuardAt, -1, 'CI runs the guard');
-  assert.ok(workflowGuardAt < workflowCargoAt, 'CI rejects git sources before cargo resolves the graph');
+  assert.notEqual(firstCargo, -1, 'CI runs cargo');
+  assert.ok(workflowGuardAt < firstCargo, 'CI rejects git sources before any cargo command resolves the graph');
 });

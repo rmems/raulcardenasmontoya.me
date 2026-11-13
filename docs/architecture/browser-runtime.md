@@ -1338,9 +1338,8 @@ cargo +1.99.0 check --manifest-path crates/neuromorphic-adapter/Cargo.toml --loc
 Result: **Pass** for both. The default profile covers `kinetic-signals`,
 `axon-encoder`, `neuromod`, `synaptic-wiring` and `corpus-ipc`. `--all-features`
 (the labs profile: `nir`, `protocol` and `plasticity`) adds `nir-rs`,
-`plasticity-lab` and `limbic-critic`. Both use the locked dependency versions
-and checksums in `Cargo.lock` and the adapter's own feature selection, not each
-row's selected suffix.
+`plasticity-lab` and `limbic-critic`. Both use the revisions in `Cargo.lock` and
+the adapter's own feature selection, not each row's selected suffix.
 `myelin-accelerator`, which is in neither graph, was not re-audited on 1.99.0.
 
 Merging this ADR and RM-1639 closes only the architecture decision. The exact
@@ -1348,6 +1347,9 @@ upstream browser-entropy fixes above unblock full RM-1640/GitHub #4 dispatch,
 plus RM-1650/GitHub #14 and RM-1651/GitHub #15. The former `plasticity-lab`
 V2 blocker is resolved by crates.io release `0.3.0`, which depends on
 `neuromod 0.7.0` and forwards its opt-in `wasm-js` feature
-(GitHub #17 / RM-1654, GitHub #162).
+(GitHub #17 / RM-1654, GitHub #162). The 1.99.0 pass above predates that
+release; the current checksum-pinned lock (with `plasticity-lab 0.3.0` from
+crates.io) is re-checked on every run by the locked target checks in
+`npm run validate:rust` and the Quality workflow.
 The site must pin the Rust toolchain, commit its dependency lockfile, and run
 locked target checks in CI before enabling the live browser simulation.
