@@ -21,7 +21,9 @@
 
 @supports (animation-timeline: scroll()) {
   .scroll-progress {
-    animation: scroll-progress linear both;
+    /* Explicit auto duration: where the shorthand's omitted duration still
+       resolves to 0s, the keyframes would never interpolate along the timeline. */
+    animation: scroll-progress auto linear both;
     animation-timeline: scroll(root block);
   }
 }
