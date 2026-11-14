@@ -33,6 +33,32 @@
   to { transform: scaleX(1); }
 }
 
+/* Spike-shaped marker riding the head of the progress bar. Only where the bar
+   is scroll-driven; hidden otherwise and under reduced motion. */
+.scroll-progress-spike { display: none; }
+
+@supports (animation-timeline: scroll()) {
+  .scroll-progress-spike {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 31;
+    display: block;
+    width: 18px;
+    height: 12px;
+    color: var(--spike);
+    pointer-events: none;
+    animation: scroll-progress-spike auto linear both;
+    animation-timeline: scroll(root block);
+  }
+  .scroll-progress-spike svg { display: block; width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; overflow: visible; }
+}
+
+@keyframes scroll-progress-spike {
+  from { transform: translateX(-18px); }
+  to { transform: translateX(calc(100vw - 18px)); }
+}
+
 /* ---- Work: index rows + case studies ---- */
 .work-index a {
   position: relative;
@@ -345,6 +371,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .scroll-progress { animation: none !important; transform: scaleX(0) !important; }
+  .scroll-progress-spike { display: none !important; }
 
   .work-index a,
   .work-index a::before,

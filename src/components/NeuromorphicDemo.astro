@@ -25,8 +25,12 @@ const nodePath = mesh.nodes.map((node) => `M${node.x} ${node.y}h0`).join('');
 // The caption states the replay rate from the same constants the renderer uses.
 const simulationHz = 1000 / DEMO_TICK_MS;
 const pulseSpeedLabel = `1/${Math.round(1 / PULSE_DISPLAY_SPEED)}`;
+// `compact` (mockup/home-lab-direction): the homepage keeps the live plate,
+// Play/Pause, a tiny legend and a one-line spec; the long explanation, the
+// crate trail, the encoder switch and the telemetry panel live on /labs/.
+const { compact = false } = Astro.props as { compact?: boolean };
 ---
-<div class="live-hero" data-neuromorphic-demo>
+<div class:list={['live-hero', { 'live-hero--compact': compact }]} data-neuromorphic-demo>
   <section class="hero hero-live" aria-labelledby="hero-title">
     <slot name="heading" />
     <div class="hero-text"><slot /></div>
@@ -59,11 +63,15 @@ const pulseSpeedLabel = `1/${Math.round(1 / PULSE_DISPLAY_SPEED)}`;
         <div class="hero-mesh-meta">
           <ExecutionOrigin origin="static-diagram" runtimeBound />
           <span class="hero-mesh-mode">
-            <span data-when="idle">{nodeCount} neurons · {edgeCount} synapses</span>
-            <span data-when="live">{nodeCount} neurons · {edgeCount} synapses · simulating in this browser at {simulationHz} Hz · pulses shown at {pulseSpeedLabel} speed</span>
-            <span data-when="live-still">{nodeCount} neurons · {edgeCount} synapses · simulating in this browser at {simulationHz} Hz · pulses shown at {pulseSpeedLabel} speed (none in the lightest quality mode) · view held still</span>
+            <span data-when="idle">{nodeCount} neurons · {edgeCount} synapses{compact ? ' · Rust → WASM' : ''}</span>
+            <span data-when="live">{compact ? `${nodeCount} neurons · ${edgeCount} synapses · Rust → WASM · live at ${simulationHz} Hz` : null}{compact ? null : <>{nodeCount} neurons · {edgeCount} synapses · simulating in this browser at {simulationHz} Hz · pulses shown at {pulseSpeedLabel} speed</>}</span>
+            <span data-when="live-still">{compact ? `${nodeCount} neurons · ${edgeCount} synapses · Rust → WASM · live at ${simulationHz} Hz · view held still` : null}{compact ? null : <>{nodeCount} neurons · {edgeCount} synapses · simulating in this browser at {simulationHz} Hz · pulses shown at {pulseSpeedLabel} speed (none in the lightest quality mode) · view held still</>}</span>
           </span>
         </div>
+        {compact ? (
+          <p class="hero-mesh-links"><a href="/labs/#how-the-demo-works">How the demo works, with live telemetry <span aria-hidden="true">→</span></a></p>
+        ) : (
+          <>
         <ol class="crate-trail" aria-label="Crate layers behind the live simulation, in pipeline order">
           {liveCrateLayers.map((layer) => (
             <li><a href={crateLayerHref(layer)}>{layer.name}</a> <span class="crate-pin">{crateLayerPin(layer)}</span></li>
@@ -78,6 +86,8 @@ const pulseSpeedLabel = `1/${Math.round(1 / PULSE_DISPLAY_SPEED)}`;
             ))}
           </div>
         </fieldset>
+          </>
+        )}
         <p class="demo-status" data-demo-status role="status" aria-live="polite">{STATIC_DEMO_STATUS}</p>
         <noscript>
           <p class="demo-status demo-status-noscript">JavaScript is required for the live visualization. Navigation and the rest of this page remain available.</p>
@@ -86,6 +96,7 @@ const pulseSpeedLabel = `1/${Math.round(1 / PULSE_DISPLAY_SPEED)}`;
     </figure>
     <slot name="index" />
   </section>
+  {compact ? null : (
   <section class="hero-runtime" aria-labelledby="demo-title">
     <div class="hero-runtime-heading">
       <p class="eyebrow">Neuromorphic demo</p>
@@ -98,6 +109,7 @@ const pulseSpeedLabel = `1/${Math.round(1 / PULSE_DISPLAY_SPEED)}`;
     </div>
     <DemoTelemetry />
   </section>
+  )}
 </div>
 <script>
   import { enhanceNeuromorphicDemos } from '../runtime/enhance-demo';

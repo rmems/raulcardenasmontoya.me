@@ -85,8 +85,13 @@ class RendererSeamError extends Error {
 
 type CssPalette = typeof SITE_TOPOLOGY_PALETTE;
 
-function readPalette(): CssPalette {
-  const style = globalThis.getComputedStyle?.(document.documentElement);
+/**
+ * Tokens are read where the canvas sits, so a plate that re-points them (the
+ * homepage's dark technical plate, in both schemes) draws in its own palette.
+ * Custom properties inherit, so this equals the root's tokens everywhere else.
+ */
+function readPalette(scope: Element = document.documentElement): CssPalette {
+  const style = globalThis.getComputedStyle?.(scope);
   const token = (name: string, fallback: string) => style?.getPropertyValue(name).trim() || fallback;
   return {
     accent: token('--accent', SITE_TOPOLOGY_PALETTE.accent),
@@ -216,7 +221,7 @@ export function createTopologyRendererSeam(options: TopologyRendererSeamOptions)
         throw new RendererSeamError('renderer-error', 'renderer init aborted');
       }
 
-      const palette = readPalette();
+      const palette = readPalette(surface);
       const canvas = document.createElement('canvas');
       canvas.setAttribute('aria-hidden', 'true');
 

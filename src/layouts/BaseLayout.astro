@@ -63,6 +63,7 @@ const socialImageAlt = `${site.fullName} — ${site.title}, raulcardenasmontoya.
   <body>
     <a class="skip-link" href="#main-content">Skip to content</a>
     <div class="scroll-progress" aria-hidden="true"></div>
+    <div class="scroll-progress-spike" aria-hidden="true"><svg viewBox="0 0 18 12" focusable="false"><path d="M0 2h7l1.5 9 2-10 1.5 5 1-2H18" /></svg></div>
     <div class="page-shell">
       <SiteHeader currentPath={Astro.url.pathname} />
       <main id="main-content"><slot /></main>

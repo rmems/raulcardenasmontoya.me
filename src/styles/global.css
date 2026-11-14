@@ -1133,9 +1133,13 @@ button.button {
 .resume-panel > p:not(.eyebrow) { max-width: 600px; margin: 2rem 0; font-size: 1.08rem; }
 
 @media (max-width: 900px) {
-  .site-header { grid-template-columns: minmax(0, 1fr) auto; }
-  .primary-nav { grid-column: 1 / -1; grid-row: 2; justify-content: space-between; padding: 0.9rem 0; border-top: 1px solid var(--line); }
-  .header-profile { grid-column: 2; grid-row: 1; }
+  /* Flex-wrap, not a 1fr/auto grid: the brand keeps at least its longest word
+     and the Email pill drops to its own line when both no longer fit (320 px
+     at 200% text), instead of the pill sitting over the name. */
+  .site-header { display: flex; flex-wrap: wrap; align-items: center; column-gap: 0.8rem; row-gap: 0.6rem; padding-top: 0.75rem; }
+  .brand { flex: 1 1 auto; min-width: min-content; }
+  .primary-nav { order: 3; flex-basis: 100%; justify-content: space-between; padding: 0.9rem 0; border-top: 1px solid var(--line); }
+  .header-profile { flex: none; margin-left: auto; }
   .section-heading, .work-index, .native-evidence { grid-template-columns: minmax(0, 1fr); gap: 1.2rem; }
   .case-study-body { grid-template-columns: minmax(0, 1fr); }
 }

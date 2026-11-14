@@ -1,0 +1,17 @@
+---
+// Card strip for engram-parser: lines quoted verbatim from the crate's README
+// (https://github.com/rmems/engram-parser#quick-start): its install line and
+// the opening of its "Quick start" example (the loop body is elided with …).
+// Nothing here is invented output.
+type Token = [kind: 'prompt' | 'kw' | 'str' | 'plain', text: string];
+const lines: Token[][] = [
+  [['prompt', '$ '], ['plain', 'cargo add engram-parser@0.3']],
+  [['kw', 'let'], ['plain', ' ckpt = open_checkpoint('], ['str', '"./model.gguf"'], ['plain', ')?;']],
+  [['plain', 'println!('], ['str', '"format = {:?}"'], ['plain', ', ckpt.format());']],
+  [['kw', 'for'], ['plain', ' t '], ['kw', 'in'], ['plain', ' ckpt.tensors() { … }']],
+];
+---
+<div class="card-strip card-strip--plate engram-strip">
+  <pre class="engram-snippet" aria-label="Excerpt from the engram-parser README"><code>{lines.map((line, index) => <>{index > 0 ? '\n' : ''}{line.map(([kind, text]) => kind === 'plain' ? text : <span class={`tok-${kind}`}>{text}</span>)}</>)}</code></pre>
+  <p class="card-strip-caption">README · Quick start</p>
+</div>
