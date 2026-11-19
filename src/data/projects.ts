@@ -170,6 +170,72 @@ export const projects: Project[] = [
     },
   ),
   project(
+    'medsynth',
+    'medsynth',
+    'In development',
+    'Synthetic data',
+    ['Rust', 'Record schemas', 'Source registry', 'Verification gates'],
+    'Synthetic MCQs, case vignettes and tutoring examples for pre-med and early medical education, where every record stays anchored to a registered source and is admitted only after verification.',
+    [
+      'How does a generated med-ed item keep a checkable path back to its source anchors?',
+      'What does verification have to cover before a record can be admitted?',
+    ],
+    {
+      links: repository('https://github.com/rmems/medsynth'),
+      shipped:
+        'The binding content contract (fictional patients only, original items, mandatory source anchors, a currency rule for guideline editions) and the curriculum taxonomy with its coverage matrix are merged; record schemas, the source registry and the verification pipeline are landing next.',
+      next: 'Land the record schemas and source registry, then build the Rust generation and verification pipeline against the contract.',
+      evidence:
+        'No published crate or dataset yet; the merged artifacts are the content contract and curriculum taxonomy as of {{datasetsAsOf}}.',
+      headline: 'Contract-first synthetic med-ed data',
+      whyItMatters: 'Pre-med and med-ed practice material is scarce and copyrighted; source-anchored synthetic records keep every item checkable.',
+    },
+  ),
+  project(
+    'euthymia',
+    'euthymia',
+    'In development',
+    'Synthetic data',
+    ['Rust', 'Behavioral contract', 'Rubric scoring', 'DPO pairs'],
+    'Synthetic scenarios and rubric-scored records for Emotional Resilience Engineering, governed by a behavioral contract that defines six competencies, tone rules and hard rejects.',
+    [
+      'How does a behavioral contract turn tone rules into gates a pipeline can enforce?',
+      'What does rubric scoring need to cover before a record is admitted?',
+    ],
+    {
+      links: repository('https://github.com/rmems/euthymia'),
+      shipped:
+        'The canonical behavioral contract is merged: six competencies, tone rules, critical failures, a privacy rule and conformance rules, each citable by section name and version; the competency taxonomy, record schemas, verification rubric and eval harness are next.',
+      next: 'Land the taxonomy, schemas and rubric, then generate and admit the first contract-scored records, including DPO pairs.',
+      evidence:
+        'No published crate or dataset yet; the merged artifact is the behavioral contract as of {{datasetsAsOf}}.',
+      headline: 'A citable contract governs every generated record',
+      whyItMatters: 'Resilience-training data needs guardrails a prompt cannot enforce; a versioned contract makes every score auditable.',
+    },
+  ),
+  project(
+    'AI-ML-SWE synthetic tutor',
+    'ai-ml-swe-synthetic-tutor',
+    'In development',
+    'Synthetic data',
+    ['Rust', 'Julia', 'ZMQ', 'Post-training', 'Hugging Face export'],
+    'Synthetic multi-turn tutoring dialogues for post-training a tutor model: verified problems, student attempts with labelled misconceptions, and hint-ladder tutor turns.',
+    [
+      'How does a planted, taxonomy-labelled misconception make a wrong student attempt inspectable?',
+      'What has to exist before the first dialogue row can be exported?',
+    ],
+    {
+      links: repository('https://github.com/rmems/AI-ML-SWE-synthetic-tutor'),
+      shipped:
+        'A Rust workspace (schema, generate, verify, teachers and build crates), a Julia math worker bridged over ZMQ, one seeded generator with independent answer verification, and the pivot plan are in the repository; student attempts, tutor dialogues, QA, splits and export are still planned.',
+      next: 'Land the misconception taxonomy, the dialogue schema and tutor policy, then the student-attempt and export stages.',
+      evidence:
+        'No published dataset yet; the repository holds the workspace, bridge and one verified generator as of {{datasetsAsOf}}.',
+      headline: 'Verified problems teach a model to tutor, not just answer',
+      whyItMatters: 'A tutor model needs dialogues that teach diagnosis and graded hints; labelled misconceptions make each mistake checkable.',
+    },
+  ),
+  project(
     'Ship of Theseus Workstation',
     'ship-of-theseus-workstation',
     'Active research',
