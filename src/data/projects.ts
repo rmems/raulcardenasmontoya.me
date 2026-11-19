@@ -186,7 +186,7 @@ export const projects: Project[] = [
         'The binding content contract (fictional patients only, original items, mandatory source anchors, a currency rule for guideline editions) and the curriculum taxonomy with its coverage matrix are merged.',
       next: 'Land the record schemas and source registry, then build the Rust generation and verification pipeline against the contract.',
       evidence:
-        'No published crate or dataset yet; this brief is absent from the {{crates}} crates.io crates and {{datasets}} Hugging Face datasets as of {{cratesAsOf}} and {{datasetsAsOf}}.',
+        'No crate or dataset has been published from this brief; the published totals are {{crates}} crates.io crates and {{datasets}} Hugging Face datasets as of {{cratesAsOf}} and {{datasetsAsOf}}.',
       headline: 'Contract-first synthetic med-ed data',
       whyItMatters: 'Pre-med and med-ed practice material is scarce and copyrighted; source-anchored synthetic records keep every item checkable.',
     },
@@ -208,7 +208,7 @@ export const projects: Project[] = [
         'The canonical behavioral contract is merged: six competencies, tone rules, critical failures, a privacy rule and conformance rules, each citable by section name and version.',
       next: 'Land the competency taxonomy, record schemas and verification rubric, then generate and admit the first contract-scored records, including DPO pairs.',
       evidence:
-        'No published crate or dataset yet; this brief is absent from the {{crates}} crates.io crates and {{datasets}} Hugging Face datasets as of {{cratesAsOf}} and {{datasetsAsOf}}.',
+        'No crate or dataset has been published from this brief; the published totals are {{crates}} crates.io crates and {{datasets}} Hugging Face datasets as of {{cratesAsOf}} and {{datasetsAsOf}}.',
       headline: 'A citable contract governs every generated record',
       whyItMatters: 'Resilience-training data needs guardrails a prompt cannot enforce; a versioned contract makes every score auditable.',
     },
@@ -230,8 +230,8 @@ export const projects: Project[] = [
         'A Rust workspace (schema, generate, verify, teachers and build crates), a Julia math worker bridged over ZMQ, one seeded generator with independent answer verification, and the pivot plan are in the repository; student attempts, tutor dialogues, QA, splits and export are still planned.',
       next: 'Land the misconception taxonomy, the dialogue schema and tutor policy, then the student-attempt and export stages.',
       evidence:
-        'No published crate or dataset yet; this brief is absent from the {{crates}} crates.io crates and {{datasets}} Hugging Face datasets as of {{cratesAsOf}} and {{datasetsAsOf}}.',
-      headline: 'Verified problems, labelled misconceptions, graded hints',
+        'No crate or dataset has been published from this brief; the published totals are {{crates}} crates.io crates and {{datasets}} Hugging Face datasets as of {{cratesAsOf}} and {{datasetsAsOf}}.',
+      headline: 'Post-training data for a model that tutors, not just answers',
       whyItMatters: 'A tutor model needs dialogues that teach diagnosis and graded hints; labelled misconceptions make each mistake checkable.',
     },
   ),
