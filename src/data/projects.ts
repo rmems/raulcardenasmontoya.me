@@ -197,7 +197,7 @@ export const projects: Project[] = [
     'In development',
     'Synthetic data',
     ['Rust', 'Behavioral contract', 'Rubric scoring', 'DPO pairs'],
-    'A Rust pipeline being built for synthetic Emotional Resilience Engineering scenarios and rubric-scored records, governed by a behavioral contract of six competencies, tone rules and hard rejects.',
+    'A Rust pipeline being built for synthetic Emotional Resilience Engineering scenarios and rubric-scored records, governed by a versioned behavioral contract covering competencies, tone rules and hard rejects.',
     [
       'How does a behavioral contract turn tone rules into gates a pipeline can enforce?',
       'What does rubric scoring need to cover before a record is admitted?',
@@ -205,7 +205,7 @@ export const projects: Project[] = [
     {
       links: repository('https://github.com/rmems/euthymia'),
       shipped:
-        'The canonical behavioral contract is merged: six competencies, tone rules, critical failures, a privacy rule and conformance rules, each citable by section name and version.',
+        'The canonical behavioral contract is merged: a competency model, tone rules, critical failures, a privacy rule and conformance rules, each citable by section name and version.',
       next: 'Land the competency taxonomy, record schemas and verification rubric, then generate and admit the first contract-scored records, including DPO pairs.',
       evidence:
         'No crate or dataset has been published from this brief; the published totals are {{crates}} crates.io crates and {{datasets}} Hugging Face datasets as of {{cratesAsOf}} and {{datasetsAsOf}}.',
@@ -227,7 +227,7 @@ export const projects: Project[] = [
     {
       links: repository('https://github.com/rmems/AI-ML-SWE-synthetic-tutor'),
       shipped:
-        'A Rust workspace (schema, generate, verify, teachers and build crates), a Julia math worker bridged over ZMQ, one seeded generator with independent answer verification, and the pivot plan are in the repository; student attempts, tutor dialogues, QA, splits and export are still planned.',
+        'A Rust workspace (schema, generate, verify, teachers and build crates), a Julia math worker bridged over ZMQ, a seeded generator with independent answer verification, and the pivot plan are in the repository; student attempts, tutor dialogues, QA, splits and export are still planned.',
       next: 'Land the misconception taxonomy, the dialogue schema and tutor policy, then the student-attempt and export stages.',
       evidence:
         'No crate or dataset has been published from this brief; the published totals are {{crates}} crates.io crates and {{datasets}} Hugging Face datasets as of {{cratesAsOf}} and {{datasetsAsOf}}.',
