@@ -208,7 +208,7 @@ body.theme-signal .text-link { color: var(--accent); font-family: var(--mono); }
   aspect-ratio: auto;
   border: 0;
   border-radius: 0;
-  background: radial-gradient(60% 70% at 72% 45%, rgb(255 90 31 / 7%), transparent 70%), var(--hero-ink);
+  background: radial-gradient(60% 70% at 72% 45%, rgb(45 212 191 / 6%), transparent 70%), var(--hero-ink);
   box-shadow: none;
 }
 
@@ -310,9 +310,6 @@ body.theme-signal .live-hero--backdrop .button-secondary:hover { color: var(--si
 }
 
 .live-hero--backdrop .hero-mesh-legend { gap: 0.3rem 1rem; font-size: 0.75rem; }
-.live-hero--backdrop .hero-mesh-legend-key { background: var(--signal); }
-.live-hero--backdrop .hero-mesh-legend-excitatory { background: #cfc6b8; }
-.live-hero--backdrop .hero-mesh-legend-inhibitory { background: #6d665d; }
 .live-hero--backdrop .hero-mesh-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.9rem; }
 .live-hero--backdrop .hero-mesh-meta .execution-origin { margin: 0; padding: 0.1rem 0.4rem; border-color: #6d665d; border-radius: 0.2rem; color: var(--hero-paper); background: none; font-size: 0.75rem; }
 .live-hero--backdrop .hero-mesh-mode { color: var(--hero-paper); }
@@ -626,3 +623,52 @@ body.theme-signal .live-hero--backdrop .button-secondary:hover { color: var(--si
 .labs-signal h2 { font-family: var(--serif); font-weight: 500; letter-spacing: -0.01em; }
 .labs-signal .hero-live { min-height: 0; padding-block: 0; }
 .labs-signal a { color: var(--accent); }
+
+/* ---- Teal neurons (r4) ----
+   Mesh tokens are scoped to the drawing, the live surface and the legend keys
+   only, so UI (buttons, links, dividers) keeps the orange accent. The live
+   renderer reads --muted (resting neuron), --spike (firing flash), --accent
+   (excitatory), --secondary (inhibitory) and --line from the surface.
+   Graphics contrast: #2dd4bf on #0d0d0f 11:1; #0f766e on #f5f1ea 5.0:1;
+   #7d8fb3 on ink 6.2:1; #4a5f8c on paper 5.9:1. No teal text. */
+.live-hero--signal-mesh .hero-mesh-static,
+.live-hero--signal-mesh .demo-surface,
+.live-hero--signal-mesh .hero-mesh-legend-key {
+  --accent: #5f574e;
+  --secondary: #4a5f8c;
+  --spike: #14b8a6;
+  --muted: #0f766e;
+  --line: #ded5c7;
+}
+
+@media (prefers-color-scheme: dark) {
+  .live-hero--signal-mesh .hero-mesh-static,
+  .live-hero--signal-mesh .demo-surface,
+  .live-hero--signal-mesh .hero-mesh-legend-key {
+    --accent: #d8d0c4;
+    --secondary: #7d8fb3;
+    --spike: #e6fffb;
+    --muted: #2dd4bf;
+    --line: #2a2926;
+  }
+}
+
+/* The ink hero is dark in both schemes. */
+.live-hero--backdrop .hero-mesh-static,
+.live-hero--backdrop .demo-surface,
+.live-hero--backdrop .hero-mesh-legend-key {
+  --accent: #d8d0c4;
+  --secondary: #7d8fb3;
+  --spike: #e6fffb;
+  --muted: #2dd4bf;
+  --line: #2a2926;
+}
+
+.live-hero--signal-mesh .hero-mesh-legend-key { box-shadow: 0 0 0.6rem color-mix(in srgb, var(--muted) 70%, transparent); }
+.live-hero--signal-mesh .hero-mesh-legend-synapse { border: 0; box-shadow: none; }
+
+/* Phones: keep Pause above the network, not on it. */
+@media (max-width: 680px) {
+  .live-hero--backdrop[data-controls='on'] .hero-mesh-static,
+  .live-hero--backdrop[data-controls='on'] .hero-mesh .demo-surface { top: 3.25rem; height: calc(100% - 3.25rem); }
+}
