@@ -740,17 +740,20 @@ test('quality CI validates the locked Rust/WASM adapter before the frontend cont
   const workflow = read('.github/workflows/quality.yml');
   const readme = read('README.md');
 
-  assert.match(workflow, /actions\/checkout@11d5960a326750d5838078e36cf38b85af677262/);
+  // Dependabot-managed actions must stay full-SHA pinned; the exact revision
+  // moves with each update PR. dtolnay/rust-toolchain stays literal because it
+  // moves atomically with the Rust toolchain pin (test/rust-toolchain-pin.test.mjs).
+  assert.match(workflow, /actions\/checkout@[0-9a-f]{40}/);
   assert.match(workflow, /dtolnay\/rust-toolchain@fb523f40495206854c36b250850817ae0f83e3d1/);
-  assert.match(workflow, /actions\/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020/);
+  assert.match(workflow, /actions\/setup-node@[0-9a-f]{40}/);
   assert.match(workflow, /wasm32-unknown-unknown/);
   assert.match(workflow, /cargo fmt --manifest-path crates\/neuromorphic-adapter\/Cargo\.toml --check/);
   assert.match(workflow, /cargo clippy --manifest-path crates\/neuromorphic-adapter\/Cargo\.toml --locked --all-targets -- -D warnings/);
   assert.match(workflow, /cargo test --manifest-path crates\/neuromorphic-adapter\/Cargo\.toml --locked/);
   assert.match(workflow, /cargo check --manifest-path crates\/neuromorphic-adapter\/Cargo\.toml --locked --target wasm32-unknown-unknown/);
-  assert.match(workflow, /taiki-e\/install-action@4cef1412cce204788f482e778a0b9187f9626a29 # v2\n {8}with:\n {10}tool: wasm-bindgen@0\.2\.126/);
+  assert.match(workflow, /taiki-e\/install-action@[0-9a-f]{40}[^\n]*\n {8}with:\n {10}tool: wasm-bindgen@0\.2\.126/);
   assert.match(workflow, /cargo llvm-cov \\\s+--manifest-path crates\/neuromorphic-adapter\/Cargo\.toml \\\s+--all-targets \\\s+--all-features \\/);
-  assert.match(workflow, /browser-actions\/setup-chrome@c785b87e244131f27c9f19c1a33e2ead956ab7ce/);
+  assert.match(workflow, /browser-actions\/setup-chrome@[0-9a-f]{40}/);
   assert.match(workflow, /chrome-version: stable/);
   assert.match(workflow, /BROWSER_BIN="\$\{\{ steps\.chrome\.outputs\.chrome-path \}\}" npm run validate/);
   const packageJson = read('package.json');

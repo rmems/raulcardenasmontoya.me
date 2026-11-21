@@ -1,0 +1,98 @@
+# Dependabot version updates for npm, Cargo, and GitHub Actions.
+#
+# Deliberately manual (not managed here):
+# - The Rust toolchain pin (`crates/neuromorphic-adapter/rust-toolchain.toml`
+#   channel 1.99.0) must move atomically across that file, the `+1.99.0`
+#   cargo invocations, the quality.yml action-revision comment, and the docs
+#   listed in test/rust-toolchain-pin.test.mjs, which Dependabot cannot do in
+#   one PR. The matching `dtolnay/rust-toolchain` action is ignored for the
+#   same reason.
+# - `node-version:` inputs and `engines` are inputs, not versions Dependabot
+#   tracks; bump Node by hand.
+# - `wasm-bindgen`/`js-sys` stay ignored: the crate version must match the
+#   wasm-bindgen-cli pin in quality.yml and the committed packages under
+#   public/wasm/**, which only `npm run build:wasm-web` can regenerate.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      # package.json uses caret ranges; group minor and patch updates and
+      # leave major updates as individual PRs.
+      npm-minor-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "cargo"
+    directory: "/crates/neuromorphic-adapter"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    ignore:
+      # Locked to wasm-bindgen-cli 0.2.126 in CI; update by hand together with
+      # the CLI pin and a regenerated public/wasm/** (`npm run build:wasm-web`).
+      - dependency-name: "wasm-bindgen"
+      - dependency-name: "js-sys"
+      # The rest of the adapter graph is pinned by hand: contract tests,
+      # src/runtime and src/protocol version constants, site-displayed crate
+      # versions, and recorded-evidence provenance/checksums all name exact
+      # releases, so a bump is a coordinated change Dependabot cannot make.
+      - dependency-name: "axon-encoder"
+      - dependency-name: "corpus-ipc"
+      - dependency-name: "kinetic-signals"
+      - dependency-name: "limbic-critic"
+      - dependency-name: "neuromod"
+      - dependency-name: "nir-rs"
+      - dependency-name: "plasticity-lab"
+      - dependency-name: "sha2"
+      - dependency-name: "synaptic-wiring"
+    groups:
+      # Most adapter deps are 0.x where a minor bump can be breaking; group
+      # only patch updates and leave minor/major updates individual.
+      cargo-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - "patch"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci(deps)"
+    ignore:
+      # Moves atomically with the Rust toolchain pin (see header).
+      - dependency-name: "dtolnay/rust-toolchain"
+    groups:
+      # Dependabot rewrites both the SHA and the trailing `# vX.Y.Z` comment,
+      # so the SHA-pin policy is preserved. Group minor and patch updates.
+      github-actions-minor-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
