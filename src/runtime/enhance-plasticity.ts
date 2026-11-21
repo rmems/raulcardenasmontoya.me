@@ -98,10 +98,10 @@ function readPalette(): Palette {
   const token = (name: string, fallback: string) => style?.getPropertyValue(name).trim() || fallback;
   return {
     background: token('--surface', '#ffffff'),
-    input: token('--muted', '#5b6474'),
-    neuron: token('--spike', '#f43f5e'),
-    rule: token('--line', '#e3e7ed'),
-    dopamine: token('--accent', '#4f46e5'),
+    input: token('--muted', '#5f574e'),
+    neuron: token('--spike', '#ff5a1f'),
+    rule: token('--line', '#ded5c7'),
+    dopamine: token('--accent', '#a8360c'),
     norepinephrine: token('--secondary', '#0ea5a4'),
   };
 }

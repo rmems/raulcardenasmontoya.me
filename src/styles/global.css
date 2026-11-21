@@ -51,20 +51,20 @@
 }
 
 :root {
-  --ink: #0f172a;
-  --paper: #f7f8fa;
+  --ink: #0d0d0f;
+  --paper: #f5f1ea;
   --surface: #ffffff;
   --paper-deep: #eef1f5;
-  --muted: #5b6474;
-  --line: #e3e7ed;
-  --line-strong: #b8c0cc;
-  /* Text-safe accent (6.0:1 on --paper). Secondary and spike are for
+  --muted: #5f574e;
+  --line: #ded5c7;
+  --line-strong: #b9ad9b;
+  /* Text-safe accent (6.5:1 on --paper). Secondary and spike are for
      graphics only: they are below 4.5:1 as text. */
-  --accent: #4f46e5;
-  --accent-soft: #e0e7ff;
+  --accent: #a8360c;
+  --accent-soft: #f4dccd;
   --secondary: #0ea5a4;
-  --spike: #f43f5e;
-  --code-bg: rgb(15 23 42 / 7%);
+  --spike: #ff5a1f;
+  --code-bg: rgb(13 13 15 / 6%);
   /* Layered surfaces + richer palette. Pinned tokens above keep their exact
      values (brand / hero palettes are synced to them by tests); depth comes
      from these additions. Text-bearing stops below are >=4.5:1 on --paper,
@@ -79,16 +79,16 @@
   --accent-strong: #3730a3;
   --teal-text: #0f766e;
   --spike-text: #be123c;
-  --gradient-accent: linear-gradient(120deg, #4f46e5 0%, #0ea5a4 52%, #f43f5e 108%);
-  --gradient-text: linear-gradient(100deg, #3730a3 0%, #4f46e5 34%, #0f766e 72%, #be123c 112%);
-  --gradient-surface: linear-gradient(165deg, rgb(255 255 255 / 78%) 0%, rgb(224 231 255 / 42%) 46%, rgb(238 241 245 / 70%) 100%);
-  --gradient-hairline: linear-gradient(90deg, transparent, #4f46e5 28%, #0ea5a4 58%, #f43f5e 82%, transparent);
-  --glow-accent: 0 10px 34px rgb(79 70 229 / 24%), 0 2px 10px rgb(14 165 164 / 16%);
-  --glow-soft: 0 0 0 1px rgb(79 70 229 / 10%), 0 12px 36px rgb(15 23 42 / 9%);
+  --gradient-accent: linear-gradient(120deg, #a8360c 0%, #8a2c0a 100%);
+  --gradient-text: linear-gradient(100deg, #8a2c0a 0%, #a8360c 52%, #5f574e 100%);
+  --gradient-surface: linear-gradient(165deg, rgb(255 255 255 / 78%) 0%, rgb(244 229 220 / 42%) 46%, rgb(249 246 242 / 70%) 100%);
+  --gradient-hairline: linear-gradient(90deg, transparent, #a8360c 28%, #8a2c0a 58%, #a8360c 82%, transparent);
+  --glow-accent: 0 10px 34px rgb(168 54 12 / 24%), 0 2px 10px rgb(14 165 164 / 16%);
+  --glow-soft: 0 0 0 1px rgb(168 54 12 / 10%), 0 12px 36px rgb(15 23 42 / 9%);
   --shadow-sm: 0 1px 2px rgb(15 23 42 / 6%), 0 6px 18px rgb(15 23 42 / 6%);
   --shadow-md: 0 2px 6px rgb(15 23 42 / 7%), 0 16px 38px rgb(15 23 42 / 10%);
-  --shadow-lg: 0 4px 10px rgb(15 23 42 / 8%), 0 28px 64px rgb(79 70 229 / 14%);
-  --ambient-1: rgb(79 70 229 / 13%);
+  --shadow-lg: 0 4px 10px rgb(15 23 42 / 8%), 0 28px 64px rgb(168 54 12 / 14%);
+  --ambient-1: rgb(168 54 12 / 13%);
   --ambient-2: rgb(14 165 164 / 11%);
   --ambient-3: rgb(244 63 94 / 7%);
   --grid-line: rgb(15 23 42 / 4.5%);
@@ -102,7 +102,7 @@
   --serif: Newsreader, 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Palatino, Georgia, serif;
   --display: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  --mono: 'JetBrains Mono', Consolas, 'Liberation Mono', monospace;
   color-scheme: light;
   font-synthesis: none;
 }
@@ -114,17 +114,17 @@
    text-safe on --paper (6.2:1 and 7.4:1). */
 @media (prefers-color-scheme: dark) {
   :root {
-    --ink: #e6e9ef;
-    --paper: #0f1218;
+    --ink: #f5f1ea;
+    --paper: #0d0d0f;
     --surface: #161a22;
     --paper-deep: #1b2029;
-    --muted: #9aa3b2;
-    --line: #2a3140;
-    --line-strong: #3b4454;
-    --accent: #8b85ff;
-    --accent-soft: #2a2b5e;
+    --muted: #a59d92;
+    --line: #2a2926;
+    --line-strong: #47433d;
+    --accent: #ff5a1f;
+    --accent-soft: #3a1a0e;
     --secondary: #2dd4bf;
-    --spike: #fb7185;
+    --spike: #ff5a1f;
     --code-bg: rgb(255 255 255 / 10%);
     /* Dark text stops are >=4.5:1 on --paper, --surface and --paper-deep:
        --accent-strong 7.6:1, --teal-text 9.6:1, --spike-text 7.4:1 on
@@ -136,16 +136,16 @@
     --accent-strong: #a5a0ff;
     --teal-text: #5eead4;
     --spike-text: #fda4af;
-    --gradient-accent: linear-gradient(120deg, #8b85ff 0%, #2dd4bf 52%, #fb7185 108%);
-    --gradient-text: linear-gradient(100deg, #a5a0ff 0%, #8b85ff 34%, #5eead4 72%, #fda4af 112%);
-    --gradient-surface: linear-gradient(165deg, rgb(255 255 255 / 8%) 0%, rgb(139 133 255 / 13%) 42%, rgb(45 212 191 / 6%) 100%);
-    --gradient-hairline: linear-gradient(90deg, transparent, #8b85ff 28%, #2dd4bf 58%, #fb7185 82%, transparent);
-    --glow-accent: 0 10px 36px rgb(139 133 255 / 32%), 0 2px 12px rgb(45 212 191 / 18%);
-    --glow-soft: 0 0 0 1px rgb(139 133 255 / 14%), 0 12px 36px rgb(0 0 0 / 34%);
+    --gradient-accent: linear-gradient(120deg, #ff5a1f 0%, #ff7a45 100%);
+    --gradient-text: linear-gradient(100deg, #8a2c0a 0%, #ff5a1f 52%, #a59d92 100%);
+    --gradient-surface: linear-gradient(165deg, rgb(255 255 255 / 8%) 0%, rgb(168 54 12 / 13%) 42%, rgb(13 13 15 / 70%) 100%);
+    --gradient-hairline: linear-gradient(90deg, transparent, #ff5a1f 28%, #8a2c0a 58%, #ff5a1f 82%, transparent);
+    --glow-accent: 0 10px 36px rgb(255 90 31 / 32%), 0 2px 12px rgb(14 165 164 / 18%);
+    --glow-soft: 0 0 0 1px rgb(255 90 31 / 14%), 0 12px 36px rgb(0 0 0 / 34%);
     --shadow-sm: 0 1px 2px rgb(0 0 0 / 28%), 0 6px 18px rgb(0 0 0 / 26%);
     --shadow-md: 0 2px 6px rgb(0 0 0 / 30%), 0 16px 38px rgb(0 0 0 / 36%);
-    --shadow-lg: 0 4px 10px rgb(0 0 0 / 34%), 0 28px 64px rgb(139 133 255 / 18%);
-    --ambient-1: rgb(139 133 255 / 16%);
+    --shadow-lg: 0 4px 10px rgb(0 0 0 / 34%), 0 28px 64px rgb(255 90 31 / 18%);
+    --ambient-1: rgb(255 90 31 / 16%);
     --ambient-2: rgb(45 212 191 / 10%);
     --ambient-3: rgb(251 113 133 / 8%);
     --grid-line: rgb(230 233 239 / 4%);
