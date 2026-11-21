@@ -14,7 +14,7 @@ reviews:
   - '!.astro/**'
   path_instructions:
   - path: src/**/*.{astro,ts,mjs}
-    instructions: Astro + TypeScript. Node engines `^20.19.0 || >=22.12.0` (CI 22.12.0). Must pass `npm run lint` (eslint.config.mjs), `npm run typecheck` (`astro check`) and `npm run build`; keep pages static-friendly and check accessibility (alt text, heading order, link text).
+    instructions: Astro + TypeScript. Node engines `^20.19.0 || >=22.12.0` (CI 22.12.0). Must pass `npm run lint` (eslint.config.mjs), `npm run typecheck` (`astro sync && tsc --noEmit`) and `npm run build`; keep pages static-friendly and check accessibility (alt text, heading order, link text).
   - path: crates/neuromorphic-adapter/**/*.rs
     instructions: 'Rust edition 2024; `rust-version = "1.99.0"`; crate `rust-toolchain.toml` pins 1.99.0 with target `wasm32-unknown-unknown`. Do not suggest downgrading the edition or using std/language APIs newer than the pinned toolchain/MSRV. CI gate: `npm run validate:rust`, then the wasm-bindgen 0.2.126 adapter and browser verification. Flag anything that would fail `cargo fmt --check` or clippy `-D warnings`. Code must compile for `wasm32-unknown-unknown`: no threads, filesystem or `std::time::Instant` without a wasm-safe path; the `wasm-bindgen` version must match CLI 0.2.126.'
   - path: test/**

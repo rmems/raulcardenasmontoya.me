@@ -15,7 +15,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "lint": "eslint .",
-    "typecheck": "astro check",
+    "typecheck": "astro sync && tsc --noEmit",
     "test": "node --test test/**/*.test.mjs",
     "test:coverage": "c8 node --test test/**/*.test.mjs",
     "test:coverage:rust": "mkdir -p coverage && cargo +1.99.0 llvm-cov --manifest-path crates/neuromorphic-adapter/Cargo.toml --all-targets --all-features --locked --lcov --output-path coverage/rust.lcov",
@@ -34,13 +34,12 @@
     "perf:browser": "node scripts/perf/measure-browser.mjs"
   },
   "devDependencies": {
-    "@astrojs/check": "^0.9.12",
     "@eslint/js": "^10.0.1",
     "astro": "^5.16.6",
     "c8": "^12.0.0",
     "eslint": "^10.15.0",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.73.0"
+    "typescript": "^7.0.2",
+    "typescript5": "npm:typescript@^5.9.3"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.5",

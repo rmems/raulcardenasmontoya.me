@@ -14,7 +14,7 @@ same-repo refs, generates LCOV and uploads to Codecov/Qlty.
 | **Qlty `qlty check`** (GitHub App) | Workflow lint and maintainability on the PR diff | Qlty GitHub integration (separate from LCOV upload) |
 | **ESLint / Clippy / fmt** | Authoritative linters for JS/TS and Rust | `quality.yml` |
 
-Qlty does **not** replace ESLint, `astro check`, or Rust fmt/clippy.
+Qlty does **not** replace ESLint, `tsc --noEmit`, or Rust fmt/clippy.
 
 ## Coverage inputs
 
