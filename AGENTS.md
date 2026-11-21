@@ -115,8 +115,9 @@ curl -s -o /dev/null -w '%{http_code}\n' http://localhost:3000/
 - `.github/dependabot.yml` opens weekly update PRs for npm, Cargo
   (`/crates/neuromorphic-adapter`) and GitHub Actions (#160). Dependabot PRs run with a read-only
   token and no secrets, which `quality.yml`'s coverage-upload steps already tolerate. Cargo PRs
-  are "bump, then regenerate": if the adapter's output changes, run `npm run build:wasm-web` and
-  commit the regenerated `public/wasm/**`, or `test:wasm-web-pkg` fails on drift. Most adapter
+  are "bump, then regenerate": run `npm run build:wasm-web` and commit the regenerated
+  `public/wasm/**` on every Cargo PR — `test:wasm-web-pkg` byte-diffs the JS glue but only checks
+  the `.wasm` binary is nonempty, so binary-only drift passes it. Most adapter
   crates are ignored because their versions are load-bearing — contract tests, `src/runtime` and
   `src/protocol` constants, site-displayed crate versions and recorded-evidence provenance all
   name exact releases, so bump those by hand together. Dependabot only tracks `serde`,
