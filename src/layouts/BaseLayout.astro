@@ -3,8 +3,8 @@ import '../styles/global.css';
 import '../styles/polish.css';
 import SiteHeader from '../components/SiteHeader.astro';
 import { footerLinks, site } from '../data/site';
-interface Props { title?: string; description?: string; /** Pages whose heading uses the serif italic preload it, so the headline does not reflow. */ preloadSerif?: boolean; /** Keeps a route out of search results: the 404 page, and anything else that should not rank. */ noindex?: boolean; /** Round-2 homepage mockup: warm paper + one signal orange, Newsreader display, JetBrains Mono labels. */ theme?: 'signal'; }
-const { title, description = site.description, preloadSerif = false, noindex = false, theme } = Astro.props;
+interface Props { title?: string; description?: string; /** Pages whose heading uses the serif italic preload it, so the headline does not reflow. */ preloadSerif?: boolean; /** Keeps a route out of search results: the 404 page, and anything else that should not rank. */ noindex?: boolean; }
+const { title, description = site.description, preloadSerif = false, noindex = false } = Astro.props;
 const brandTitle = `${site.fullName} — ${site.title}`;
 const pageTitle = title ? `${brandTitle} · ${title}` : brandTitle;
 const metaDescription = description.startsWith(site.fullName) ? description : `${site.fullName} — ${site.title}. ${description}`;
@@ -32,11 +32,13 @@ const socialImageAlt = `${site.fullName} — ${site.title}, raulcardenasmontoya.
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={metaDescription} />
     {noindex ? <meta name="robots" content="noindex" /> : null}
-    <meta name="theme-color" content="#f7f8fa" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0f1218" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f5f1ea" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0d0d0f" media="(prefers-color-scheme: dark)" />
     <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
+    {/* Newsreader is the display face on every page; the italic cut is only
+        preloaded where a headline sets an <em>. */}
+    <link rel="preload" href="/fonts/newsreader-latin.woff2" as="font" type="font/woff2" crossorigin />
     {preloadSerif ? <link rel="preload" href="/fonts/newsreader-italic-latin.woff2" as="font" type="font/woff2" crossorigin /> : null}
-    {theme === 'signal' ? <link rel="preload" href="/fonts/newsreader-latin.woff2" as="font" type="font/woff2" crossorigin /> : null}
     <meta name="generator" content={Astro.generator} />
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={metaDescription} />
@@ -61,7 +63,7 @@ const socialImageAlt = `${site.fullName} — ${site.title}, raulcardenasmontoya.
     <title>{pageTitle}</title>
     <script type="application/ld+json" set:html={JSON.stringify(personJsonLd)} />
   </head>
-  <body class:list={[{ 'theme-signal': theme === 'signal' }]}>
+  <body>
     <a class="skip-link" href="#main-content">Skip to content</a>
     <div class="scroll-progress" aria-hidden="true"></div>
     <div class="scroll-progress-spike" aria-hidden="true"><svg viewBox="0 0 18 12" focusable="false"><path d="M0 2h7l1.5 9 2-10 1.5 5 1-2H18" /></svg></div>

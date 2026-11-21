@@ -1,105 +1,21 @@
 /*
- * mockup/home-lab-direction, round 2 — "signal" homepage.
+ * mockup/home-lab-direction — "signal" homepage pieces.
  *
- * Warm paper, ink text and ONE signal accent (spike orange). The hero is a
- * full-bleed ink section with the live mesh as its background. Newsreader for
- * headlines, Inter for body, JetBrains Mono for labels, numbers and eyebrows.
- * Scoped to body.theme-signal (only the homepage sets it), so other pages keep
- * the current palette.
- *
- * Contrast (WCAG): --accent #a8360c on --paper 5.8:1, on --paper-deep 5.2:1;
- * --muted #5f574e on --paper 6.3:1. Dark: --accent #ff5a1f on #0d0d0f 6.2:1,
- * --muted #a59d92 7.3:1. #ff5a1f itself (2.8:1 on paper) is graphics-only in
- * light mode.
+ * The paper/ink/signal palette and the Newsreader / Inter / JetBrains Mono
+ * stacks are the site-wide tokens in global.css now; this sheet keeps only
+ * the homepage's own components (hero backdrop math constants, sections,
+ * card visuals) and the /labs/ telemetry section that shares them.
  */
 
-body.theme-signal,
-.labs-signal {
-  --ink: #0d0d0f;
-  --paper: #f5f1ea;
-  --surface: #fbf8f2;
-  --surface-raised: #fbf8f2;
-  --paper-deep: #ebe4d8;
-  --muted: #5f574e;
-  --line: #ded5c7;
-  --line-strong: #b9ad9b;
-  --accent: #a8360c;
-  --accent-strong: #8a2c0a;
-  --accent-soft: #f4dccd;
-  --secondary: #8a8178;
-  --spike: #ff5a1f;
-  --signal: #ff5a1f;
-  --teal-text: #a8360c;
-  --spike-text: #a8360c;
-  --code-bg: rgb(13 13 15 / 6%);
-  --shadow-ink: #0d0d0f;
-  --surface-glass: #f5f1ea;
-  --header-glass: rgb(245 241 234 / 96%);
-  --gradient-accent: linear-gradient(#ff5a1f, #ff5a1f);
-  --gradient-text: linear-gradient(currentColor, currentColor);
-  --gradient-surface: none;
-  --gradient-hairline: linear-gradient(90deg, #b9ad9b, #b9ad9b);
-  --glow-accent: none;
-  --glow-soft: none;
-  --shadow-sm: none;
-  --shadow-md: none;
-  --shadow-lg: none;
-  --ambient-1: transparent;
-  --ambient-2: transparent;
-  --ambient-3: transparent;
-  --grid-line: transparent;
+body {
+  /* The ink hero stays ink in both schemes, so its constants live here
+     instead of flipping with the tokens. */
   --hero-ink: #0d0d0f;
   --hero-paper: #f5f1ea;
   --hero-muted: #b3ab9f;
-  --serif: Newsreader, 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
-  --display: var(--serif);
-  --mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
   /* 100cqi = the body's content width (no scrollbar), for full-bleed bands. */
   container-type: inline-size;
-  background: var(--paper);
 }
-
-@media (prefers-color-scheme: dark) {
-  body.theme-signal,
-  .labs-signal {
-    --ink: #f5f1ea;
-    --paper: #0d0d0f;
-    --surface: #141416;
-    --surface-raised: #141416;
-    --paper-deep: #1c1c20;
-    --muted: #a59d92;
-    --line: #2a2926;
-    --line-strong: #47433d;
-    --accent: #ff5a1f;
-    --accent-strong: #ff7a45;
-    --accent-soft: #3a1a0e;
-    --secondary: #8a8178;
-    --teal-text: #ff7a45;
-    --spike-text: #ff7a45;
-    --code-bg: rgb(245 241 234 / 8%);
-    --shadow-ink: #000000;
-    --surface-glass: #0d0d0f;
-    --header-glass: rgb(13 13 15 / 96%);
-    --gradient-hairline: linear-gradient(90deg, #47433d, #47433d);
-  }
-}
-
-/* ---- Shared chrome on this page: flat, no gradients ---- */
-body.theme-signal .site-header { background-image: none; box-shadow: none; }
-body.theme-signal .scroll-progress { background: var(--signal); }
-body.theme-signal .header-profile { background: transparent; box-shadow: none; }
-body.theme-signal .header-profile:hover { color: var(--accent); border-color: var(--accent); transform: none; }
-body.theme-signal .primary-nav a,
-body.theme-signal .header-profile { font-family: var(--mono); font-weight: 600; }
-body.theme-signal .brand span { font-family: var(--sans); }
-body.theme-signal .site-footer { font-family: var(--mono); }
-
-body.theme-signal .button { border-radius: 0.35rem; font-family: var(--mono); font-weight: 600; letter-spacing: 0.02em; box-shadow: none; }
-body.theme-signal .button-primary { border-color: var(--accent); color: var(--paper); background: var(--accent); background-image: none; }
-body.theme-signal .button-primary::after { display: none; }
-body.theme-signal .button-primary:hover { border-color: var(--accent-strong); color: var(--paper); background: var(--accent-strong); background-image: none; box-shadow: none; transform: none; }
-body.theme-signal .button-secondary { border-color: currentColor; background: transparent; }
-body.theme-signal .text-link { color: var(--accent); font-family: var(--mono); }
 
 .home-lab { font-size: 1.0625rem; }
 
@@ -284,10 +200,10 @@ body.theme-signal .text-link { color: var(--accent); font-family: var(--mono); }
 .hero-looking-label { margin-right: 0.6rem; padding: 0.1rem 0.4rem; border: 1px solid var(--signal); border-radius: 0.2rem; color: var(--signal); font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; }
 .hero-place { margin: 0.5rem 0 0; color: var(--hero-muted); font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.04em; }
 .live-hero--backdrop .hero-actions { margin-top: 2rem; }
-body.theme-signal .live-hero--backdrop .button-primary { border-color: var(--signal); color: var(--hero-ink); background: var(--signal); }
-body.theme-signal .live-hero--backdrop .button-primary:hover { border-color: #ff7a45; color: var(--hero-ink); background: #ff7a45; }
-body.theme-signal .live-hero--backdrop .button-secondary { color: var(--hero-paper); border-color: #6d665d; }
-body.theme-signal .live-hero--backdrop .button-secondary:hover { color: var(--signal); border-color: var(--signal); background: transparent; }
+.live-hero--backdrop .button-primary { border-color: var(--signal); color: var(--hero-ink); background: var(--signal); }
+.live-hero--backdrop .button-primary:hover { border-color: #ff7a45; color: var(--hero-ink); background: #ff7a45; }
+.live-hero--backdrop .button-secondary { color: var(--hero-paper); border-color: #6d665d; }
+.live-hero--backdrop .button-secondary:hover { color: var(--signal); border-color: var(--signal); background: transparent; }
 
 /* The caption strip: one mono line along the bottom of the hero. */
 .live-hero--backdrop .hero-mesh-caption {
@@ -612,7 +528,7 @@ body.theme-signal .live-hero--backdrop .button-secondary:hover { color: var(--si
 }
 
 /* ---- /labs/ live telemetry section (r3): the signal palette, scoped here ---- */
-.labs-signal { margin-block: 2rem 3rem; padding: clamp(1rem, 3vw, 2rem); border: 1px solid var(--line); border-radius: 0.5rem; color: var(--ink); background: var(--paper); font-family: Inter, system-ui, sans-serif; }
+.labs-signal { margin-block: 2rem 3rem; padding: clamp(1rem, 3vw, 2rem); border: 1px solid var(--line); border-radius: 0.5rem; color: var(--ink); background: var(--paper); font-family: var(--sans); }
 .labs-signal .hero::before,
 .labs-signal .hero::after { display: none; }
 .labs-signal .hero-mesh-stage,

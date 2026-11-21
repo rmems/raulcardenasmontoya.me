@@ -45,36 +45,11 @@
   .live-hero--journal .hero-mesh-nodes-core { stroke: #0d0d0f; }
 }
 
-/* ---------- Header: journal masthead (both themes) ---------- */
-body.theme-signal { --j-red: #8b1e14; }
+/* The journal accent red, a shade deeper than --accent for rules and
+   underlines on the page ground. */
+body { --j-red: #8b1e14; }
 @media (prefers-color-scheme: dark) {
-  body.theme-signal { --j-red: #ff6b4a; }
-}
-@media all {
-  body.theme-signal .site-header {
-    border-top: 1px solid var(--ink);
-    border-bottom: 1px solid var(--ink);
-    border-radius: 0;
-    background: var(--paper);
-  }
-  body.theme-signal .brand span {
-    font-family: var(--serif);
-    font-size: 1rem;
-    font-weight: 500;
-    letter-spacing: 0.14em;
-    white-space: nowrap;
-    text-transform: uppercase;
-  }
-  body.theme-signal .primary-nav a {
-    font-family: var(--serif);
-    font-size: 1rem;
-    font-weight: 400;
-    letter-spacing: 0.01em;
-    text-transform: none;
-  }
-  body.theme-signal .primary-nav a[aria-current='page'],
-  body.theme-signal .primary-nav a:hover { color: var(--j-red); text-decoration: underline; text-underline-offset: 0.25em; }
-  body.theme-signal .header-profile { font-family: var(--serif); font-weight: 400; letter-spacing: 0.01em; text-transform: none; }
+  body { --j-red: #ff6b4a; }
 }
 
 /* ---------- Layout ---------- */
@@ -318,11 +293,6 @@ body.theme-signal { --j-red: #8b1e14; }
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
-}
-
-@media (max-width: 680px) {
-  body.theme-signal .brand span { font-size: 0.9rem; letter-spacing: 0.08em; white-space: normal; }
-  body.theme-signal .primary-nav a { font-size: 0.95rem; }
 }
 
 /* ---------- Tablet and phone: stack, figure under the copy ---------- */
