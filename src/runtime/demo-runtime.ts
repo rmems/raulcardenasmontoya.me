@@ -120,7 +120,7 @@ export interface DemoViewElements {
     textContent: string | null;
   };
   play: {
-    hidden: boolean;
+    hidden: boolean | string;
     disabled: boolean;
     textContent: string | null;
   };
@@ -130,7 +130,7 @@ export interface DemoViewElements {
     inputs: ArrayLike<{ value: string; checked: boolean }>;
   };
   surface?: {
-    hidden: boolean;
+    hidden: boolean | string;
   };
   origin?: {
     textContent: string | null;
