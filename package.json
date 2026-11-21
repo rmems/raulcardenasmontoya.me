@@ -34,16 +34,16 @@
     "perf:browser": "node scripts/perf/measure-browser.mjs"
   },
   "devDependencies": {
-    "@astrojs/check": "^0.9.4",
+    "@astrojs/check": "^0.9.12",
     "astro": "^5.16.6",
     "c8": "^10.1.3",
     "eslint": "^9.39.1",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.47.0"
+    "typescript-eslint": "^8.73.0"
   },
   "dependencies": {
-    "@astrojs/sitemap": "^3.7.4",
-    "@types/three": "^0.186.0",
-    "three": "^0.186.1"
+    "@astrojs/sitemap": "^3.7.5",
+    "@types/three": "^0.187.0",
+    "three": "^0.187.0"
   }
 }
