@@ -103,13 +103,14 @@ function readPalette(scope: Element = document.documentElement): CssPalette {
 }
 
 /**
- * Drawing style tokens read beside the palette (mockup r5): `--mesh-node-style:
- * outline` draws each neuron as a filled dot with an ink ring (the vertex
- * colour tints the fill only), and `--mesh-drift: off` keeps the network
- * still so callouts anchored to node positions stay on them.
+ * Drawing style tokens read beside the palette (mockup r5/r6): `--mesh-node-style:
+ * outline` draws each neuron as a ring (`--mesh-node-ring`) around a smaller
+ * fill that carries the resting/firing colour, and `--mesh-drift: off` keeps
+ * the network still so callouts anchored to node positions stay on them.
  */
 function readMeshStyle(scope: Element): {
   outline: boolean;
+  ring: string;
   drift: boolean;
   edgeOpacity: number;
   pulseScale: number;
@@ -122,6 +123,7 @@ function readMeshStyle(scope: Element): {
   };
   return {
     outline: style?.getPropertyValue('--mesh-node-style').trim() === 'outline',
+    ring: style?.getPropertyValue('--mesh-node-ring').trim() || '#141311',
     drift: style?.getPropertyValue('--mesh-drift').trim() !== 'off',
     edgeOpacity: number('--mesh-edge-opacity', EDGE_OPACITY, 0.05, 1),
     pulseScale: number('--mesh-pulse-scale', 1, 0.1, 2),
@@ -131,7 +133,7 @@ function readMeshStyle(scope: Element): {
 }
 
 /** A soft round sprite so `Points` draw as circles with a halo, not squares. */
-function roundNodeSprite(THREE: typeof import('three'), outline = false): import('three').Texture | null {
+function roundNodeSprite(THREE: typeof import('three'), crisp = false): import('three').Texture | null {
   const canvas = globalThis.document?.createElement('canvas');
   const context = canvas?.getContext('2d');
   if (!canvas || !context) {
@@ -139,21 +141,15 @@ function roundNodeSprite(THREE: typeof import('three'), outline = false): import
   }
   canvas.width = canvas.height = 64;
   const gradient = context.createRadialGradient(32, 32, 0, 32, 32, 32);
-  if (outline) {
-    // White fill (tinted by the vertex colour) inside an ink ring; the ring is
-    // near-black, so tinting leaves it ink. Crisp edge, no halo.
-    gradient.addColorStop(0, 'rgba(255,255,255,1)');
-    gradient.addColorStop(0.43, 'rgba(255,255,255,1)');
-    gradient.addColorStop(0.47, 'rgba(20,19,17,1)');
-    gradient.addColorStop(0.6, 'rgba(20,19,17,1)');
-    gradient.addColorStop(0.64, 'rgba(20,19,17,0)');
-    gradient.addColorStop(1, 'rgba(20,19,17,0)');
+  gradient.addColorStop(0, 'rgba(255,255,255,1)');
+  gradient.addColorStop(0.62, 'rgba(255,255,255,1)');
+  if (crisp) {
+    // Outline style: a hard edge, no halo (an ink figure, not a glow).
+    gradient.addColorStop(0.66, 'rgba(255,255,255,0)');
   } else {
-    gradient.addColorStop(0, 'rgba(255,255,255,1)');
-    gradient.addColorStop(0.62, 'rgba(255,255,255,1)');
     gradient.addColorStop(0.72, 'rgba(255,255,255,0.35)');
-    gradient.addColorStop(1, 'rgba(255,255,255,0)');
   }
+  gradient.addColorStop(1, 'rgba(255,255,255,0)');
   context.fillStyle = gradient;
   context.fillRect(0, 0, 64, 64);
   const texture = new THREE.CanvasTexture(canvas);
@@ -260,8 +256,8 @@ export function createTopologyRendererSeam(options: TopologyRendererSeamOptions)
         throw new RendererSeamError('renderer-error', 'renderer init aborted');
       }
 
-      const palette = readPalette(surface);
-      const meshStyle = readMeshStyle(surface);
+      let palette = readPalette(surface);
+      let meshStyle = readMeshStyle(surface);
       const canvas = document.createElement('canvas');
       canvas.setAttribute('aria-hidden', 'true');
 
@@ -290,6 +286,18 @@ export function createTopologyRendererSeam(options: TopologyRendererSeamOptions)
       scene.add(world);
 
       const nodeSprite = roundNodeSprite(THREE, meshStyle.outline);
+      // Outline style: an under-layer of rings in one colour, the coloured
+      // fill drawn smaller on top (same geometry), so the fill can go ink,
+      // white or teal while the ring stays the theme's line colour.
+      const ringMaterial = new THREE.PointsMaterial({
+        size: 0,
+        color: new THREE.Color(meshStyle.ring),
+        sizeAttenuation: false,
+        map: nodeSprite,
+        transparent: nodeSprite !== null,
+        alphaTest: nodeSprite ? 0.05 : 0,
+      });
+      disposables.push(ringMaterial);
       const nodeMaterial = new THREE.PointsMaterial({
         // The sprite's solid core is 62% of its face, so the halo needs room
         // beyond it; `size` (CSS pixels, `sizeAttenuation: false` under an
@@ -352,6 +360,7 @@ export function createTopologyRendererSeam(options: TopologyRendererSeamOptions)
         },
       });
       let pointsObject: import('three').Points | null = null;
+      let ringObject: import('three').Points | null = null;
       let edgeObject: import('three').LineSegments | null = null;
       let builtDigest: string | null = null;
       let nodeCount = 0;
@@ -423,6 +432,10 @@ export function createTopologyRendererSeam(options: TopologyRendererSeamOptions)
           world.remove(pointsObject);
           pointsObject = null;
         }
+        if (ringObject) {
+          world.remove(ringObject);
+          ringObject = null;
+        }
         if (edgeObject) {
           world.remove(edgeObject);
           edgeObject = null;
@@ -441,6 +454,10 @@ export function createTopologyRendererSeam(options: TopologyRendererSeamOptions)
         }
         nodeGeometry.setAttribute('position', new THREE.BufferAttribute(pointPositions, 3));
         nodeGeometry.setAttribute('color', new THREE.BufferAttribute(pointColors, 3));
+        ringObject = new THREE.Points(nodeGeometry, ringMaterial);
+        ringObject.renderOrder = NODE_RENDER_ORDER - 0.5;
+        ringObject.visible = meshStyle.outline;
+        world.add(ringObject);
         pointsObject = new THREE.Points(nodeGeometry, nodeMaterial);
         pointsObject.renderOrder = NODE_RENDER_ORDER;
         world.add(pointsObject);
@@ -476,7 +493,8 @@ export function createTopologyRendererSeam(options: TopologyRendererSeamOptions)
       // reduced motion the runtime never starts on its own, so pulses only
       // travel after the visitor presses Play.
       // `--mesh-drift: off` (callouts pinned to node positions) holds the view still.
-      let motionEnabled = createOptions.cameraMotionEnabled && meshStyle.drift;
+      let motionRequested = createOptions.cameraMotionEnabled;
+      let motionEnabled = motionRequested && meshStyle.drift;
       let frame = 0;
       let lastFrameTime = 0;
       let worldPerPixel = 0.01;
@@ -630,6 +648,11 @@ export function createTopologyRendererSeam(options: TopologyRendererSeamOptions)
         // viewBox-scaled stroke. The sprite's solid core is 62% of its face,
         // so the material draws the halo around it at 1/0.62 ≈ 1.6×.
         nodeMaterial.size = (NODE_SIZE_WORLD / worldPerPixel) * 1.6;
+        // Outline style: the ring takes the full marker, the fill sits inside it.
+        ringMaterial.size = nodeMaterial.size;
+        if (meshStyle.outline) {
+          nodeMaterial.size *= 0.7;
+        }
       };
 
       const renderFrame = (time: number) => {
@@ -779,6 +802,31 @@ export function createTopologyRendererSeam(options: TopologyRendererSeamOptions)
         }
       });
 
+      // Colour-scheme switch mid-visit: re-read the scoped tokens and recolour
+      // in place; the topology rebuild on the next frame re-bakes the edges.
+      const schemeQuery = globalThis.matchMedia?.('(prefers-color-scheme: dark)') ?? null;
+      const onSchemeChange = () => {
+        palette = readPalette(surface);
+        meshStyle = readMeshStyle(surface);
+        spikeColor.set(palette.spike);
+        mutedColor.set(palette.muted);
+        lineColor.set(palette.line);
+        excitatoryColor.set(palette.accent);
+        inhibitoryColor.set(palette.secondary);
+        excitatoryPulseColor.copy(excitatoryColor);
+        inhibitoryPulseColor.copy(inhibitoryColor);
+        ringMaterial.color.set(meshStyle.ring);
+        edgeMaterial.opacity = meshStyle.edgeOpacity;
+        motionEnabled = motionRequested && meshStyle.drift;
+        builtDigest = null;
+        resize();
+        if (frozen || paused) {
+          renderFrame(performance.now());
+        }
+      };
+      schemeQuery?.addEventListener?.('change', onSchemeChange);
+      disposables.push({ dispose: () => schemeQuery?.removeEventListener?.('change', onSchemeChange) });
+
       canvas.addEventListener('webglcontextlost', (event) => {
         event.preventDefault();
         createOptions.onRendererError();
@@ -814,6 +862,7 @@ export function createTopologyRendererSeam(options: TopologyRendererSeamOptions)
           feed.setActive(false);
         },
         setCameraMotionEnabled(enabled: boolean) {
+          motionRequested = enabled;
           motionEnabled = enabled && meshStyle.drift;
         },
         dispose() {

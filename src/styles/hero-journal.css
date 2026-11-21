@@ -5,12 +5,12 @@
  * split by a thin vertical rule; the live network drawn as an ink figure
  * (white neurons with ink rings that fill deep teal when they fire) with italic callouts on
  * real nodes and a "Fig. 01" caption.
- * Dark: a framed card on ink with the teal orb, an orange CTA and a mono
- * spec strip along the bottom.
+ * Dark (r6): the same journal page and the same renderer on ink #0d0d0f:
+ * bone lines, white-ring neurons with ink fill, teal (#2dd4bf) firing.
  *
- * Contrast (WCAG): #8b1e14 on #f5f1ea 8.3:1 (text-safe at any size); teal
- * #0f766e (firing fill, 'spike event' label) on #f5f1ea 5.0:1;
- * --muted #5f574e on paper 6.3:1; dark --accent #ff5a1f on #111113 6.0:1.
+ * Contrast (WCAG): #8b1e14 on #f5f1ea 8.1:1; teal #0f766e (firing fill,
+ * 'spike event' label) on #f5f1ea 4.9:1; --muted #5f574e on paper 6.3:1.
+ * Dark: accent #ff6b4a on #0d0d0f 6.9:1; #2dd4bf 10.4:1; bone #e8e1d4 14.9:1.
  */
 
 /* ---------- Mesh tokens (read by the static SVG and the live renderer) ---------- */
@@ -21,6 +21,7 @@
   --muted: #ffffff;
   --line: #e2d9cb;
   --mesh-node-style: outline;
+  --mesh-node-ring: #141311;
   --mesh-drift: off;
   --mesh-edge-opacity: 0.55;
   --mesh-pulse-scale: 0.5;
@@ -33,27 +34,23 @@
 
 @media (prefers-color-scheme: dark) {
   .live-hero--journal :is(.hero-mesh-static, .demo-surface) {
-    --accent: #d8d0c4;
-    --secondary: #7d8fb3;
-    --spike: #e6fffb;
-    --muted: #2dd4bf;
+    --accent: #e8e1d4;
+    --secondary: #9aa8c7;
+    --spike: #2dd4bf;
+    --muted: #0d0d0f;
     --line: #2a2926;
-    --mesh-node-style: dot;
-    --mesh-drift: on;
-    --mesh-edge-opacity: 0.4;
-    --mesh-pulse-scale: 1;
-    --mesh-activation-mix: 0.6;
+    --mesh-node-ring: #f5f1ea;
   }
-  .live-hero--journal .hero-mesh-edges { stroke-opacity: 0.4; }
-  .live-hero--journal .hero-mesh-nodes { stroke: #2dd4bf; }
-  .live-hero--journal .hero-mesh-nodes-core { display: none; }
-  /* Soft teal glow around the orb. */
-  .live-hero--journal .hero-mesh-static,
-  .live-hero--journal .demo-surface canvas { filter: drop-shadow(0 0 0.35rem rgb(45 212 191 / 45%)); }
+  .live-hero--journal .hero-mesh-nodes { stroke: #f5f1ea; }
+  .live-hero--journal .hero-mesh-nodes-core { stroke: #0d0d0f; }
 }
 
-/* ---------- Header: journal masthead in light ---------- */
-@media not (prefers-color-scheme: dark) {
+/* ---------- Header: journal masthead (both themes) ---------- */
+body.theme-signal { --j-red: #8b1e14; }
+@media (prefers-color-scheme: dark) {
+  body.theme-signal { --j-red: #ff6b4a; }
+}
+@media all {
   body.theme-signal .site-header {
     border-top: 1px solid var(--ink);
     border-bottom: 1px solid var(--ink);
@@ -76,12 +73,12 @@
     text-transform: none;
   }
   body.theme-signal .primary-nav a[aria-current='page'],
-  body.theme-signal .primary-nav a:hover { color: #8b1e14; text-decoration: underline; text-underline-offset: 0.25em; }
+  body.theme-signal .primary-nav a:hover { color: var(--j-red); text-decoration: underline; text-underline-offset: 0.25em; }
   body.theme-signal .header-profile { font-family: var(--serif); font-weight: 400; letter-spacing: 0.01em; text-transform: none; }
 }
 
 /* ---------- Layout ---------- */
-.live-hero--journal { --j-red: #8b1e14; --j-rule: var(--line-strong); }
+.live-hero--journal { --j-rule: var(--line-strong); }
 
 .live-hero--journal .hero.hero-live {
   display: grid;
@@ -156,7 +153,7 @@
 }
 .live-hero--journal .hero-callouts { z-index: 3; overflow: visible; pointer-events: none; color: var(--ink); }
 
-/* ---------- Callouts (light only) ---------- */
+/* ---------- Callouts ---------- */
 .hero-callout text { fill: var(--ink); font-family: var(--serif); font-style: italic; }
 .hero-callout .hero-callout-sub { fill: var(--muted); font-family: var(--mono); font-style: normal; }
 .hero-callout-leader { fill: none; stroke: var(--ink); stroke-width: 1; vector-effect: non-scaling-stroke; }
@@ -165,7 +162,7 @@
 .hero-callout--spike text:not(.hero-callout-sub) { fill: #0f766e; }
 
 @media (prefers-color-scheme: dark) {
-  .live-hero--journal .hero-callouts { display: none; }
+  .hero-callout--spike text:not(.hero-callout-sub) { fill: #2dd4bf; }
 }
 
 /* ---------- Caption ---------- */
@@ -278,10 +275,10 @@
   margin: 0;
   color: var(--ink);
   font-family: var(--serif);
-  font-size: clamp(3rem, 5.4vw, 5.6rem);
+  font-size: clamp(2.6rem, 4vw, 3.75rem);
   font-weight: 400;
-  letter-spacing: -0.02em;
-  line-height: 1.02;
+  letter-spacing: -0.015em;
+  line-height: 1.06;
   text-wrap: balance;
   animation: none;
 }
@@ -297,70 +294,23 @@
 
 .live-hero--journal .hero-actions { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.6rem 1.8rem; margin: 1.8rem 0 0; }
 .hero-cta { font-family: var(--serif); font-size: 1.2rem; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 0.25em; }
-.hero-cta--primary { color: var(--ink); font-weight: 600; text-decoration-color: var(--j-red, currentColor); text-decoration-thickness: 2px; }
+.hero-cta--primary { color: var(--ink); font-weight: 600; text-decoration-color: var(--j-red); text-decoration-thickness: 2px; }
 .hero-cta--secondary { color: var(--muted); }
-.hero-cta:hover { color: var(--j-red, var(--accent)); }
-.hero-cta:focus-visible { outline: 2px solid var(--j-red, var(--accent)); outline-offset: 3px; }
+.hero-cta:hover { color: var(--j-red); }
+.hero-cta:focus-visible { outline: 2px solid var(--j-red); outline-offset: 3px; }
 
 .live-hero--journal .hero-looking { margin: 1.8rem 0 0; padding-top: 1rem; border-top: 1px solid var(--j-rule); color: var(--ink); font-family: var(--mono); font-size: 0.8rem; line-height: 1.6; }
 .live-hero--journal .hero-looking-label { margin-right: 0.6rem; padding: 0; border: 0; color: var(--j-red); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
 .live-hero--journal .hero-place { margin: 0.4rem 0 0; color: var(--muted); font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.04em; }
 
-/* ---------- Dark: framed card with the teal orb ---------- */
+/* ---------- Dark: same page, ink ground ---------- */
 @media (prefers-color-scheme: dark) {
-  .live-hero--journal { --j-red: #ff5a1f; --j-rule: #2a2926; }
-  .live-hero--journal .hero.hero-live {
-    margin-top: clamp(0.75rem, 1.5vw, 1.25rem);
-    padding: clamp(2rem, 3.5vw, 2.8rem) clamp(1.5rem, 3.5vw, 3rem) 0;
-    border: 1px solid #2a2926;
-    border-radius: 1.25rem;
-    background:
-      radial-gradient(40% 60% at 75% 45%, rgb(45 212 191 / 7%), transparent 70%),
-      linear-gradient(180deg, #141416, #0f0f11);
-    overflow: hidden;
-  }
-  .live-hero--journal .hero-mesh-stage { border-left: 0; }
-  .live-hero--journal .hero-mesh-static,
-  .live-hero--journal .hero-mesh .demo-surface { top: 2%; left: 4%; width: 92%; height: 96%; }
-  .live-hero--journal .hero.hero-live h1 { color: #f5f1ea; }
-  .live-hero--journal .hero.hero-live h1 em { color: #ff5a1f; font-style: normal; }
-  .live-hero--journal .hero-lede { color: #cfc6b8; }
-  .live-hero--journal .hero-looking { border-top: 0; padding-top: 0; color: #f5f1ea; }
-  .live-hero--journal .hero-looking-label { padding: 0.15rem 0.55rem; border: 1px solid #ff5a1f; border-radius: 999px; color: #ff5a1f; }
-  .hero-cta { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.7rem 1.15rem; border: 1px solid #f5f1ea; border-radius: 0.4rem; font-family: var(--mono); font-size: 0.85rem; font-weight: 600; letter-spacing: 0.02em; text-decoration: none; }
-  .hero-cta--primary { border-color: #ff5a1f; color: #0d0d0f; background: #ff5a1f; }
-  .hero-cta--primary:hover { border-color: #ff7a45; color: #0d0d0f; background: #ff7a45; }
-  .hero-cta--secondary { color: #f5f1ea; background: transparent; }
-  .hero-cta--secondary:hover { border-color: #ff5a1f; color: #ff5a1f; }
-  .live-hero--journal .hero-actions { align-items: center; gap: 0.8rem; }
-
-  /* Bottom mono strip across the card. */
-  .live-hero--journal .hero-mesh-caption {
-    grid-column: 1 / -1;
-    margin: clamp(1.4rem, 3vw, 2rem) calc(-1 * clamp(1.5rem, 3.5vw, 3rem)) 0;
-    padding: 0.85rem clamp(1.5rem, 3.5vw, 3rem);
-    border-left: 0;
-    border-top: 1px solid #2a2926;
-    background: rgb(13 13 15 / 60%);
-    align-items: center;
-  }
-  .live-hero--journal .hero-fig { display: none; }
-  .live-hero--journal .hero-mesh-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.9rem; margin-right: auto; color: #cfc6b8; }
-  .live-hero--journal .hero-mesh-meta .execution-origin { margin: 0; padding: 0.1rem 0.45rem; border-color: #47433d; border-radius: 999px; color: #f5f1ea; background: none; font-size: 0.75rem; }
-  .live-hero--journal .hero-mesh-links a { color: #ff5a1f; }
-  .live-hero--journal .button.hero-mesh-play,
-  .live-hero--journal .hero-controls-toggle { padding: 0.25rem 0.65rem; border: 1px solid #47433d; border-radius: 999px; color: #f5f1ea; text-decoration: none; }
-  .live-hero--journal .button.hero-mesh-play:hover,
-  .live-hero--journal .hero-controls-toggle:hover,
-  .live-hero--journal .hero-controls-toggle[aria-pressed='true'] { border-color: #ff5a1f; color: #ff5a1f; }
-  .live-hero--journal .hero-controls-exit { border-color: #f5f1ea; color: #f5f1ea; }
-  .live-hero--journal .hero-mesh-encoder label { color: #f5f1ea; }
   .live-hero--journal .hero-controls-cursor { border-color: #2dd4bf; }
-  .live-hero--journal[data-controls='on'] .hero-mesh-caption { margin-inline: calc(-1 * clamp(1.5rem, 3.5vw, 3rem)); padding-inline: clamp(1.5rem, 3.5vw, 3rem); }
+  .live-hero--journal .hero-controls-pad[data-pressed='true'] .hero-controls-cursor { background: rgb(45 212 191 / 25%); }
 }
 
 /* The run status is announced but only shown when something went wrong; the
-   caption (light) or the LIVE badge (dark) already says the rest. */
+   Fig. 01 caption already says the rest. */
 .live-hero--journal:not([data-mode='fallback']) .hero-mesh .demo-status:not(.demo-status-noscript) {
   position: absolute;
   width: 1px;
@@ -370,7 +320,7 @@
   white-space: nowrap;
 }
 
-@media (max-width: 680px) and (not (prefers-color-scheme: dark)) {
+@media (max-width: 680px) {
   body.theme-signal .brand span { font-size: 0.9rem; letter-spacing: 0.08em; white-space: normal; }
   body.theme-signal .primary-nav a { font-size: 0.95rem; }
 }
@@ -393,7 +343,7 @@
   .live-hero--journal .hero-live > .hero-heading,
   .live-hero--journal .hero-live > .hero-mesh { order: 0; }
   .live-hero--journal .hero.hero-live { padding-top: 1.75rem; }
-  .live-hero--journal .hero.hero-live h1 { font-size: min(12.5vw, 3.3rem); }
+  .live-hero--journal .hero.hero-live h1 { font-size: min(9.6vw, 2.6rem); }
   .live-hero--journal .hero-lede { font-size: 1.05rem; }
   /* Callouts would crowd the ring at this size; the caption carries them. */
   .live-hero--journal .hero-callouts { display: none; }
@@ -405,31 +355,18 @@
   .live-hero--journal[data-controls='on'] .hero-live > .hero-mesh { margin-top: 0; }
 }
 
-@media (max-width: 680px) and (prefers-color-scheme: dark) {
-  .live-hero--journal .hero.hero-live { padding: 1.6rem 1.1rem 0; border-radius: 1rem; }
-  .live-hero--journal .hero-mesh-caption { margin-inline: -1.1rem; padding-inline: 1.1rem; }
-  .live-hero--journal[data-controls='on'] .hero-mesh-caption { margin-inline: -1.1rem; padding-inline: 1.1rem; }
-}
-
 @media (forced-colors: active) {
   .live-hero--journal .hero.hero-live h1 em { color: LinkText; }
   .hero-callout text { fill: CanvasText; }
   .hero-callout-leader, .hero-callout-strong { stroke: CanvasText; }
 }
 
-/* The strip's spec line: only the current state takes space (hero.css stacks
-   all three so the plate caption never reflows; here they would widen it). */
+/* Spec line (hidden in the journal caption, kept for its live states). */
 .live-hero--journal .hero-mesh-mode { display: inline; }
 .live-hero--journal .hero-mesh-mode > span { display: none; }
 .live-hero--journal:not([data-mode='live']) .hero-mesh-mode > [data-when='idle'],
 .live-hero--journal[data-mode='live']:not([data-motion='off']) .hero-mesh-mode > [data-when='live'],
 .live-hero--journal[data-mode='live'][data-motion='off'] .hero-mesh-mode > [data-when='live-still'] { display: inline; visibility: visible; }
-@media (prefers-color-scheme: dark) {
-  .live-hero--journal .hero-mesh-caption { column-gap: 0.9rem; }
-  .live-hero--journal .hero-mesh-meta { gap: 0.4rem 0.7rem; }
-}
-/* The spec line already says Rust → WASM and live; the origin badge would
-   repeat it and push the controls onto a second line. */
-@media (prefers-color-scheme: dark) and (min-width: 901px) {
-  .live-hero--journal .hero-mesh-meta .execution-origin { display: none; }
-}
+
+/* hero.css tints the live plate's border with the accent; the journal rule stays neutral. */
+.live-hero.live-hero--journal[data-mode] .hero-mesh-stage { border-color: var(--j-rule); }

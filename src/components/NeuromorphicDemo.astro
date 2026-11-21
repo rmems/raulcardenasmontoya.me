@@ -20,8 +20,8 @@ import '../styles/hero.css';
 // spikes), so both edge sets carry that palette.
 const { compact = false, backdrop = false, journal = false, labelledBy = 'hero-title', signalMesh = backdrop || journal } = Astro.props as { compact?: boolean; backdrop?: boolean; journal?: boolean; labelledBy?: string; signalMesh?: boolean };
 // `journal` (round 5): the homepage hero as a two-column research-journal
-// figure in light mode (ink diagram, white neurons with ink rings, deep-teal
-// firing, callouts on real nodes) and a framed card with the teal orb in dark.
+// figure (ink diagram, ringed neurons, teal firing, callouts on real nodes) in
+// both themes; dark swaps paper for ink and ink lines for bone.
 const homeHero = backdrop || journal;
 // Round 4: neurons are cool teal and flash brighter (near-white on ink) when
 // they fire; synapses stay neutral (warm bone = excitatory, slate blue =
@@ -34,10 +34,13 @@ const SIGNAL_MESH_PALETTE_LIGHT = Object.freeze({ accent: '#5f574e', secondary: 
 // Light journal figure: ink synapses (slate for inhibitory), white neuron fill
 // that fills deep teal as a neuron fires (teal neurons in both themes). The ink ring is drawn separately.
 const INK_MESH_PALETTE = Object.freeze({ accent: '#23211e', secondary: '#5b6b88', spike: '#0f766e', muted: '#ffffff', line: '#e2d9cb' });
+// Dark (r6): the same figure on ink — bone lines, ink fill inside a white
+// ring, #2dd4bf firing. One renderer and one layout for both themes.
+const INK_MESH_PALETTE_DARK = Object.freeze({ accent: '#e8e1d4', secondary: '#9aa8c7', spike: '#2dd4bf', muted: '#0d0d0f', line: '#2a2926' });
 const topology = auditedBrowserTopology();
 const mesh = journal ? staticMeshGeometry(topology, INK_MESH_PALETTE) : backdrop ? staticMeshGeometry(topology, SIGNAL_MESH_PALETTE) : signalMesh ? staticMeshGeometry(topology, SIGNAL_MESH_PALETTE_LIGHT) : staticMeshGeometry(topology);
 // The dark-scheme edge colours; hero.css shows one set per colour scheme.
-const meshDark = signalMesh ? staticMeshGeometry(topology, SIGNAL_MESH_PALETTE) : staticMeshGeometry(topology, SITE_TOPOLOGY_PALETTE_DARK);
+const meshDark = journal ? staticMeshGeometry(topology, INK_MESH_PALETTE_DARK) : signalMesh ? staticMeshGeometry(topology, SIGNAL_MESH_PALETTE) : staticMeshGeometry(topology, SITE_TOPOLOGY_PALETTE_DARK);
 const nodeCount = mesh.nodes.length;
 const edgeCount = mesh.edges.length;
 const nodePath = mesh.nodes.map((node) => `M${node.x} ${node.y}h0`).join('');
