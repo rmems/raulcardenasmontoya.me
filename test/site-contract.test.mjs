@@ -103,7 +103,7 @@ test('every count on the site comes from a dated snapshot, never from the copy',
   );
   assert.match(counts, /Object\.hasOwn\(counts, key\)/);
   const home = read('src/pages/index.astro');
-  assert.match(home, /<ul class="hero-stats" aria-label="Proof points">/);
+  assert.match(home, /<p class="proof-bar" aria-label="Proof points">/);
   assert.match(home, /counts\.cratesAsOf/);
   assert.match(home, /counts\.datasetsAsOf/);
   assert.match(home, /counts\.mergedPrsVerifiedAt/);
@@ -168,7 +168,7 @@ test('the site has a dark scheme through the tokens, and the hero drawing carrie
   }
   assert.match(dark[1], /color-scheme: dark;/);
   assert.match(styles, /^code \{[^}]*background: var\(--code-bg\);/m);
-  assert.match(read('src/layouts/BaseLayout.astro'), /name="theme-color" content="#0f1218" media="\(prefers-color-scheme: dark\)"/);
+  assert.match(read('src/layouts/BaseLayout.astro'), /name="theme-color" content="#0d0d0f" media="\(prefers-color-scheme: dark\)"/);
   assert.match(island, /staticMeshGeometry\(topology, SITE_TOPOLOGY_PALETTE_DARK\)/);
   assert.match(island, /class="hero-mesh-edges hero-mesh-edges-light"/);
   assert.match(island, /class="hero-mesh-edges hero-mesh-edges-dark"/);
@@ -299,8 +299,9 @@ test('every profile link carries rel="me" and the 404 stays out of search result
   assert.match(contact, /const profileRel = 'me noopener noreferrer'/);
   assert.match(contact, /profiles\.map\(\(profile\) => <a href=\{profile\.href\} target="_blank" rel=\{profile\.rel\}>/);
   assert.match(contact, /label: 'Limen Neural', href: site\.social\.limenneural, detail: '@Limen-Neural', rel: profileRel/);
-  assert.match(home, /href=\{site\.social\.linkedin\} target="_blank" rel="me noopener noreferrer"/);
-  assert.match(home, /href=\{site\.social\.github\} target="_blank" rel="me noopener noreferrer"/);
+  // The hero's proof bar links crates.io and Hugging Face — both site.social
+  // profiles — so its external links carry rel="me" like the footer's.
+  assert.match(home, /rel=\{item\.external \? 'me noreferrer' : undefined\}/);
 
   // The 404 page is the one route a crawler must not rank, and no other page sets noindex.
   assert.match(read('src/pages/404.astro'), /<BaseLayout title="Page not found"[^>]*noindex>/);
@@ -404,10 +405,19 @@ test('notes publish only non-draft Markdown entries and format date-only values 
   assert.match(detail, /timeZone: 'UTC'/);
 });
 
-test('editable project cards receive their ordinal from the rendered collection order', () => {
-  assert.match(read('src/pages/index.astro'), /map\(\(project, index\) => <ProjectCard project=\{project\} index=\{index\}/);
-  assert.match(read('src/components/ProjectCard.astro'), /project, index/);
-  assert.doesNotMatch(read('src/components/ProjectCard.astro'), /\.indexOf\(project\.slug\)/);
+test('homepage project cards render in the curated order, the first one featured', () => {
+  const home = read('src/pages/index.astro');
+  const card = read('src/components/home/HomeProjectCard.astro');
+
+  // The two cards with real visuals lead; the rest of `featured` follows in
+  // data order. The featured flag comes from the rendered index, not the slug.
+  assert.match(home, /const order = \['neuromorphic-crate-stack', 'engram-parser'\]/);
+  assert.match(home, /\.sort\(\(a, b\) => \(order\.indexOf\(a\.slug\) \+ 1 \|\| 99\) - \(order\.indexOf\(b\.slug\) \+ 1 \|\| 99\)\)/);
+  assert.match(home, /featured\.map\(\(project, index\) => \(\s*<HomeProjectCard project=\{project\} featured=\{index === 0\}/);
+  // Every card is labelled by its project slug, so reordering the data can
+  // never swap two cards' accessible names.
+  assert.match(card, /const titleId = `home-card-\$\{project\.slug\}`/);
+  assert.doesNotMatch(card, /\.indexOf\(project\.slug\)/);
 });
 
 test('project cards expose configured external project links', () => {
@@ -433,8 +443,8 @@ test('supported Node versions match the locked build tooling', () => {
 test('visual foundations use accessible tokens and honor reduced motion', () => {
   const styles = read('src/styles/global.css');
 
-  assert.match(styles, /--muted:\s*#5b6474/);
-  assert.match(styles, /--accent:\s*#4f46e5/);
+  assert.match(styles, /--muted:\s*#5f574e/);
+  assert.match(styles, /--accent:\s*#a8360c/);
   assert.match(styles, /prefers-reduced-motion:\s*reduce/);
   assert.match(styles, /animation:\s*none/);
   assert.match(styles, /button:focus-visible/);
@@ -491,46 +501,51 @@ test('the homepage hero hosts the live demo static-first and traces it to its cr
   const page = read('src/pages/index.astro');
   const island = read('src/components/NeuromorphicDemo.astro');
   const styles = read('src/styles/hero.css');
+  const journal = read('src/styles/hero-journal.css');
   const telemetry = read('src/components/DemoTelemetry.astro');
   const enhance = read('src/runtime/enhance-demo.ts');
 
-  // The hero copy stays in the page and is the first thing in the island.
-  assert.match(page, /<NeuromorphicDemo>\s*<div class="hero-heading" slot="heading">/);
-  assert.match(page, /<h1 id="hero-title">I build infrastructure for <em>agentic systems<\/em>, synthetic data, and model evaluation\.<\/h1>/);
-  assert.match(page, /class="button button-primary" href=\{site\.resumePath\}/);
-  assert.match(page, /href=\{`mailto:\$\{site\.email\}`\}/);
-  assert.match(island, /<section class="hero hero-live" aria-labelledby="hero-title">/);
+  // The hero copy stays in the page and is the first thing in the island:
+  // the journal hero (compact + journal) with the three-pillar headline.
+  assert.match(page, /<NeuromorphicDemo compact journal>\s*<div class="hero-heading" slot="heading">/);
+  assert.match(page, /<h1 id="hero-title">I build infrastructure for agentic systems, synthetic data, and <em>model evaluation\.<\/em><\/h1>/);
+  assert.match(page, /class="hero-cta hero-cta--primary" href=\{site\.resumePath\}/);
+  assert.match(page, /class="hero-cta hero-cta--secondary" href="\/contact\/"/);
+  assert.match(island, /<section class="hero hero-live" aria-labelledby=\{labelledBy\}>/);
+  assert.match(island, /labelledBy = 'hero-title'/);
   assert.ok(island.indexOf('<slot />') < island.indexOf('<figure class="hero-mesh"'), 'copy precedes the mesh');
 
   // Static first: the build draws the audited topology into a reserved box,
   // and the WebGL surface stacks over the same box.
-  assert.match(island, /staticMeshGeometry\(topology\)/);
+  assert.match(island, /staticMeshGeometry\(topology, INK_MESH_PALETTE\)/);
   assert.match(island, /const topology = auditedBrowserTopology\(\);/);
-  assert.match(styles, /\.hero-mesh-stage \{[^}]*aspect-ratio: 1 \/ 1;/);
   assert.match(styles, /\.hero-mesh \.demo-surface\[hidden\] \{\s*display: block;\s*visibility: hidden;/);
   assert.match(styles, /\.hero-mesh \.demo-surface:not\(\[hidden\]\) \+ \.hero-mesh-static \{ visibility: hidden; \}/);
 
-  // RM-2354: the mesh column is at least 480 px wide at 1440 px, so the
-  // 1/4-speed pulses have room to read. At that width the 1240 px shell keeps
-  // 2 × 3rem gutters and the hero gap clamps to 4.5rem: 1072 px of free track
-  // space shared by the two `minmax(0, …fr)` columns.
-  const heroTracks = styles.match(/\.hero\.hero-live \{[\s\S]*?grid-template-columns: ([^;]+);/);
-  assert.ok(heroTracks, 'the hero-live grid columns');
-  const heroFr = [...heroTracks[1].matchAll(/minmax\(0, ([\d.]+)fr\)/g)].map((match) => Number(match[1]));
-  assert.ok(heroFr.length === 2 && heroFr.every((fr) => fr > 0), 'two minmax(0, …fr) tracks');
-  const meshColumnPx = (1240 - 96 - 72) * (heroFr[1] / (heroFr[0] + heroFr[1]));
-  assert.ok(meshColumnPx >= 480, `the mesh column is ≥ 480 px at 1440 px (it is ${meshColumnPx.toFixed(1)} px)`);
+  // The journal layout: copy in the left column, the figure in the right,
+  // callouts anchored to real nodes at build time.
+  const heroTracks = journal.match(/\.live-hero--journal \.hero\.hero-live \{[\s\S]*?grid-template-columns: ([^;]+);/);
+  assert.ok(heroTracks, 'the journal hero grid columns');
+  assert.match(heroTracks[1], /minmax\(0, 1\.05fr\) minmax\(0, 1fr\)/);
+  assert.match(journal, /\.live-hero--journal \.hero-mesh-stage \{[\s\S]*?grid-column: 2;/);
+  assert.match(journal, /\.live-hero--journal \.hero-mesh-stage \{[\s\S]*?min-height: clamp\(26rem, 38vw, 34rem\);/);
+  assert.match(island, /class="hero-callouts"/);
+  assert.match(island, /data-callout-nodes=\{calloutNodes\}/);
+  for (const callout of ['synapse weight', 'spike event', 'encoder channel 0']) {
+    assert.match(island, new RegExp(callout), callout);
+  }
+  assert.match(island, /bindHeroCallouts/);
 
-  // Provenance: runtime-bound origin label, static crate links, evidence kept apart.
-  assert.match(island, /simulating in this browser/);
-  // The caption states the replay rate from the renderer's own constants, and
-  // uses neutral wording whenever motion is off (including pauses).
+  // Provenance: the Fig. 01 caption states the replay rate from the
+  // renderer's own constants, and uses neutral wording whenever motion is
+  // off (including pauses).
   assert.match(island, /const simulationHz = 1000 \/ DEMO_TICK_MS;/);
+  assert.match(island, /<span data-when="live">Fig\. 01 — \{nodeCount\} neurons, \{edgeCount\} synapses, simulated live in the browser\.<\/span>/);
+  assert.match(island, /live at \$\{simulationHz\} Hz/);
+  assert.match(island, /view held still/);
+  // The non-compact caption (the /labs/ demo) keeps the full rate wording.
   assert.match(island, /const pulseSpeedLabel = `1\/\$\{Math\.round\(1 \/ PULSE_DISPLAY_SPEED\)\}`;/);
-  assert.match(island, /<span data-when="live">[^<]*simulating in this browser at \{simulationHz\} Hz · pulses shown at \{pulseSpeedLabel\} speed<\/span>/);
-  // Reduced motion holds the camera still after Play; pulses still travel,
-  // except in the lightest quality mode, which hides them.
-  assert.match(island, /<span data-when="live-still">[^<]*simulating in this browser at \{simulationHz\} Hz · pulses shown at \{pulseSpeedLabel\} speed \(none in the lightest quality mode\) · view held still<\/span>/);
+  assert.match(island, /simulating in this browser at \{simulationHz\} Hz · pulses shown at \{pulseSpeedLabel\} speed/);
   assert.doesNotMatch(island, /pulses off/);
   // The reduced-motion notice appears with the Play control: the media query
   // lets it show, and `data-mode` — which only the runtime writes — is what
@@ -545,11 +560,21 @@ test('the homepage hero hosts the live demo static-first and traces it to its cr
   assert.match(styles, /\.live-hero\[data-mode='live'\]\[data-motion='off'\] \.hero-mesh-mode > \[data-when='live-still'\]/);
   assert.match(island, /liveCrateLayers\.map/);
   assert.match(island, /href=\{crateLayerHref\(layer\)\}/);
+  // The compact hero sends readers to the full telemetry on /labs/; the
+  // non-compact demo (the /labs/ page itself) keeps its in-page anchor.
+  assert.match(island, /href="\/labs\/#live-telemetry"/);
   assert.match(island, /href="#live-telemetry"/);
   assert.match(telemetry, /id="live-telemetry"/);
-  assert.match(island, /href="\/labs\/"/);
-  assert.match(island, /href="\/protocol\/"/);
+  assert.match(island, /href="\/labs\//);
+  assert.match(island, /href="\/protocol\//);
   assert.match(island, /CUDA and FPGA results are <a href="\/evidence\/">recorded separately<\/a> and never run in this browser/);
+
+  // Take the controls: the toggle fades the copy, lifts the scrim and hands
+  // the mesh keyboard/pointer input; the pad never sits in the mouse's way.
+  assert.match(island, /class="hero-controls-toggle" data-controls-toggle aria-pressed="false"/);
+  assert.match(island, /Take the controls/);
+  assert.match(island, /class="hero-controls-pad" data-controls-pad/);
+  assert.match(island, /bindHeroControls/);
 
   // Viewport gating follows the mesh and the panel, not the whole hero.
   assert.match(island, /<figure class="hero-mesh" data-demo-viewport>/);
