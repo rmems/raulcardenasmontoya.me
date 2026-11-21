@@ -1,0 +1,17 @@
+---
+// agoge-forger visual: the recorded base-versus-SFT canary from the project's
+// own summary (src/data/projects.ts), one cell per hidden case. The numbers are
+// parsed from that sentence, so the drawing can never disagree with the copy.
+const { summary } = Astro.props as { summary: string };
+const match = summary.match(/same (\d+)\/(\d+) on hidden cases \((\d+) improved, (\d+) regressed, (\d+) tied\)/);
+const [score, total, improved, regressed, tied] = match ? match.slice(1).map(Number) : [0, 0, 0, 0, 0];
+const cells = [...Array(improved).fill('up'), ...Array(regressed).fill('down'), ...Array(tied).fill('tie')];
+---
+{match ? (
+  <div class="visual visual--paper visual-agoge">
+    <p class="visual-stat"><strong>{score}/{total}</strong> base = <strong>{score}/{total}</strong> SFT</p>
+    <ol class="case-grid" aria-label={`${total} hidden cases: ${improved} improved, ${regressed} regressed, ${tied} tied`}>{cells.map((kind) => <li class={`case case-${kind}`}></li>)}</ol>
+    <p class="case-legend"><span class="case case-up"></span>{improved} improved <span class="case case-down"></span>{regressed} regressed <span class="case case-tie"></span>{tied} tied</p>
+    <p class="visual-caption">hidden cases · fence-normalized outputs</p>
+  </div>
+) : null}

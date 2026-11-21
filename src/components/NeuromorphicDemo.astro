@@ -15,10 +15,15 @@ import '../styles/hero.css';
 // by the renderer's own rules. WebGL later draws over the same reserved box,
 // so nothing moves when it takes over. The surrounding hero copy comes from
 // the page through the slots.
+// `backdrop` (round 2 of mockup/home-lab-direction): the mesh fills the whole
+// dark hero behind the copy, in the signal palette (warm greys, one orange for
+// spikes), so both edge sets carry that palette.
+const { compact = false, backdrop = false } = Astro.props as { compact?: boolean; backdrop?: boolean };
+const SIGNAL_MESH_PALETTE = Object.freeze({ accent: '#cfc6b8', secondary: '#6d665d', spike: '#ff5a1f', muted: '#8a8178', line: '#2a2926' });
 const topology = auditedBrowserTopology();
-const mesh = staticMeshGeometry(topology);
+const mesh = backdrop ? staticMeshGeometry(topology, SIGNAL_MESH_PALETTE) : staticMeshGeometry(topology);
 // The dark-scheme edge colours; hero.css shows one set per colour scheme.
-const meshDark = staticMeshGeometry(topology, SITE_TOPOLOGY_PALETTE_DARK);
+const meshDark = backdrop ? staticMeshGeometry(topology, SIGNAL_MESH_PALETTE) : staticMeshGeometry(topology, SITE_TOPOLOGY_PALETTE_DARK);
 const nodeCount = mesh.nodes.length;
 const edgeCount = mesh.edges.length;
 const nodePath = mesh.nodes.map((node) => `M${node.x} ${node.y}h0`).join('');
@@ -28,9 +33,8 @@ const pulseSpeedLabel = `1/${Math.round(1 / PULSE_DISPLAY_SPEED)}`;
 // `compact` (mockup/home-lab-direction): the homepage keeps the live plate,
 // Play/Pause, a tiny legend and a one-line spec; the long explanation, the
 // crate trail, the encoder switch and the telemetry panel live on /labs/.
-const { compact = false } = Astro.props as { compact?: boolean };
 ---
-<div class:list={['live-hero', { 'live-hero--compact': compact }]} data-neuromorphic-demo>
+<div class:list={['live-hero', { 'live-hero--compact': compact, 'live-hero--backdrop': backdrop }]} data-neuromorphic-demo>
   <section class="hero hero-live" aria-labelledby="hero-title">
     <slot name="heading" />
     <div class="hero-text"><slot /></div>
@@ -49,6 +53,7 @@ const { compact = false } = Astro.props as { compact?: boolean };
           </g>
           <path class="hero-mesh-nodes" d={nodePath} stroke={mesh.nodeFill} stroke-width={mesh.nodeSize} />
         </svg>
+        {backdrop ? <span class="hero-stage-scrim" aria-hidden="true"></span> : null}
         <p class="hero-mesh-input"><span data-input="scripted">input: scripted path</span><span data-input="pointer">input: your pointer</span></p>
         <button type="button" class="button button-secondary hero-mesh-play" data-demo-play hidden>Play animation</button>
         <span class="hero-stage-hud" aria-hidden="true"><span class="hero-stage-hud-label">SNN // LIVE MESH</span><span class="hero-stage-hud-label hero-stage-hud-label--end">RUST → WASM</span><span class="hero-stage-corner hero-stage-corner--tl"></span><span class="hero-stage-corner hero-stage-corner--tr"></span><span class="hero-stage-corner hero-stage-corner--bl"></span><span class="hero-stage-corner hero-stage-corner--br"></span></span>

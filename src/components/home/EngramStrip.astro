@@ -11,7 +11,7 @@ const lines: Token[][] = [
   [['kw', 'for'], ['plain', ' t '], ['kw', 'in'], ['plain', ' ckpt.tensors() { … }']],
 ];
 ---
-<div class="card-strip card-strip--plate engram-strip">
+<div class="visual visual--ink visual-engram">
   <pre class="engram-snippet" aria-label="Excerpt from the engram-parser README"><code>{lines.map((line, index) => <>{index > 0 ? '\n' : ''}{line.map(([kind, text]) => kind === 'plain' ? text : <span class={`tok-${kind}`}>{text}</span>)}</>)}</code></pre>
-  <p class="card-strip-caption">README · Quick start</p>
+  <p class="visual-caption">README · Quick start</p>
 </div>

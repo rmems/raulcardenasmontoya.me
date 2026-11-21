@@ -1,0 +1,21 @@
+---
+import { loadHfArtifacts } from '../../artifacts/hf';
+// Synthetic Factory visual: the dataset index from the dated Hugging Face
+// snapshot. One row per "Synthetic data factory" collection, its dataset count
+// as a bar, and the first dataset ids of the deterministic collection.
+const hf = await loadHfArtifacts();
+const factory = hf.collections.filter((collection) => /^Synthetic data factory\b/i.test(collection.title));
+const rows = factory.map((collection) => ({
+  label: collection.title.replace(/^Synthetic data factory:\s*/i, '').replace(/[^\x20-\x7E]/g, '').trim(),
+  count: collection.datasets.length,
+}));
+const max = Math.max(1, ...rows.map((row) => row.count));
+const total = rows.reduce((sum, row) => sum + row.count, 0);
+const sample = (factory.find((collection) => /deterministic/i.test(collection.title)) ?? factory[0])?.datasets.slice(0, 2).map((dataset) => dataset.id) ?? [];
+---
+<div class="visual visual--paper visual-factory">
+  <p class="visual-stat"><strong>{total}</strong> datasets · {rows.length} collections</p>
+  <ul class="visual-bars">{rows.map((row) => <li><span class="bar-label">{row.label}</span><span class="bar" style={`--w:${(row.count / max) * 100}%`}></span><span class="bar-n">{row.count}</span></li>)}</ul>
+  <ul class="visual-ids">{sample.map((id) => <li>{id}</li>)}</ul>
+  <p class="visual-caption">huggingface.co · snapshot {hf.asOf}</p>
+</div>

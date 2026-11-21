@@ -1,0 +1,13 @@
+---
+import projectionText from '../../data/nir/lif-readout-example.v1.inspection.json?raw';
+// nir-rs visual: the operator chain of the committed NIR example that nir-rs
+// parses in the NIR lab, with the crate version from the crates snapshot.
+const { version, downloads } = Astro.props as { version: string; downloads: string };
+const projection = JSON.parse(projectionText) as { nodes: { name: string; operator: string }[]; edges: { source: string; target: string }[] };
+const ops = projection.nodes;
+---
+<div class="visual visual--ink visual-nir">
+  <p class="visual-version">nir-rs <strong>{version}</strong><span>{downloads} downloads</span></p>
+  <ol class="nir-chain" aria-label={`NIR example graph: ${ops.map((op) => op.name).join(' to ')}`}>{ops.map((op) => <li><span class="nir-name">{op.name}</span><span class="nir-op">{op.operator}</span></li>)}</ol>
+  <p class="visual-caption">labs/nir · lif-readout-example.v1</p>
+</div>
