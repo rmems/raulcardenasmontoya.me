@@ -112,3 +112,10 @@ curl -s -o /dev/null -w '%{http_code}\n' http://localhost:3000/
   take that flag.
 - Commit subjects mostly follow Conventional Commits with scopes (`feat(wasm):`, `ci(web):`) and
   the PR number.
+- `.github/dependabot.yml` opens weekly update PRs for npm, Cargo
+  (`/crates/neuromorphic-adapter`) and GitHub Actions (#160). Dependabot PRs run with a read-only
+  token and no secrets, which `quality.yml`'s coverage-upload steps already tolerate. Cargo PRs
+  are "bump, then regenerate": if the adapter's output changes, run `npm run build:wasm-web` and
+  commit the regenerated `public/wasm/**`, or `test:wasm-web-pkg` fails on drift. `wasm-bindgen`,
+  `js-sys`, `dtolnay/rust-toolchain` and the Node/Rust toolchain pins stay manual (see the config
+  header). Don't loosen the browser dependency policy or the SHA/`=` pin rules to accept a PR.
