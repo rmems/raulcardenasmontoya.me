@@ -88,6 +88,15 @@ def listable_dataset_ids():
     return ids
 
 
+def collection_dataset_ids(slug, dataset_ids):
+    """Listable dataset ids inside one Hugging Face collection."""
+    if not HF_ID.fullmatch(slug):
+        sys.exit(f"Unexpected collection slug from Hugging Face: {slug!r}")
+    full = fetch_json("https://huggingface.co/api/collections/" + urllib.parse.quote(slug))
+    return {i["id"] for i in full.get("items", [])
+            if i.get("type") == "dataset" and i["id"] in dataset_ids}
+
+
 def fetch_factory(dataset_ids):
     """(factory dataset ids, factory collections) for the synthetic-factory bullet."""
     collections = fetch_json("https://huggingface.co/api/collections?owner=rmems&limit=100")
@@ -95,12 +104,7 @@ def fetch_factory(dataset_ids):
                if (c.get("title") or "").lower().startswith("synthetic data factory")]
     factory_ids = set()
     for c in factory:
-        if not HF_ID.fullmatch(c["slug"]):
-            sys.exit(f"Unexpected collection slug from Hugging Face: {c['slug']!r}")
-        full = fetch_json("https://huggingface.co/api/collections/"
-                          + urllib.parse.quote(c["slug"]))
-        factory_ids.update(i["id"] for i in full.get("items", [])
-                           if i.get("type") == "dataset" and i["id"] in dataset_ids)
+        factory_ids.update(collection_dataset_ids(c["slug"], dataset_ids))
     return factory_ids, factory
 
 
