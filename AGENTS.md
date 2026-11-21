@@ -116,6 +116,11 @@ curl -s -o /dev/null -w '%{http_code}\n' http://localhost:3000/
   (`/crates/neuromorphic-adapter`) and GitHub Actions (#160). Dependabot PRs run with a read-only
   token and no secrets, which `quality.yml`'s coverage-upload steps already tolerate. Cargo PRs
   are "bump, then regenerate": if the adapter's output changes, run `npm run build:wasm-web` and
-  commit the regenerated `public/wasm/**`, or `test:wasm-web-pkg` fails on drift. `wasm-bindgen`,
-  `js-sys`, `dtolnay/rust-toolchain` and the Node/Rust toolchain pins stay manual (see the config
-  header). Don't loosen the browser dependency policy or the SHA/`=` pin rules to accept a PR.
+  commit the regenerated `public/wasm/**`, or `test:wasm-web-pkg` fails on drift. Most adapter
+  crates are ignored because their versions are load-bearing — contract tests, `src/runtime` and
+  `src/protocol` constants, site-displayed crate versions and recorded-evidence provenance all
+  name exact releases, so bump those by hand together. Dependabot only tracks `serde`,
+  `serde_json`, `wasm-bindgen`/`js-sys` are ignored (they must match `wasm-bindgen-cli` 0.2.126),
+  `dtolnay/rust-toolchain` is ignored (it moves atomically with the Rust toolchain pin asserted
+  by `test/rust-toolchain-pin.test.mjs`), and the Node/`engines` pins stay manual. Don't loosen
+  the browser dependency policy or the SHA/`=` pin rules to accept a PR.

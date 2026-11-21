@@ -50,6 +50,19 @@ updates:
       # the CLI pin and a regenerated public/wasm/** (`npm run build:wasm-web`).
       - dependency-name: "wasm-bindgen"
       - dependency-name: "js-sys"
+      # The rest of the adapter graph is pinned by hand: contract tests,
+      # src/runtime and src/protocol version constants, site-displayed crate
+      # versions, and recorded-evidence provenance/checksums all name exact
+      # releases, so a bump is a coordinated change Dependabot cannot make.
+      - dependency-name: "axon-encoder"
+      - dependency-name: "corpus-ipc"
+      - dependency-name: "kinetic-signals"
+      - dependency-name: "limbic-critic"
+      - dependency-name: "neuromod"
+      - dependency-name: "nir-rs"
+      - dependency-name: "plasticity-lab"
+      - dependency-name: "sha2"
+      - dependency-name: "synaptic-wiring"
     groups:
       # Most adapter deps are 0.x where a minor bump can be breaking; group
       # only patch updates and leave minor/major updates individual.
