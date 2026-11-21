@@ -102,8 +102,36 @@ function readPalette(scope: Element = document.documentElement): CssPalette {
   };
 }
 
+/**
+ * Drawing style tokens read beside the palette (mockup r5): `--mesh-node-style:
+ * outline` draws each neuron as a filled dot with an ink ring (the vertex
+ * colour tints the fill only), and `--mesh-drift: off` keeps the network
+ * still so callouts anchored to node positions stay on them.
+ */
+function readMeshStyle(scope: Element): {
+  outline: boolean;
+  drift: boolean;
+  edgeOpacity: number;
+  pulseScale: number;
+  activationMix: number;
+} {
+  const style = globalThis.getComputedStyle?.(scope);
+  const number = (name: string, fallback: number, min: number, max: number) => {
+    const value = Number.parseFloat(style?.getPropertyValue(name) ?? '');
+    return value >= min && value <= max ? value : fallback;
+  };
+  return {
+    outline: style?.getPropertyValue('--mesh-node-style').trim() === 'outline',
+    drift: style?.getPropertyValue('--mesh-drift').trim() !== 'off',
+    edgeOpacity: number('--mesh-edge-opacity', EDGE_OPACITY, 0.05, 1),
+    pulseScale: number('--mesh-pulse-scale', 1, 0.1, 2),
+    // How far membrane potential tints a resting neuron toward `--accent`.
+    activationMix: number('--mesh-activation-mix', 0.6, 0, 1),
+  };
+}
+
 /** A soft round sprite so `Points` draw as circles with a halo, not squares. */
-function roundNodeSprite(THREE: typeof import('three')): import('three').Texture | null {
+function roundNodeSprite(THREE: typeof import('three'), outline = false): import('three').Texture | null {
   const canvas = globalThis.document?.createElement('canvas');
   const context = canvas?.getContext('2d');
   if (!canvas || !context) {
@@ -111,10 +139,21 @@ function roundNodeSprite(THREE: typeof import('three')): import('three').Texture
   }
   canvas.width = canvas.height = 64;
   const gradient = context.createRadialGradient(32, 32, 0, 32, 32, 32);
-  gradient.addColorStop(0, 'rgba(255,255,255,1)');
-  gradient.addColorStop(0.62, 'rgba(255,255,255,1)');
-  gradient.addColorStop(0.72, 'rgba(255,255,255,0.35)');
-  gradient.addColorStop(1, 'rgba(255,255,255,0)');
+  if (outline) {
+    // White fill (tinted by the vertex colour) inside an ink ring; the ring is
+    // near-black, so tinting leaves it ink. Crisp edge, no halo.
+    gradient.addColorStop(0, 'rgba(255,255,255,1)');
+    gradient.addColorStop(0.43, 'rgba(255,255,255,1)');
+    gradient.addColorStop(0.47, 'rgba(20,19,17,1)');
+    gradient.addColorStop(0.6, 'rgba(20,19,17,1)');
+    gradient.addColorStop(0.64, 'rgba(20,19,17,0)');
+    gradient.addColorStop(1, 'rgba(20,19,17,0)');
+  } else {
+    gradient.addColorStop(0, 'rgba(255,255,255,1)');
+    gradient.addColorStop(0.62, 'rgba(255,255,255,1)');
+    gradient.addColorStop(0.72, 'rgba(255,255,255,0.35)');
+    gradient.addColorStop(1, 'rgba(255,255,255,0)');
+  }
   context.fillStyle = gradient;
   context.fillRect(0, 0, 64, 64);
   const texture = new THREE.CanvasTexture(canvas);
@@ -222,6 +261,7 @@ export function createTopologyRendererSeam(options: TopologyRendererSeamOptions)
       }
 
       const palette = readPalette(surface);
+      const meshStyle = readMeshStyle(surface);
       const canvas = document.createElement('canvas');
       canvas.setAttribute('aria-hidden', 'true');
 
@@ -249,7 +289,7 @@ export function createTopologyRendererSeam(options: TopologyRendererSeamOptions)
       const world = new THREE.Group();
       scene.add(world);
 
-      const nodeSprite = roundNodeSprite(THREE);
+      const nodeSprite = roundNodeSprite(THREE, meshStyle.outline);
       const nodeMaterial = new THREE.PointsMaterial({
         // The sprite's solid core is 62% of its face, so the halo needs room
         // beyond it; `size` (CSS pixels, `sizeAttenuation: false` under an
@@ -268,7 +308,7 @@ export function createTopologyRendererSeam(options: TopologyRendererSeamOptions)
       const edgeMaterial = new THREE.LineBasicMaterial({
         vertexColors: true,
         transparent: true,
-        opacity: EDGE_OPACITY,
+        opacity: meshStyle.edgeOpacity,
       });
       // Pulses: one tapered quad (two triangles) per in-flight event, with
       // RGBA vertex colors fading from an opaque head to a clear tail.
@@ -351,6 +391,13 @@ export function createTopologyRendererSeam(options: TopologyRendererSeamOptions)
         for (const neuron of state.spikeNeurons) {
           spikeFlash.set(neuron, 1);
         }
+        // Lets page chrome (the hero's live "spike event" callout) follow real
+        // spikes without reaching into the renderer.
+        if (state.spikeNeurons.length > 0) {
+          surface.dispatchEvent(
+            new CustomEvent('demo-spikes', { bubbles: true, detail: { neurons: Array.from(state.spikeNeurons) } }),
+          );
+        }
       });
       // Ingestion runs on publish, independent of frames; frames only read.
       const feed = feedSpikeEvents(options.channel, spikeEvents, () => createOptions.onRendererError());
@@ -428,7 +475,8 @@ export function createTopologyRendererSeam(options: TopologyRendererSeamOptions)
       // motion is requested. Pulses are the content, not decoration: under
       // reduced motion the runtime never starts on its own, so pulses only
       // travel after the visitor presses Play.
-      let motionEnabled = createOptions.cameraMotionEnabled;
+      // `--mesh-drift: off` (callouts pinned to node positions) holds the view still.
+      let motionEnabled = createOptions.cameraMotionEnabled && meshStyle.drift;
       let frame = 0;
       let lastFrameTime = 0;
       let worldPerPixel = 0.01;
@@ -469,7 +517,7 @@ export function createTopologyRendererSeam(options: TopologyRendererSeamOptions)
         const dx = target.x - source.x;
         const dy = target.y - source.y;
         const length = Math.hypot(dx, dy) || 1;
-        const halfWidth = PULSE_WIDTH_WORLD / 2;
+        const halfWidth = PULSE_WIDTH_WORLD / 2 * meshStyle.pulseScale;
         // Normal to the edge; the clear tail tapers to a third of the head.
         const nx = (-dy / length) * halfWidth;
         const ny = (dx / length) * halfWidth;
@@ -610,7 +658,7 @@ export function createTopologyRendererSeam(options: TopologyRendererSeamOptions)
             const flash = spikeFlash.get(node) ?? 0;
             nodeScratchColor
               .copy(mutedColor)
-              .lerp(excitatoryColor, Math.min(1, activation * 0.6))
+              .lerp(excitatoryColor, Math.min(1, activation * meshStyle.activationMix))
               .lerp(spikeColor, flash)
               .lerp(spikeColor, landingGlowLevels[node] * LANDING_GLOW_MIX)
               .toArray(colors.array as Float32Array, node * 3);
@@ -766,7 +814,7 @@ export function createTopologyRendererSeam(options: TopologyRendererSeamOptions)
           feed.setActive(false);
         },
         setCameraMotionEnabled(enabled: boolean) {
-          motionEnabled = enabled;
+          motionEnabled = enabled && meshStyle.drift;
         },
         dispose() {
           if (disposed) {

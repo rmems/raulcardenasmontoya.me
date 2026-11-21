@@ -16,6 +16,7 @@ import { liveCrateLayers } from '../data/live-runtime';
 import { projects } from '../data/projects';
 import { site } from '../data/site';
 import '../styles/home-lab.css';
+import '../styles/hero-journal.css';
 
 // mockup/home-lab-direction — local mockup of the homepage redesign.
 // Every number on this page comes from a dated snapshot (src/artifacts/counts.ts).
@@ -73,14 +74,15 @@ const featured = projects
 ---
 <BaseLayout theme="signal" description={`Rust and Python infrastructure for agentic systems, synthetic data, and model evaluation: ${counts.crates} published Rust crates, ${counts.datasets} Hugging Face datasets, and a spiking-network demo that runs in your browser.`}>
   <div class="home-lab">
-    <NeuromorphicDemo compact backdrop>
+    <NeuromorphicDemo compact journal>
       <div class="hero-heading" slot="heading">
         <p class="hero-id"><span class="hero-name">{site.fullName}</span><span class="hero-role">AI Engineer · ML infrastructure in Rust and Python</span></p>
       </div>
-      <h1 id="hero-title">I build infrastructure for <em>agentic</em> systems.</h1>
+      <h1 id="hero-title">I build infrastructure for <em>agentic systems.</em></h1>
+      <p class="hero-lede">Rust and Python infrastructure for synthetic data and model evaluation, published as crates and datasets anyone can check.</p>
+      <div class="hero-actions"><a class="hero-cta hero-cta--primary" href={site.resumePath}>Résumé (PDF) <span aria-hidden="true">↓</span></a><a class="hero-cta hero-cta--secondary" href="/contact/">Contact <span aria-hidden="true">→</span></a></div>
       <p class="hero-looking"><span class="hero-looking-label">Looking for</span> AI Engineer, intern or junior · open to full-time · can start now</p>
       <p class="hero-place">Austin metropolitan area · open to relocation</p>
-      <div class="hero-actions"><a class="button button-primary" href={site.resumePath}>Résumé (PDF) <span aria-hidden="true">↓</span></a><a class="button button-secondary" href="/contact/">Contact <span aria-hidden="true">→</span></a></div>
     </NeuromorphicDemo>
 
     <p class="proof-bar" aria-label="Proof points">
