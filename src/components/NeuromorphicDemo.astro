@@ -18,7 +18,7 @@ import '../styles/hero.css';
 // `backdrop` (round 2 of mockup/home-lab-direction): the mesh fills the whole
 // dark hero behind the copy, in the signal palette (warm greys, one orange for
 // spikes), so both edge sets carry that palette.
-const { compact = false, backdrop = false } = Astro.props as { compact?: boolean; backdrop?: boolean };
+const { compact = false, backdrop = false, labelledBy = 'hero-title' } = Astro.props as { compact?: boolean; backdrop?: boolean; labelledBy?: string };
 const SIGNAL_MESH_PALETTE = Object.freeze({ accent: '#cfc6b8', secondary: '#6d665d', spike: '#ff5a1f', muted: '#8a8178', line: '#2a2926' });
 const topology = auditedBrowserTopology();
 const mesh = backdrop ? staticMeshGeometry(topology, SIGNAL_MESH_PALETTE) : staticMeshGeometry(topology);
@@ -35,7 +35,7 @@ const pulseSpeedLabel = `1/${Math.round(1 / PULSE_DISPLAY_SPEED)}`;
 // crate trail, the encoder switch and the telemetry panel live on /labs/.
 ---
 <div class:list={['live-hero', { 'live-hero--compact': compact, 'live-hero--backdrop': backdrop }]} data-neuromorphic-demo>
-  <section class="hero hero-live" aria-labelledby="hero-title">
+  <section class="hero hero-live" aria-labelledby={labelledBy}>
     <slot name="heading" />
     <div class="hero-text"><slot /></div>
     <figure class="hero-mesh" data-demo-viewport>
@@ -54,6 +54,7 @@ const pulseSpeedLabel = `1/${Math.round(1 / PULSE_DISPLAY_SPEED)}`;
           <path class="hero-mesh-nodes" d={nodePath} stroke={mesh.nodeFill} stroke-width={mesh.nodeSize} />
         </svg>
         {backdrop ? <span class="hero-stage-scrim" aria-hidden="true"></span> : null}
+        {backdrop ? <div class="hero-controls-pad" data-controls-pad role="application" aria-label="Network input: arrow keys move it, Space presses" aria-describedby="hero-controls-hint" hidden><span class="hero-controls-cursor" aria-hidden="true"></span></div> : null}
         <p class="hero-mesh-input"><span data-input="scripted">input: scripted path</span><span data-input="pointer">input: your pointer</span></p>
         <button type="button" class="button button-secondary hero-mesh-play" data-demo-play hidden>Play animation</button>
         <span class="hero-stage-hud" aria-hidden="true"><span class="hero-stage-hud-label">SNN // LIVE MESH</span><span class="hero-stage-hud-label hero-stage-hud-label--end">RUST → WASM</span><span class="hero-stage-corner hero-stage-corner--tl"></span><span class="hero-stage-corner hero-stage-corner--tr"></span><span class="hero-stage-corner hero-stage-corner--bl"></span><span class="hero-stage-corner hero-stage-corner--br"></span></span>
@@ -74,7 +75,26 @@ const pulseSpeedLabel = `1/${Math.round(1 / PULSE_DISPLAY_SPEED)}`;
           </span>
         </div>
         {compact ? (
-          <p class="hero-mesh-links"><a href="/labs/#how-the-demo-works">How the demo works, with live telemetry <span aria-hidden="true">→</span></a></p>
+          <>
+            <p class="hero-mesh-links"><a href="/labs/#live-telemetry">Full telemetry on Labs <span aria-hidden="true">→</span></a></p>
+            {backdrop ? (
+              <>
+                <button type="button" class="hero-controls-toggle" data-controls-toggle aria-pressed="false" aria-controls="hero-controls-row" hidden>Take the controls</button>
+                <div class="hero-controls-row" id="hero-controls-row" data-controls-row hidden>
+                  <fieldset class="hero-mesh-encoder" data-demo-encoder disabled>
+                    <legend>Encoder</legend>
+                    <div class="hero-mesh-encoder-options">
+                      {ENCODER_MODE_NAMES.map((mode) => (
+                        <label><input type="radio" name="encoder-mode" value={mode} checked={mode === DEFAULT_ENCODER_MODE} /> {mode}</label>
+                      ))}
+                    </div>
+                  </fieldset>
+                  <p class="hero-controls-hint" id="hero-controls-hint">Move or press on the network to drive its input. Keys: arrows move, Space presses, Esc exits. Switching the encoder restarts the run with the same seed.</p>
+                  <button type="button" class="hero-controls-exit" data-controls-exit>Exit <kbd>Esc</kbd></button>
+                </div>
+              </>
+            ) : null}
+          </>
         ) : (
           <>
         <ol class="crate-trail" aria-label="Crate layers behind the live simulation, in pipeline order">
@@ -118,8 +138,17 @@ const pulseSpeedLabel = `1/${Math.round(1 / PULSE_DISPLAY_SPEED)}`;
 </div>
 <script>
   import { enhanceNeuromorphicDemos } from '../runtime/enhance-demo';
+  import { bindHeroControls } from '../runtime/hero-controls';
   try {
     enhanceNeuromorphicDemos();
+    for (const root of document.querySelectorAll<HTMLElement>('[data-neuromorphic-demo]')) bindHeroControls(root);
+    // The homepage caption links to /labs/#live-telemetry: open the panel it points at.
+    const openTelemetryFromHash = () => {
+      const panel = location.hash === '#live-telemetry' ? document.querySelector<HTMLDetailsElement>('details#live-telemetry') : null;
+      if (panel) panel.open = true;
+    };
+    openTelemetryFromHash();
+    addEventListener('hashchange', openTelemetryFromHash);
   } catch {
     // Keep static navigation and explanatory content available.
   }

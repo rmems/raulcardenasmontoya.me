@@ -154,7 +154,7 @@ function measureOverflow({ scale, fontCss }) {
 }
 
 /**
- * Page-side: open the homepage's live telemetry panel and wait for its lazily
+ * Page-side: open the live telemetry panel (on /labs/ since mockup r3) and wait for its lazily
  * loaded view to render live data. Without a live runtime (no WebGL or WASM on
  * the machine, so the demo falls back) the data section stays hidden; its
  * static markup is then shown with an injected rule so its layout is still
@@ -250,15 +250,16 @@ async function main() {
         }
       }
     }
-    // The homepage again, with the live telemetry panel open and rendered.
+    // /labs/ again, with the live telemetry panel open and rendered (the
+    // homepage hero keeps only a compact caption since mockup r3).
     const panelStates = new Set();
     for (const width of LAYOUT_WIDTHS) {
       await page.send('Emulation.setDeviceMetricsOverride', { width, height: 800, deviceScaleFactor: 1, mobile: true });
-      await page.navigate(`${origin}/`);
+      await page.navigate(`${origin}/labs/`);
       await delay(400);
       const opened = await page.evaluate(`(${openTelemetryPanel.toString()})(${JSON.stringify({ timeoutMs: 6000 })})`);
       if (opened.rendered === 'missing') {
-        failures.push(`the homepage has no telemetry panel to open at ${width}px`);
+        failures.push(`/labs/ has no telemetry panel to open at ${width}px`);
         continue;
       }
       panelStates.add(opened.rendered);
@@ -266,7 +267,7 @@ async function main() {
       for (const [fonts, fontCss] of Object.entries(FONT_VARIANTS)) {
         for (const scale of TEXT_SCALES) {
           const result = await page.evaluate(`(${measureOverflow.toString()})(${JSON.stringify({ scale, fontCss })})`);
-          measurements.push({ path: '/', width, scale, fonts, state, ...result });
+          measurements.push({ path: '/labs/', width, scale, fonts, state, ...result });
         }
       }
     }
@@ -283,7 +284,7 @@ async function main() {
     if (failures.length === 0) {
       process.stdout.write(
         `Layout check passed: ${paths.length} pages at ${LAYOUT_WIDTHS.join(', ')} px with ${TEXT_SCALES.join(' and ')} text, ` +
-          `in the site's fonts and in wide fallback fonts, plus the homepage with the telemetry panel open ` +
+          `in the site's fonts and in wide fallback fonts, plus /labs/ with the telemetry panel open ` +
           `(${[...panelStates].join(' and ')}); the homepage (demo mode: ${mode}) requested no labs package.\n`,
       );
     }

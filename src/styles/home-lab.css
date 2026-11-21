@@ -13,7 +13,8 @@
  * light mode.
  */
 
-body.theme-signal {
+body.theme-signal,
+.labs-signal {
   --ink: #0d0d0f;
   --paper: #f5f1ea;
   --surface: #fbf8f2;
@@ -59,7 +60,8 @@ body.theme-signal {
 }
 
 @media (prefers-color-scheme: dark) {
-  body.theme-signal {
+  body.theme-signal,
+  .labs-signal {
     --ink: #f5f1ea;
     --paper: #0d0d0f;
     --surface: #141416;
@@ -537,3 +539,90 @@ body.theme-signal .live-hero--backdrop .button-secondary:hover { color: var(--si
   .raster-spikes rect, .bar, .case-up { fill: CanvasText; background: CanvasText; }
   .hero-stage-scrim { display: none; }
 }
+
+/* ---- Take the controls (r3) ---- */
+.hero-controls-toggle,
+.hero-controls-exit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--signal);
+  border-radius: 0.3rem;
+  color: var(--signal);
+  background: transparent;
+  font: 600 0.75rem/1.4 var(--mono);
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.hero-controls-toggle[hidden],
+.hero-controls-row[hidden],
+.hero-controls-pad[hidden] { display: none; }
+.hero-controls-toggle:hover,
+.hero-controls-exit:hover,
+.hero-controls-toggle[aria-pressed='true'] { color: var(--hero-ink); background: var(--signal); }
+.hero-controls-toggle:focus-visible,
+.hero-controls-exit:focus-visible,
+.hero-controls-pad:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+.hero-controls-exit kbd { padding: 0 0.3rem; border: 1px solid currentColor; border-radius: 0.2rem; font: inherit; font-size: 0.75rem; }
+
+.hero-controls-row { display: flex; order: -1; flex-basis: 100%; flex-wrap: wrap; align-items: center; gap: 0.6rem 1.4rem; }
+/* On, the row takes the legend's and spec line's place in the strip. */
+.live-hero--backdrop[data-controls='on'] .hero-mesh-legend,
+.live-hero--backdrop[data-controls='on'] .hero-mesh-meta { display: none; }
+.hero-controls-hint { flex: 1 1 18rem; font-size: 0.75rem; margin: 0; color: var(--hero-muted); }
+.live-hero--backdrop .hero-mesh-encoder { display: none; }
+.live-hero--backdrop[data-controls='on'] .hero-controls-row .hero-mesh-encoder { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 0.9rem; margin: 0; padding: 0; border: 0; color: var(--hero-paper); background: none; font-size: 0.75rem; }
+.live-hero--backdrop .hero-mesh-encoder legend { float: left; margin-right: 0.6rem; padding: 0; color: var(--hero-muted); font-size: 0.75rem; }
+.live-hero--backdrop .hero-mesh-encoder-options { display: flex; flex-wrap: wrap; gap: 0.3rem 0.5rem; }
+.live-hero--backdrop .hero-mesh-encoder label { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.15rem 0.45rem; border: 1px solid #47433d; border-radius: 0.2rem; color: var(--hero-paper); background: none; font-size: 0.75rem; cursor: pointer; }
+.live-hero--backdrop .hero-mesh-encoder label:has(> input:checked) { border-color: var(--signal); color: var(--signal); background: none; }
+.live-hero--backdrop .hero-mesh-encoder input { accent-color: #ff5a1f; }
+
+/* Keyboard input pad: over the stage, never in the way of the mouse. */
+.hero-controls-pad { position: absolute; z-index: 4; inset: 0; pointer-events: none; }
+.hero-controls-pad:focus-visible { outline-offset: -4px; }
+.hero-controls-cursor { position: absolute; width: 1.6rem; height: 1.6rem; border: 2px solid var(--signal); border-radius: 50%; transform: translate(-50%, -50%); opacity: 0; }
+.hero-controls-pad:focus-visible .hero-controls-cursor { opacity: 1; }
+.hero-controls-pad[data-pressed='true'] .hero-controls-cursor { background: rgb(255 90 31 / 35%); }
+
+/* On: the copy fades out (and is inert), the scrim lifts, the mesh takes the stage. */
+.live-hero--backdrop .hero-live > .hero-heading,
+.live-hero--backdrop .hero-live > .hero-text,
+.live-hero--backdrop .hero-stage-scrim { transition: opacity 280ms ease, visibility 0s linear 0s; }
+.live-hero--backdrop[data-controls='on'] .hero-live > .hero-heading,
+.live-hero--backdrop[data-controls='on'] .hero-live > .hero-text { visibility: hidden; opacity: 0; transition: opacity 280ms ease, visibility 0s linear 280ms; }
+.live-hero--backdrop[data-controls='on'] .hero-stage-scrim { opacity: 0.25; }
+.live-hero--backdrop[data-controls='on'] .hero-mesh-static,
+.live-hero--backdrop[data-controls='on'] .hero-mesh .demo-surface { left: 0; width: 100%; opacity: 1; }
+.live-hero--backdrop[data-controls='on'] .hero-mesh-stage { cursor: crosshair; }
+
+/* Phones: the hidden copy would leave the stage taller than the screen, so it
+   leaves the layout and the mesh and the control strip fit one view. */
+@media (max-width: 680px) {
+  .live-hero--backdrop[data-controls='on'] .hero-live > .hero-heading,
+  .live-hero--backdrop[data-controls='on'] .hero-live > .hero-text { display: none; }
+  .live-hero--backdrop[data-controls='on'] .hero-mesh-stage { min-height: min(100vw, 30rem); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-hero--backdrop .hero-live > .hero-heading,
+  .live-hero--backdrop .hero-live > .hero-text,
+  .live-hero--backdrop .hero-stage-scrim,
+  .live-hero--backdrop[data-controls='on'] .hero-live > .hero-heading,
+  .live-hero--backdrop[data-controls='on'] .hero-live > .hero-text { transition: none; }
+}
+
+/* ---- /labs/ live telemetry section (r3): the signal palette, scoped here ---- */
+.labs-signal { margin-block: 2rem 3rem; padding: clamp(1rem, 3vw, 2rem); border: 1px solid var(--line); border-radius: 0.5rem; color: var(--ink); background: var(--paper); font-family: Inter, system-ui, sans-serif; }
+.labs-signal .hero::before,
+.labs-signal .hero::after { display: none; }
+.labs-signal .hero-mesh-stage,
+.labs-signal .hero-mesh-caption,
+.labs-signal .demo-telemetry { background: var(--surface); box-shadow: none; }
+.labs-signal h2 { font-size: clamp(1.8rem, 3.2vw, 2.6rem); line-height: 1.1; }
+.labs-signal .eyebrow { color: var(--accent); font-family: var(--mono); letter-spacing: 0.08em; }
+.labs-signal h2 { font-family: var(--serif); font-weight: 500; letter-spacing: -0.01em; }
+.labs-signal .hero-live { min-height: 0; padding-block: 0; }
+.labs-signal a { color: var(--accent); }
