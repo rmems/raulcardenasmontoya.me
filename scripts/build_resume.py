@@ -110,7 +110,7 @@ def fetch_factory(dataset_ids):
 
 def fetch_merged_prs():
     resp = fetch_json("https://api.github.com/search/issues?q=type:pr+author:rmems+is:merged"
-                      "+repo:Halloweedev/usagepal+repo:griffinwork40/agent-afk")
+                      "+repo:Halloweedev/usagepal+repo:griffinwork40/agent-afk&per_page=100")
     return resp["total_count"]
 
 
@@ -139,19 +139,24 @@ def fetch_counts():
 
 def find_font(filename):
     xdg = os.environ.get("XDG_DATA_HOME", str(Path.home() / ".local" / "share"))
-    candidates = [
-        f"/usr/share/fonts/truetype/dejavu/{filename}",    # Debian/Ubuntu
-        f"/usr/share/fonts/dejavu-sans-fonts/{filename}",  # Fedora
-        f"/usr/share/fonts/dejavu/{filename}",             # Fedora alt / Arch
-        f"/usr/local/share/fonts/{filename}",
-        str(Path(xdg) / "fonts" / filename),
-        str(Path.home() / ".fonts" / filename),
-        f"/Library/Fonts/{filename}",                      # macOS
-        str(Path.home() / "Library" / "Fonts" / filename),
+    roots = [
+        Path("/usr/share/fonts"),
+        Path("/usr/local/share/fonts"),
+        Path(xdg) / "fonts",
+        Path.home() / ".fonts",
+        Path("/Library/Fonts"),               # macOS
+        Path.home() / "Library" / "Fonts",
     ]
-    for c in candidates:
-        if Path(c).exists():
-            return c
+    for root in roots:
+        direct = root / filename
+        if direct.exists():
+            return str(direct)
+        try:  # DejaVu may sit in a subdirectory (e.g. fonts/dejavu/)
+            hit = next(root.rglob(filename), None)
+        except OSError:
+            continue
+        if hit is not None:
+            return str(hit)
     sys.exit(f"DejaVu Sans not found ({filename}). Install it (Debian/Ubuntu: "
              "fonts-dejavu-core; Fedora: dejavu-sans-fonts) or adjust find_font().")
 
