@@ -25,7 +25,11 @@
   font-weight: 650;
   letter-spacing: -0.035em;
   line-height: 1;
+  overflow-wrap: break-word;
 }
+
+.plasticity-mechanisms > div,
+.plasticity-golden-heading { min-width: 0; }
 
 .plasticity-copy {
   max-width: 42rem;

@@ -12,9 +12,9 @@ export const MARK_VIEWBOX = '0 0 64 64';
 export const MARK_TILE_RADIUS = 14;
 
 /** Light-scheme palette, the same values as `src/styles/global.css`. */
-export const MARK_LIGHT = Object.freeze({ tile: '#0f172a', trace: '#f7f8fa', spike: '#f43f5e' });
+export const MARK_LIGHT = Object.freeze({ tile: '#0d0d0f', trace: '#f5f1ea', spike: '#ff5a1f' });
 /** Dark-scheme palette, the same values as the dark tokens in `global.css`. */
-export const MARK_DARK = Object.freeze({ tile: '#e6e9ef', trace: '#0f1218', spike: '#fb7185' });
+export const MARK_DARK = Object.freeze({ tile: '#f5f1ea', trace: '#0d0d0f', spike: '#ff5a1f' });
 
 /**
  * The shapes inside the 64×64 viewBox. `tile` paints the rounded square;
