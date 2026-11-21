@@ -232,6 +232,9 @@ test('the work page expands existing project data without unsupported outcomes o
     "'Synthetic Factory'",
     "'agoge-forger'",
     "'nir-rs'",
+    "'medsynth'",
+    "'euthymia'",
+    "'AI-ML-SWE synthetic tutor'",
     "'Ship of Theseus Workstation'",
     "'Grok-1/SAAQ research'",
   ];

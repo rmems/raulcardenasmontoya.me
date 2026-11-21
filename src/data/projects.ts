@@ -170,6 +170,72 @@ export const projects: Project[] = [
     },
   ),
   project(
+    'medsynth',
+    'medsynth',
+    'In development',
+    'Synthetic data',
+    ['Rust', 'Record schemas', 'Source registry', 'Verification gates'],
+    'A Rust pipeline being built for synthetic MCQs, case vignettes and tutoring examples in pre-med and early medical education, with source-anchored records admitted only after verification.',
+    [
+      'How does a generated med-ed item keep a checkable path back to its source anchors?',
+      'What does verification have to cover before a record can be admitted?',
+    ],
+    {
+      links: repository('https://github.com/rmems/medsynth'),
+      shipped:
+        'The binding content contract (fictional patients only, original items, mandatory source anchors, a currency rule for guideline editions) and the curriculum taxonomy with its coverage matrix are merged.',
+      next: 'Land the record schemas and source registry, then build the Rust generation and verification pipeline against the contract.',
+      evidence:
+        'No crate or dataset has been published from this brief; the published totals are {{crates}} crates.io crates and {{datasets}} Hugging Face datasets as of {{cratesAsOf}} and {{datasetsAsOf}}.',
+      headline: 'Contract-first synthetic med-ed data',
+      whyItMatters: 'Pre-med and med-ed practice material is scarce and copyrighted; source-anchored synthetic records keep every item checkable.',
+    },
+  ),
+  project(
+    'euthymia',
+    'euthymia',
+    'In development',
+    'Synthetic data',
+    ['Rust', 'Behavioral contract', 'Rubric scoring', 'DPO pairs'],
+    'A Rust pipeline being built for synthetic Emotional Resilience Engineering scenarios and rubric-scored records, governed by a versioned behavioral contract covering competencies, tone rules and hard rejects.',
+    [
+      'How does a behavioral contract turn tone rules into gates a pipeline can enforce?',
+      'What does rubric scoring need to cover before a record is admitted?',
+    ],
+    {
+      links: repository('https://github.com/rmems/euthymia'),
+      shipped:
+        'The canonical behavioral contract is merged: a competency model, tone rules, critical failures, a privacy rule and conformance rules, each citable by section name and version.',
+      next: 'Land the competency taxonomy, record schemas and verification rubric, then generate and admit the first contract-scored records, including DPO pairs.',
+      evidence:
+        'No crate or dataset has been published from this brief; the published totals are {{crates}} crates.io crates and {{datasets}} Hugging Face datasets as of {{cratesAsOf}} and {{datasetsAsOf}}.',
+      headline: 'A citable contract governs every generated record',
+      whyItMatters: 'Resilience-training data needs guardrails a prompt cannot enforce; a versioned contract makes every score auditable.',
+    },
+  ),
+  project(
+    'AI-ML-SWE synthetic tutor',
+    'ai-ml-swe-synthetic-tutor',
+    'In development',
+    'Synthetic data',
+    ['Rust', 'Julia', 'ZMQ', 'Post-training', 'Hugging Face export'],
+    'A Rust-and-Julia pipeline being built for synthetic multi-turn tutoring dialogues to post-train a tutor model: verified problems, student attempts with labelled misconceptions, and hint-ladder tutor turns.',
+    [
+      'How does a planted, taxonomy-labelled misconception make a wrong student attempt inspectable?',
+      'What has to exist before the first dialogue row can be exported?',
+    ],
+    {
+      links: repository('https://github.com/rmems/AI-ML-SWE-synthetic-tutor'),
+      shipped:
+        'A Rust workspace (schema, generate, verify, teachers and build crates), a Julia math worker bridged over ZMQ, a seeded generator with independent answer verification, and the pivot plan are in the repository; student attempts, tutor dialogues, QA, splits and export are still planned.',
+      next: 'Land the misconception taxonomy, the dialogue schema and tutor policy, then the student-attempt and export stages.',
+      evidence:
+        'No crate or dataset has been published from this brief; the published totals are {{crates}} crates.io crates and {{datasets}} Hugging Face datasets as of {{cratesAsOf}} and {{datasetsAsOf}}.',
+      headline: 'Post-training data for a model that tutors, not just answers',
+      whyItMatters: 'A tutor model needs dialogues that teach diagnosis and graded hints; labelled misconceptions make each mistake checkable.',
+    },
+  ),
+  project(
     'Ship of Theseus Workstation',
     'ship-of-theseus-workstation',
     'Active research',
