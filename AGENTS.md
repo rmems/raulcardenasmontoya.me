@@ -121,7 +121,6 @@ curl -s -o /dev/null -w '%{http_code}\n' http://localhost:3000/
   crates are ignored because their versions are load-bearing — contract tests, `src/runtime` and
   `src/protocol` constants, site-displayed crate versions and recorded-evidence provenance all
   name exact releases, so bump those by hand together. Dependabot's Cargo coverage is `serde`
-  and `serde_json` only. `wasm-bindgen`/`js-sys` stay manual (they must match `wasm-bindgen-cli`
-  0.2.126), `dtolnay/rust-toolchain` stays manual (it moves atomically with the Rust toolchain
-  pin asserted by `test/rust-toolchain-pin.test.mjs`), and the Node/`engines` pins stay manual.
+  and `serde_json`; the ignored crates and the manual `wasm-bindgen`/`js-sys`,
+  `dtolnay/rust-toolchain` and Node/`engines` pins are listed in `.github/dependabot.yml`.
   Don't loosen the browser dependency policy or the SHA/`=` pin rules to accept a PR.
