@@ -41,10 +41,10 @@ function readPalette(): RasterPalette {
   const token = (name: string, fallback: string) => style?.getPropertyValue(name).trim() || fallback;
   return {
     background: token('--surface', '#ffffff'),
-    spike: token('--spike', '#f43f5e'),
-    highlight: token('--accent-soft', '#e0e7ff'),
-    lane: token('--muted', '#5b6474'),
-    rule: token('--line', '#e3e7ed'),
+    spike: token('--spike', '#ff5a1f'),
+    highlight: token('--accent-soft', '#f4dccd'),
+    lane: token('--muted', '#5f574e'),
+    rule: token('--line', '#ded5c7'),
   };
 }
 

@@ -103,7 +103,7 @@ test('every count on the site comes from a dated snapshot, never from the copy',
   );
   assert.match(counts, /Object\.hasOwn\(counts, key\)/);
   const home = read('src/pages/index.astro');
-  assert.match(home, /<ul class="hero-stats" aria-label="Proof points">/);
+  assert.match(home, /<p class="proof-bar" aria-label="Proof points">/);
   assert.match(home, /counts\.cratesAsOf/);
   assert.match(home, /counts\.datasetsAsOf/);
   assert.match(home, /counts\.mergedPrsVerifiedAt/);
@@ -126,7 +126,7 @@ test('the fonts are self-hosted Latin subsets with their licences, preloaded whe
   assert.match(styles, /--serif: Newsreader, 'Iowan Old Style'/);
   assert.match(layout, /<link rel="preload" href="\/fonts\/inter-latin\.woff2" as="font" type="font\/woff2" crossorigin \/>/);
   assert.match(layout, /preloadSerif \? <link rel="preload" href="\/fonts\/newsreader-italic-latin\.woff2"/);
-  assert.match(read('src/pages/index.astro'), /<BaseLayout preloadSerif /);
+  assert.match(read('src/pages/index.astro'), /<BaseLayout theme="signal" /);
   assert.match(read('src/pages/work.astro'), /<BaseLayout preloadSerif /);
   for (const file of readdirSync(new URL('../src', import.meta.url), { recursive: true })) {
     if (!/\.(astro|css|ts|mjs)$/.test(String(file))) continue;
@@ -168,7 +168,7 @@ test('the site has a dark scheme through the tokens, and the hero drawing carrie
   }
   assert.match(dark[1], /color-scheme: dark;/);
   assert.match(styles, /^code \{[^}]*background: var\(--code-bg\);/m);
-  assert.match(read('src/layouts/BaseLayout.astro'), /name="theme-color" content="#0f1218" media="\(prefers-color-scheme: dark\)"/);
+  assert.match(read('src/layouts/BaseLayout.astro'), /name="theme-color" content="#0d0d0f" media="\(prefers-color-scheme: dark\)"/);
   assert.match(island, /staticMeshGeometry\(topology, SITE_TOPOLOGY_PALETTE_DARK\)/);
   assert.match(island, /class="hero-mesh-edges hero-mesh-edges-light"/);
   assert.match(island, /class="hero-mesh-edges hero-mesh-edges-dark"/);
@@ -291,7 +291,6 @@ test('public identity links use the verified profile destinations', () => {
 test('every profile link carries rel="me" and the 404 stays out of search results', () => {
   const layout = read('src/layouts/BaseLayout.astro');
   const contact = read('src/pages/contact.astro');
-  const home = read('src/pages/index.astro');
 
   // The footer is the only place that builds profile links from `footerLinks`; it sets rel="me" inline.
   assert.match(layout, /rel=\{link\.external \? 'me noopener noreferrer' : undefined\}/);
@@ -299,8 +298,8 @@ test('every profile link carries rel="me" and the 404 stays out of search result
   assert.match(contact, /const profileRel = 'me noopener noreferrer'/);
   assert.match(contact, /profiles\.map\(\(profile\) => <a href=\{profile\.href\} target="_blank" rel=\{profile\.rel\}>/);
   assert.match(contact, /label: 'Limen Neural', href: site\.social\.limenneural, detail: '@Limen-Neural', rel: profileRel/);
-  assert.match(home, /href=\{site\.social\.linkedin\} target="_blank" rel="me noopener noreferrer"/);
-  assert.match(home, /href=\{site\.social\.github\} target="_blank" rel="me noopener noreferrer"/);
+  assert.match(read('src/data/site.ts'), /label: 'GitHub', href: site\.social\.github, external: true/);
+  assert.match(read('src/data/site.ts'), /label: 'LinkedIn', href: site\.social\.linkedin, external: true/);
 
   // The 404 page is the one route a crawler must not rank, and no other page sets noindex.
   assert.match(read('src/pages/404.astro'), /<BaseLayout title="Page not found"[^>]*noindex>/);
@@ -405,7 +404,7 @@ test('notes publish only non-draft Markdown entries and format date-only values 
 });
 
 test('editable project cards receive their ordinal from the rendered collection order', () => {
-  assert.match(read('src/pages/index.astro'), /map\(\(project, index\) => <ProjectCard project=\{project\} index=\{index\}/);
+  assert.match(read('src/pages/index.astro'), /map\(\(project, index\) =>[\s\S]*?<HomeProjectCard project=\{project\} featured=\{index === 0\}/);
   assert.match(read('src/components/ProjectCard.astro'), /project, index/);
   assert.doesNotMatch(read('src/components/ProjectCard.astro'), /\.indexOf\(project\.slug\)/);
 });
@@ -433,8 +432,8 @@ test('supported Node versions match the locked build tooling', () => {
 test('visual foundations use accessible tokens and honor reduced motion', () => {
   const styles = read('src/styles/global.css');
 
-  assert.match(styles, /--muted:\s*#5b6474/);
-  assert.match(styles, /--accent:\s*#4f46e5/);
+  assert.match(styles, /--muted:\s*#5f574e/);
+  assert.match(styles, /--accent:\s*#a8360c/);
   assert.match(styles, /prefers-reduced-motion:\s*reduce/);
   assert.match(styles, /animation:\s*none/);
   assert.match(styles, /button:focus-visible/);
@@ -495,11 +494,11 @@ test('the homepage hero hosts the live demo static-first and traces it to its cr
   const enhance = read('src/runtime/enhance-demo.ts');
 
   // The hero copy stays in the page and is the first thing in the island.
-  assert.match(page, /<NeuromorphicDemo>\s*<div class="hero-heading" slot="heading">/);
-  assert.match(page, /<h1 id="hero-title">I build infrastructure for <em>agentic systems<\/em>, synthetic data, and model evaluation\.<\/h1>/);
-  assert.match(page, /class="button button-primary" href=\{site\.resumePath\}/);
-  assert.match(page, /href=\{`mailto:\$\{site\.email\}`\}/);
-  assert.match(island, /<section class="hero hero-live" aria-labelledby="hero-title">/);
+  assert.match(page, /<NeuromorphicDemo[^>]*>\s*<div class="hero-heading" slot="heading">/);
+  assert.match(page, /<h1 id="hero-title">I build infrastructure for agentic systems, synthetic data, and <em>model evaluation\.<\/em><\/h1>/);
+  assert.match(page, /class="hero-cta hero-cta--primary" href=\{site\.resumePath\}/);
+  assert.match(page, /class="hero-cta hero-cta--secondary" href="\/contact\/"/);
+  assert.match(island, /<section class="hero hero-live" aria-labelledby=\{labelledBy\}>/);
   assert.ok(island.indexOf('<slot />') < island.indexOf('<figure class="hero-mesh"'), 'copy precedes the mesh');
 
   // Static first: the build draws the audited topology into a reserved box,
@@ -527,10 +526,10 @@ test('the homepage hero hosts the live demo static-first and traces it to its cr
   // uses neutral wording whenever motion is off (including pauses).
   assert.match(island, /const simulationHz = 1000 \/ DEMO_TICK_MS;/);
   assert.match(island, /const pulseSpeedLabel = `1\/\$\{Math\.round\(1 \/ PULSE_DISPLAY_SPEED\)\}`;/);
-  assert.match(island, /<span data-when="live">[^<]*simulating in this browser at \{simulationHz\} Hz · pulses shown at \{pulseSpeedLabel\} speed<\/span>/);
+  assert.match(island, /<span data-when="live">[\s\S]*?simulating in this browser at \{simulationHz\} Hz · pulses shown at \{pulseSpeedLabel\} speed/);
   // Reduced motion holds the camera still after Play; pulses still travel,
   // except in the lightest quality mode, which hides them.
-  assert.match(island, /<span data-when="live-still">[^<]*simulating in this browser at \{simulationHz\} Hz · pulses shown at \{pulseSpeedLabel\} speed \(none in the lightest quality mode\) · view held still<\/span>/);
+  assert.match(island, /<span data-when="live-still">[\s\S]*?simulating in this browser at \{simulationHz\} Hz · pulses shown at \{pulseSpeedLabel\} speed \(none in the lightest quality mode\) · view held still/);
   assert.doesNotMatch(island, /pulses off/);
   // The reduced-motion notice appears with the Play control: the media query
   // lets it show, and `data-mode` — which only the runtime writes — is what
