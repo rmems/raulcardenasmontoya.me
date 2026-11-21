@@ -18,6 +18,7 @@ fonts-dejavu-core; Fedora: dejavu-sans-fonts).
 import datetime
 import json
 import os
+import re
 import subprocess
 import sys
 import urllib.parse
@@ -37,6 +38,9 @@ ALLOWED_HOSTS = {"crates.io", "huggingface.co", "api.github.com"}
 # datasets: only repos with data files, minus the explicit exclusions.
 CARD_FILES = {"README.md", ".gitattributes", ".gitignore"}
 EXCLUDED_DATASETS = {"rmems/agent-honest-stop-episodes"}
+# Repo ids and collection slugs come back from the API and go into request
+# paths; admit only the shapes Hugging Face actually issues.
+HF_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*/[A-Za-z0-9_.-]+$")
 
 
 def fetch_json(url):
@@ -57,12 +61,16 @@ def listable_dataset_ids():
     datasets = fetch_json("https://huggingface.co/api/datasets?author=rmems&limit=1000")
     ids = set()
     for d in datasets:
-        if d["id"] in EXCLUDED_DATASETS:
+        repo_id = d["id"]
+        if not HF_ID.fullmatch(repo_id):
+            sys.exit(f"Unexpected dataset id from Hugging Face: {repo_id!r}")
+        if repo_id in EXCLUDED_DATASETS:
             continue
-        info = fetch_json(f"https://huggingface.co/api/datasets/{d['id']}")
+        info = fetch_json("https://huggingface.co/api/datasets/"
+                          + urllib.parse.quote(repo_id))
         data_files = [s for s in info.get("siblings", []) if s["rfilename"] not in CARD_FILES]
         if data_files:
-            ids.add(d["id"])
+            ids.add(repo_id)
     return ids
 
 
@@ -79,7 +87,10 @@ def fetch_counts():
                    if (c.get("title") or "").lower().startswith("synthetic data factory")]
         factory_ids = set()
         for c in factory:
-            full = fetch_json(f"https://huggingface.co/api/collections/{c['slug']}")
+            if not HF_ID.fullmatch(c["slug"]):
+                sys.exit(f"Unexpected collection slug from Hugging Face: {c['slug']!r}")
+            full = fetch_json("https://huggingface.co/api/collections/"
+                              + urllib.parse.quote(c["slug"]))
             factory_ids.update(i["id"] for i in full.get("items", [])
                                if i.get("type") == "dataset" and i["id"] in dataset_ids)
         prs = fetch_json("https://api.github.com/search/issues?q=type:pr+author:rmems+is:merged"
