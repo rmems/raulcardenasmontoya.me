@@ -56,9 +56,12 @@ test('the responsive stylesheet does not force horizontal scrolling on narrow sc
   // Fraction tracks may shrink below their content (`minmax(0, …fr)`, or a
   // minimum no wider than the grid), so a wide fallback font wraps text
   // instead of widening the page. No grid keeps bare content-sized `fr`
-  // tracks — not even the desktop header, whose serif brand name and profile
-  // pill overflowed the header at 1024px / 200% text in CI's wide fallback
-  // font until its side tracks were pinned too (#181).
+  // tracks. The masthead is not a grid at all: it is a wrapping flex row, so
+  // at 1024px / 200% text the brand, navigation and profile stack onto their
+  // own rows instead of squeezing onto one and spilling into each other (a
+  // collision the overflow gate cannot see; devin BUG on #184). On one line
+  // the paired auto margins center the navigation exactly, like the old
+  // 1fr-auto-1fr grid did.
   const contentSizedTracks = [...styles.matchAll(/grid-template-columns:\s*([^;]+);/g)]
     .map((match) => match[1].trim())
     .filter((tracks) =>
@@ -67,6 +70,10 @@ test('the responsive stylesheet does not force horizontal scrolling on narrow sc
       ),
     );
   assert.deepEqual(contentSizedTracks, []);
+  assert.match(styles, /\.site-header \{[^}]*display: flex;/);
+  assert.match(styles, /\.site-header \{[^}]*flex-wrap: wrap;/);
+  assert.match(styles, /\.brand \{[^}]*margin-right: auto;/);
+  assert.match(styles, /\.header-profile \{[^}]*margin-left: auto;/);
   assert.doesNotMatch(styles, /white-space: nowrap/, 'labels and links wrap when their box is narrow');
   // The live telemetry panel (homepage) shrinks and stacks with text size,
   // and the layout check measures the homepage with it open.
@@ -123,12 +130,15 @@ test('the static site does not depend on remotely hosted fonts', () => {
 test('the fonts are self-hosted Latin subsets with their licences, preloaded where the headline uses them', () => {
   const styles = read('src/styles/global.css');
   const layout = read('src/layouts/BaseLayout.astro');
-  for (const file of ['inter-latin.woff2', 'inter-italic-latin.woff2', 'newsreader-italic-latin.woff2', 'LICENSE-Inter.txt', 'LICENSE-Newsreader.txt']) {
+  for (const file of ['inter-latin.woff2', 'inter-italic-latin.woff2', 'newsreader-latin.woff2', 'newsreader-italic-latin.woff2', 'jetbrains-mono-latin.woff2', 'LICENSE-Inter.txt', 'LICENSE-Newsreader.txt', 'LICENSE-JetBrainsMono.txt']) {
     assert.equal(existsSync(new URL(`../public/fonts/${file}`, import.meta.url)), true, file);
   }
   assert.match(styles, /@font-face \{\s*font-family: Inter;\s*font-style: normal;\s*font-weight: 400 800;\s*font-display: swap;\s*src: url\('\/fonts\/inter-latin\.woff2'\)/);
   assert.match(styles, /@font-face \{\s*font-family: Inter;\s*font-style: italic;/);
   assert.match(styles, /@font-face \{\s*font-family: Newsreader;\s*font-style: italic;/);
+  assert.match(styles, /@font-face \{\s*font-family: Newsreader;\s*font-style: normal;[^}]*src: url\('\/fonts\/newsreader-latin\.woff2'\)/);
+  assert.match(styles, /@font-face \{\s*font-family: 'JetBrains Mono';\s*font-style: normal;[^}]*src: url\('\/fonts\/jetbrains-mono-latin\.woff2'\)/);
+  assert.match(styles, /--mono: 'JetBrains Mono'/);
   assert.match(styles, /--serif: Newsreader, 'Iowan Old Style'/);
   assert.match(layout, /<link rel="preload" href="\/fonts\/inter-latin\.woff2" as="font" type="font\/woff2" crossorigin \/>/);
   // Every page's headlines are the serif now (#181), so the upright face
@@ -426,6 +436,16 @@ test('editable project cards receive their ordinal from the rendered collection 
   assert.match(work, /projects\.map\(\(project, index\) => \(/);
   assert.match(work, /String\(index \+ 1\)\.padStart\(2, '0'\)/);
   assert.ok(work.indexOf('projects.map((project, index) => (') < work.indexOf("String(index + 1).padStart(2, '0')"), 'the ordinal is the index of the rendered list');
+  // The case-study articles are numbered by the same map index: the ordinal
+  // inside the second `projects.map` (the `<article>` list) must come from
+  // that map's index, not from a slug lookup — pinning only the index list
+  // above would still pass if the articles regressed (sourcery on #184).
+  const indexListMap = work.indexOf('projects.map((project, index) => (');
+  const articleMap = work.indexOf('projects.map((project, index) => (', indexListMap + 1);
+  const articleTag = work.indexOf('<article class="case-study"', articleMap);
+  const articleOrdinal = work.indexOf("String(index + 1).padStart(2, '0')", articleTag);
+  assert.ok(indexListMap !== -1 && articleMap > indexListMap, 'the work page renders an index list and an article list');
+  assert.ok(articleTag > articleMap && articleOrdinal > articleTag, 'the case-study ordinal comes from the article list map index');
   assert.doesNotMatch(work, /\.indexOf\(project\.slug\)/);
   // The homepage renders the featured subset in collection order and marks the
   // first card from that same map index.
@@ -574,13 +594,15 @@ test('the homepage hero hosts the live demo static-first and traces it to its cr
   assert.match(island, /const simulationHz = 1000 \/ DEMO_TICK_MS;/);
   assert.match(island, /const pulseSpeedLabel = `1\/\$\{Math\.round\(1 \/ PULSE_DISPLAY_SPEED\)\}`;/);
   // Both spec lines state the rate: the homepage's compact one, and the full
-  // one the labs island shows.
+  // one the labs island shows. The full branches are pinned inside their own
+  // `data-when` spans (devin analysis on #184): asserting the bare text would
+  // still pass if the message moved to the wrong state.
   assert.match(island, /<span data-when="live">\{compact \? `\$\{nodeCount\} neurons · \$\{edgeCount\} synapses · Rust → WASM · live at \$\{simulationHz\} Hz` : null\}/);
   assert.match(island, /<span data-when="live-still">\{compact \? `\$\{nodeCount\} neurons · \$\{edgeCount\} synapses · Rust → WASM · live at \$\{simulationHz\} Hz · view held still` : null\}/);
-  assert.match(island, /simulating in this browser at \{simulationHz\} Hz · pulses shown at \{pulseSpeedLabel\} speed/);
+  assert.match(island, /<span data-when="live">\{compact \? `\$\{nodeCount\} neurons . \$\{edgeCount\} synapses . Rust . WASM . live at \$\{simulationHz\} Hz` : null\}\{compact \? null : <>\{nodeCount\} neurons . \{edgeCount\} synapses . simulating in this browser at \{simulationHz\} Hz . pulses shown at \{pulseSpeedLabel\} speed<\/>\}<\/span>/);
   // Reduced motion holds the camera still after Play; pulses still travel,
   // except in the lightest quality mode, which hides them.
-  assert.match(island, /simulating in this browser at \{simulationHz\} Hz · pulses shown at \{pulseSpeedLabel\} speed \(none in the lightest quality mode\) · view held still/);
+  assert.match(island, /<span data-when="live-still">\{compact \? `\$\{nodeCount\} neurons . \$\{edgeCount\} synapses . Rust . WASM . live at \$\{simulationHz\} Hz . view held still` : null\}\{compact \? null : <>\{nodeCount\} neurons . \{edgeCount\} synapses . simulating in this browser at \{simulationHz\} Hz . pulses shown at \{pulseSpeedLabel\} speed \(none in the lightest quality mode\) . view held still<\/>\}<\/span>/);
   assert.doesNotMatch(island, /pulses off/);
   // The reduced-motion notice appears with the Play control: the media query
   // lets it show, and `data-mode` — which only the runtime writes — is what

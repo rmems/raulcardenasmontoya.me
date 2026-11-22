@@ -174,24 +174,9 @@ body {
   overflow-wrap: break-word;
 }
 
-/* Ambient mesh + fine grid, CSS gradients only. Fixed and inset-bound (no
-   100vw), pointer-transparent, behind the shell: it can never widen the page. */
-body::before {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  content: '';
-  pointer-events: none;
-  background:
-    radial-gradient(58rem 34rem at 12% -6%, var(--ambient-1), transparent 62%),
-    radial-gradient(46rem 30rem at 88% 4%, var(--ambient-2), transparent 60%),
-    radial-gradient(40rem 28rem at 72% 88%, var(--ambient-3), transparent 62%),
-    linear-gradient(var(--grid-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
-  background-size: auto, auto, auto, 44px 44px, 44px 44px;
-  mask-image: linear-gradient(to bottom, rgb(0 0 0 / 55%), rgb(0 0 0 / 18%) 34rem, transparent 62rem);
-  -webkit-mask-image: linear-gradient(to bottom, rgb(0 0 0 / 55%), rgb(0 0 0 / 18%) 34rem, transparent 62rem);
-}
+/* The ambient mesh and fine grid lived here; both paint transparent since
+   the #181 token roll, so the layer is gone rather than composited empty on
+   every frame. */
 
 /* Both gradient stops keep --paper text >=5.8:1 in either scheme. */
 ::selection { color: var(--paper); background: var(--accent); background-image: linear-gradient(120deg, var(--accent-strong), var(--accent)); text-shadow: none; }
@@ -254,15 +239,16 @@ code {
   position: relative;
   z-index: 30;
   min-height: 94px;
-  display: grid;
-  /* minmax(0, …) tracks: a plain `1fr` takes an `auto` minimum, so at large
-     text sizes in a wide fallback font the brand, nav and profile keep their
-     max-content width and stick out of the header (caught by test:layout at
-     1024px / 200% / wide fonts). Zero minima let the side columns shrink and
-     their text wrap instead. */
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  /* Wrapping flex, not grid (#181): at large text sizes in a wide fallback
+     font the three masthead blocks wrap onto their own rows instead of
+     squeezing onto one line and spilling into each other — a collision the
+     overflow gate cannot see (devin BUG on #184). On one line the paired auto
+     margins below read exactly like the old 1fr-auto-1fr grid: brand left,
+     navigation centered, profile right. */
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 2rem;
+  gap: 1rem 2rem;
   /* Journal masthead (#181): ink rules top and bottom on a flat paper ground,
      identical on every page and in both schemes (the old indigo/teal gradient
      wash and hairline are gone with the palette). */
@@ -287,12 +273,12 @@ code {
   display: inline-flex;
   align-items: center;
   gap: 0.7rem;
-  justify-self: start;
   min-width: 0;
+  margin-right: auto;
   font-weight: 750;
   letter-spacing: -0.03em;
   text-decoration: none;
-  transition: color 180ms ease, text-shadow 180ms ease;
+  transition: color 180ms ease;
 }
 
 /* Masthead name in the serif, set like a journal's running head (#181).
@@ -307,9 +293,11 @@ code {
   text-transform: uppercase;
 }
 
-.brand:hover { color: var(--ink); text-shadow: 0 0 18px var(--ambient-1); }
-.brand:hover .monogram { filter: drop-shadow(0 4px 10px var(--ambient-1)); }
-.monogram { transition: filter 180ms ease, transform 180ms var(--ease-out); }
+/* The hover lift stays; the glow is gone with the tokens (rmems nit on
+   #184): --ambient-1 is transparent, so the old text-shadow and drop-shadow
+   painted nothing. */
+.brand:hover { color: var(--ink); }
+.monogram { transition: transform 180ms var(--ease-out); }
 .brand:hover .monogram { transform: translateY(-1px); }
 
 /* The LIF-trace mark from src/brand/mark-source.mjs; its colours are the tokens above. */
@@ -344,9 +332,9 @@ code {
 }
 
 .header-profile {
-  justify-self: end;
   min-width: 0;
   max-width: 100%;
+  margin-left: auto;
   padding: 0.55rem 0.75rem;
   border: 1px solid var(--ink);
   border-radius: var(--radius-pill);
@@ -398,7 +386,6 @@ code {
   content: '';
   border-radius: var(--radius-pill);
   background: var(--gradient-accent);
-  box-shadow: 0 0 10px var(--ambient-1);
 }
 
 .hero-coordinate {
@@ -495,10 +482,7 @@ button.button {
   background-image: none;
 }
 
-.button-primary::after { display: none; }
-
 .button-primary:hover { color: var(--paper); border-color: var(--accent-strong); background: var(--accent-strong); background-image: none; transform: none; }
-.button-primary:hover::after { transform: translateX(120%); }
 .button-primary:active { transform: none; }
 
 .button-secondary {
@@ -955,8 +939,7 @@ button.button {
   pointer-events: none;
 }
 
-.site-footer a { transition: color 180ms ease, text-shadow 180ms ease; }
-.site-footer a:hover { text-shadow: 0 0 14px var(--ambient-1); }
+.site-footer a { transition: color 180ms ease; }
 
 .site-footer p { margin: 0; }
 .site-footer { flex-wrap: wrap; gap: 0.75rem 2rem; }
@@ -1206,7 +1189,6 @@ button.button {
   .button-secondary:hover,
   .project-card:hover,
   .home-about figure:hover img { transform: none; }
-  .button-primary:hover::after { transform: translateX(-120%); }
 }
 
 .artifacts-section h3 { margin: 2rem 0 0.6rem; }
