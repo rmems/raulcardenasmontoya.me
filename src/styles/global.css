@@ -263,7 +263,12 @@ code {
   z-index: 30;
   min-height: 94px;
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  /* minmax(0, …) tracks: a plain `1fr` takes an `auto` minimum, so at large
+     text sizes in a wide fallback font the brand, nav and profile keep their
+     max-content width and stick out of the header (caught by test:layout at
+     1024px / 200% / wide fonts). Zero minima let the side columns shrink and
+     their text wrap instead. */
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: 2rem;
   /* Journal masthead (#181): ink rules top and bottom on a flat paper ground,
@@ -291,6 +296,7 @@ code {
   align-items: center;
   gap: 0.7rem;
   justify-self: start;
+  min-width: 0;
   font-weight: 750;
   letter-spacing: -0.03em;
   text-decoration: none;
@@ -322,7 +328,7 @@ code {
   height: 30px;
 }
 
-.primary-nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.4rem clamp(0.9rem, 2.5vw, 1.8rem); }
+.primary-nav { display: flex; flex-wrap: wrap; justify-content: center; min-width: 0; gap: 0.4rem clamp(0.9rem, 2.5vw, 1.8rem); }
 
 .primary-nav a,
 .header-profile {
@@ -347,6 +353,8 @@ code {
 
 .header-profile {
   justify-self: end;
+  min-width: 0;
+  max-width: 100%;
   padding: 0.55rem 0.75rem;
   border: 1px solid var(--ink);
   border-radius: var(--radius-pill);

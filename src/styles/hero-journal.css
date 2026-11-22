@@ -48,9 +48,10 @@
 /* ---------- Header: journal masthead (both themes) ---------- */
 /* #181 rolled the masthead into `src/styles/global.css`: ink rules on a paper
    ground, the serif name and links, --j-red on hover and on the current page.
-   What stays scoped is the one declaration the overflow contract forbids in
-   that file — a brand name that cannot wrap. */
-body.theme-signal .brand span { white-space: nowrap; }
+   The name wraps like any other label when its box is narrow (the overflow
+   contract forbids `white-space: nowrap`, and CI's wide fallback font at 200%
+   text overflows the header grid when the name cannot wrap), so nothing about
+   the header stays scoped here. */
 
 /* ---------- Layout ---------- */
 .live-hero--journal { --j-rule: var(--line-strong); }
@@ -293,12 +294,6 @@ body.theme-signal .brand span { white-space: nowrap; }
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
-}
-
-@media (max-width: 680px) {
-  /* The masthead sizes live in global.css's own 680px block (#181); only the
-     homepage's non-wrapping name needs the reset here. */
-  body.theme-signal .brand span { white-space: normal; }
 }
 
 /* ---------- Tablet and phone: stack, figure under the copy ---------- */

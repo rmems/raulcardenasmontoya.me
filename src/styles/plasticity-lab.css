@@ -2,13 +2,18 @@
 
 .plasticity-lab {
   display: grid;
-  /* An explicit single column: implicit `auto` tracks take a min-content
-     minimum, which lets a wide display-face heading widen the page. */
-  grid-template-columns: minmax(0, 1fr);
+  /* An explicit single column, and the same for the two sections below:
+     implicit `auto` tracks take a min-content minimum, which lets a wide
+     display-face heading widen the page at 320px with 200% text in the wide
+     fallback font (caught by test:layout). One shared rule, not three copies. */
   gap: clamp(1.5rem, 4vw, 2.5rem);
   padding: 1.5rem 0 clamp(3rem, 7vw, 5rem);
   border-top: 1px solid var(--ink);
 }
+
+.plasticity-lab,
+.plasticity-mechanisms,
+.plasticity-golden { grid-template-columns: minmax(0, 1fr); }
 
 .plasticity-lab [hidden] { display: none; }
 
@@ -498,10 +503,6 @@ canvas[data-plasticity-modulator-strip] { height: 4.5rem; }
 
 .plasticity-mechanisms {
   display: grid;
-  /* minmax(0, 1fr): the heading's longest word (set in the display face at
-     200% text) must be allowed to shrink below its min-content width, or the
-     grid track widens the page at 320px. */
-  grid-template-columns: minmax(0, 1fr);
   gap: 1.5rem;
   padding: clamp(2.5rem, 6vw, 4rem) 0;
   border-top: 1px solid var(--ink);
@@ -532,9 +533,6 @@ canvas[data-plasticity-modulator-strip] { height: 4.5rem; }
 
 .plasticity-golden {
   display: grid;
-  /* minmax(0, 1fr): the display-face h2 must be allowed to shrink below its
-     min-content width at 200% text, or the implicit track widens the page. */
-  grid-template-columns: minmax(0, 1fr);
   gap: 1.5rem;
   padding: clamp(2.5rem, 6vw, 4rem) 0 clamp(4rem, 8vw, 6rem);
   border-top: 1px solid var(--ink);

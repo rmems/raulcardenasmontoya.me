@@ -53,8 +53,10 @@ test('the responsive stylesheet does not force horizontal scrolling on narrow sc
   assert.match(styles, /font-size: min\(17vw, 5rem\)/);
   // Fraction tracks may shrink below their content (`minmax(0, …fr)`, or a
   // minimum no wider than the grid), so a wide fallback font wraps text
-  // instead of widening the page. Only the desktop header keeps
-  // content-sized side tracks (its navigation wraps).
+  // instead of widening the page. No grid keeps bare content-sized `fr`
+  // tracks — not even the desktop header, whose serif brand name and profile
+  // pill overflowed the header at 1024px / 200% text in CI's wide fallback
+  // font until its side tracks were pinned too (#181).
   const contentSizedTracks = [...styles.matchAll(/grid-template-columns:\s*([^;]+);/g)]
     .map((match) => match[1].trim())
     .filter((tracks) =>
@@ -62,7 +64,7 @@ test('the responsive stylesheet does not force horizontal scrolling on narrow sc
         tracks.replace(/minmax\(0, \d*\.?\d+fr\)/g, '').replace(/minmax\(min\(100%, \d*\.?\d+rem\), \d*\.?\d+fr\)/g, ''),
       ),
     );
-  assert.deepEqual(contentSizedTracks, ['1fr auto 1fr']);
+  assert.deepEqual(contentSizedTracks, []);
   assert.doesNotMatch(styles, /white-space: nowrap/, 'labels and links wrap when their box is narrow');
   // The live telemetry panel (homepage) shrinks and stacks with text size,
   // and the layout check measures the homepage with it open.
