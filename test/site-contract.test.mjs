@@ -550,7 +550,12 @@ test('the homepage hero hosts the live demo static-first and traces it to its cr
   assert.match(page, /<div class="hero-actions"><a class="hero-cta hero-cta--primary" href=\{site\.resumePath\}/);
   assert.match(page, /<a class="hero-cta hero-cta--secondary" href="\/contact\/"/);
   assert.ok(page.indexOf('hero-cta--primary') < page.indexOf('hero-cta--secondary'), 'résumé first, contact second');
-  assert.match(island, /<section class="hero hero-live" aria-labelledby="hero-title">/);
+  // The section is labelled by the page's headline: the island takes the id
+  // through a prop that defaults to `hero-title`, and the homepage passes no
+  // override, so it always points at the h1 asserted above.
+  assert.match(island, /labelledBy = 'hero-title'/);
+  assert.match(island, /<section class="hero hero-live" aria-labelledby=\{labelledBy\}>/);
+  assert.doesNotMatch(page, /labelledBy/, 'the homepage uses the default headline id');
   assert.ok(island.indexOf('<slot />') < island.indexOf('<figure class="hero-mesh"'), 'copy precedes the mesh');
 
   // Static first: the build draws the audited topology into a reserved box,
@@ -578,10 +583,14 @@ test('the homepage hero hosts the live demo static-first and traces it to its cr
   // uses neutral wording whenever motion is off (including pauses).
   assert.match(island, /const simulationHz = 1000 \/ DEMO_TICK_MS;/);
   assert.match(island, /const pulseSpeedLabel = `1\/\$\{Math\.round\(1 \/ PULSE_DISPLAY_SPEED\)\}`;/);
-  assert.match(island, /<span data-when="live">[^<]*simulating in this browser at \{simulationHz\} Hz · pulses shown at \{pulseSpeedLabel\} speed<\/span>/);
+  // Both spec lines state the rate: the homepage's compact one, and the full
+  // one the labs island shows.
+  assert.match(island, /<span data-when="live">\{compact \? `\$\{nodeCount\} neurons · \$\{edgeCount\} synapses · Rust → WASM · live at \$\{simulationHz\} Hz` : null\}/);
+  assert.match(island, /<span data-when="live-still">\{compact \? `\$\{nodeCount\} neurons · \$\{edgeCount\} synapses · Rust → WASM · live at \$\{simulationHz\} Hz · view held still` : null\}/);
+  assert.match(island, /simulating in this browser at \{simulationHz\} Hz · pulses shown at \{pulseSpeedLabel\} speed/);
   // Reduced motion holds the camera still after Play; pulses still travel,
   // except in the lightest quality mode, which hides them.
-  assert.match(island, /<span data-when="live-still">[^<]*simulating in this browser at \{simulationHz\} Hz · pulses shown at \{pulseSpeedLabel\} speed \(none in the lightest quality mode\) · view held still<\/span>/);
+  assert.match(island, /simulating in this browser at \{simulationHz\} Hz · pulses shown at \{pulseSpeedLabel\} speed \(none in the lightest quality mode\) · view held still/);
   assert.doesNotMatch(island, /pulses off/);
   // The reduced-motion notice appears with the Play control: the media query
   // lets it show, and `data-mode` — which only the runtime writes — is what
