@@ -3,7 +3,7 @@ import '../styles/global.css';
 import '../styles/polish.css';
 import SiteHeader from '../components/SiteHeader.astro';
 import { footerLinks, site } from '../data/site';
-interface Props { title?: string; description?: string; /** Pages whose heading uses the serif italic preload it, so the headline does not reflow. */ preloadSerif?: boolean; /** Keeps a route out of search results: the 404 page, and anything else that should not rank. */ noindex?: boolean; /** Round-2 homepage mockup: warm paper + one signal orange, Newsreader display, JetBrains Mono labels. */ theme?: 'signal'; }
+interface Props { title?: string; description?: string; /** Pages whose heading uses the serif italic preload it, so the headline does not reflow. */ preloadSerif?: boolean; /** Keeps a route out of search results: the 404 page, and anything else that should not rank. */ noindex?: boolean; /** The homepage body flag: the palette and faces are global (#181); this only opts the page into its own scoped CSS. */ theme?: 'signal'; }
 const { title, description = site.description, preloadSerif = false, noindex = false, theme } = Astro.props;
 const brandTitle = `${site.fullName} — ${site.title}`;
 const pageTitle = title ? `${brandTitle} · ${title}` : brandTitle;
@@ -32,11 +32,11 @@ const socialImageAlt = `${site.fullName} — ${site.title}, raulcardenasmontoya.
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={metaDescription} />
     {noindex ? <meta name="robots" content="noindex" /> : null}
-    <meta name="theme-color" content="#f7f8fa" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0f1218" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f5f1ea" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0d0d0f" media="(prefers-color-scheme: dark)" />
     <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
     {preloadSerif ? <link rel="preload" href="/fonts/newsreader-italic-latin.woff2" as="font" type="font/woff2" crossorigin /> : null}
-    {theme === 'signal' ? <link rel="preload" href="/fonts/newsreader-latin.woff2" as="font" type="font/woff2" crossorigin /> : null}
+    <link rel="preload" href="/fonts/newsreader-latin.woff2" as="font" type="font/woff2" crossorigin />
     <meta name="generator" content={Astro.generator} />
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={metaDescription} />

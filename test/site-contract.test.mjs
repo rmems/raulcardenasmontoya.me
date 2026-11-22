@@ -103,11 +103,13 @@ test('every count on the site comes from a dated snapshot, never from the copy',
   );
   assert.match(counts, /Object\.hasOwn\(counts, key\)/);
   const home = read('src/pages/index.astro');
-  assert.match(home, /<ul class="hero-stats" aria-label="Proof points">/);
+  assert.match(home, /<p class="proof-bar" aria-label="Proof points">/);
   assert.match(home, /counts\.cratesAsOf/);
   assert.match(home, /counts\.datasetsAsOf/);
   assert.match(home, /counts\.mergedPrsVerifiedAt/);
   assert.match(home, /href: '\/artifacts\/#upstream'/);
+  // The proof bar renders one dated link per count, in the order it is defined.
+  assert.match(home, /\{proof\.map\(\(item\) => <a href=\{item\.href\}/);
 });
 
 test('the static site does not depend on remotely hosted fonts', () => {
@@ -125,6 +127,10 @@ test('the fonts are self-hosted Latin subsets with their licences, preloaded whe
   assert.match(styles, /@font-face \{\s*font-family: Newsreader;\s*font-style: italic;/);
   assert.match(styles, /--serif: Newsreader, 'Iowan Old Style'/);
   assert.match(layout, /<link rel="preload" href="\/fonts\/inter-latin\.woff2" as="font" type="font\/woff2" crossorigin \/>/);
+  // Every page's headlines are the serif now (#181), so the upright face
+  // preloads on every page, not only on the one that once asked for it.
+  assert.match(layout, /<link rel="preload" href="\/fonts\/newsreader-latin\.woff2" as="font" type="font\/woff2" crossorigin \/>/);
+  assert.doesNotMatch(layout, /theme === 'signal' \? <link rel="preload"/, 'the upright serif preload is not gated on the homepage theme');
   assert.match(layout, /preloadSerif \? <link rel="preload" href="\/fonts\/newsreader-italic-latin\.woff2"/);
   assert.match(read('src/pages/index.astro'), /<BaseLayout preloadSerif /);
   assert.match(read('src/pages/work.astro'), /<BaseLayout preloadSerif /);
@@ -168,7 +174,8 @@ test('the site has a dark scheme through the tokens, and the hero drawing carrie
   }
   assert.match(dark[1], /color-scheme: dark;/);
   assert.match(styles, /^code \{[^}]*background: var\(--code-bg\);/m);
-  assert.match(read('src/layouts/BaseLayout.astro'), /name="theme-color" content="#0f1218" media="\(prefers-color-scheme: dark\)"/);
+  assert.match(read('src/layouts/BaseLayout.astro'), /name="theme-color" content="#f5f1ea" media="\(prefers-color-scheme: light\)"/);
+  assert.match(read('src/layouts/BaseLayout.astro'), /name="theme-color" content="#0d0d0f" media="\(prefers-color-scheme: dark\)"/);
   assert.match(island, /staticMeshGeometry\(topology, SITE_TOPOLOGY_PALETTE_DARK\)/);
   assert.match(island, /class="hero-mesh-edges hero-mesh-edges-light"/);
   assert.match(island, /class="hero-mesh-edges hero-mesh-edges-dark"/);
@@ -299,8 +306,12 @@ test('every profile link carries rel="me" and the 404 stays out of search result
   assert.match(contact, /const profileRel = 'me noopener noreferrer'/);
   assert.match(contact, /profiles\.map\(\(profile\) => <a href=\{profile\.href\} target="_blank" rel=\{profile\.rel\}>/);
   assert.match(contact, /label: 'Limen Neural', href: site\.social\.limenneural, detail: '@Limen-Neural', rel: profileRel/);
-  assert.match(home, /href=\{site\.social\.linkedin\} target="_blank" rel="me noopener noreferrer"/);
-  assert.match(home, /href=\{site\.social\.github\} target="_blank" rel="me noopener noreferrer"/);
+  // The homepage's profile links are the dated-proof links (crates.io,
+  // Hugging Face): they open in a new tab and carry rel="me" like the footer's,
+  // so identity verification works from the first screen too.
+  assert.match(home, /href: site\.social\.cratesio, external: true/);
+  assert.match(home, /href: site\.social\.huggingface, external: true/);
+  assert.match(home, /target=\{item\.external \? '_blank' : undefined\} rel=\{item\.external \? 'me noreferrer' : undefined\}/);
 
   // The 404 page is the one route a crawler must not rank, and no other page sets noindex.
   assert.match(read('src/pages/404.astro'), /<BaseLayout title="Page not found"[^>]*noindex>/);
@@ -405,7 +416,20 @@ test('notes publish only non-draft Markdown entries and format date-only values 
 });
 
 test('editable project cards receive their ordinal from the rendered collection order', () => {
-  assert.match(read('src/pages/index.astro'), /map\(\(project, index\) => <ProjectCard project=\{project\} index=\{index\}/);
+  // The work page numbers every brief with the map index of the list it
+  // renders — never with a slug lookup.
+  const work = read('src/pages/work.astro');
+  assert.match(work, /projects\.map\(\(project, index\) => \(/);
+  assert.match(work, /String\(index \+ 1\)\.padStart\(2, '0'\)/);
+  assert.ok(work.indexOf('projects.map((project, index) => (') < work.indexOf("String(index + 1).padStart(2, '0')"), 'the ordinal is the index of the rendered list');
+  assert.doesNotMatch(work, /\.indexOf\(project\.slug\)/);
+  // The homepage renders the featured subset in collection order and marks the
+  // first card from that same map index.
+  const home = read('src/pages/index.astro');
+  assert.match(home, /featured\.map\(\(project, index\) => \(/);
+  assert.match(home, /<HomeProjectCard project=\{project\} featured=\{index === 0\}/);
+  assert.doesNotMatch(home, /\.indexOf\(project\.slug\)/);
+  // The editable card still takes the ordinal as a prop.
   assert.match(read('src/components/ProjectCard.astro'), /project, index/);
   assert.doesNotMatch(read('src/components/ProjectCard.astro'), /\.indexOf\(project\.slug\)/);
 });
@@ -433,8 +457,32 @@ test('supported Node versions match the locked build tooling', () => {
 test('visual foundations use accessible tokens and honor reduced motion', () => {
   const styles = read('src/styles/global.css');
 
-  assert.match(styles, /--muted:\s*#5b6474/);
-  assert.match(styles, /--accent:\s*#4f46e5/);
+  // The journal palette (#181): warm paper, ink text, a text-safe rust accent.
+  assert.match(styles, /--muted:\s*#5f574e/);
+  assert.match(styles, /--accent:\s*#a8360c/);
+  // Both schemes keep the text tokens readable: muted and accent at 4.5:1 or
+  // better against the paper they are set on.
+  const luminance = (hex) => {
+    const value = Number.parseInt(hex.slice(1), 16);
+    const channel = (shift) => {
+      const c = ((value >> shift) & 255) / 255;
+      return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    };
+    return 0.2126 * channel(16) + 0.7152 * channel(8) + 0.0722 * channel(0);
+  };
+  const contrast = (a, b) => {
+    const [lighter, darker] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+    return (lighter + 0.05) / (darker + 0.05);
+  };
+  const scheme = (block) =>
+    Object.fromEntries([...block.matchAll(/--([\w-]+): (#(?:[0-9a-f]{6}));/g)].map((match) => [match[1], match[2]]));
+  const light = styles.match(/^:root \{([\s\S]*?)\}/m);
+  const dark = styles.match(/@media \(prefers-color-scheme: dark\) \{\s*:root \{([\s\S]*?)\}/);
+  assert.ok(light && dark, 'both token blocks');
+  for (const [name, tokens] of [['light', scheme(light[1])], ['dark', scheme(dark[1])]]) {
+    assert.ok(contrast(tokens.muted, tokens.paper) >= 4.5, `${name} muted on paper (${contrast(tokens.muted, tokens.paper).toFixed(2)}:1)`);
+    assert.ok(contrast(tokens.accent, tokens.paper) >= 4.5, `${name} accent on paper (${contrast(tokens.accent, tokens.paper).toFixed(2)}:1)`);
+  }
   assert.match(styles, /prefers-reduced-motion:\s*reduce/);
   assert.match(styles, /animation:\s*none/);
   assert.match(styles, /button:focus-visible/);
@@ -495,10 +543,13 @@ test('the homepage hero hosts the live demo static-first and traces it to its cr
   const enhance = read('src/runtime/enhance-demo.ts');
 
   // The hero copy stays in the page and is the first thing in the island.
-  assert.match(page, /<NeuromorphicDemo>\s*<div class="hero-heading" slot="heading">/);
-  assert.match(page, /<h1 id="hero-title">I build infrastructure for <em>agentic systems<\/em>, synthetic data, and model evaluation\.<\/h1>/);
-  assert.match(page, /class="button button-primary" href=\{site\.resumePath\}/);
-  assert.match(page, /href=\{`mailto:\$\{site\.email\}`\}/);
+  assert.match(page, /<NeuromorphicDemo compact journal>\s*<div class="hero-heading" slot="heading">/);
+  assert.match(page, /<h1 id="hero-title">I build infrastructure for agentic systems, synthetic data, and <em>model evaluation\.<\/em><\/h1>/);
+  // The two actions: the résumé (the primary) and the contact route that
+  // carries the address, each with its own class.
+  assert.match(page, /<div class="hero-actions"><a class="hero-cta hero-cta--primary" href=\{site\.resumePath\}/);
+  assert.match(page, /<a class="hero-cta hero-cta--secondary" href="\/contact\/"/);
+  assert.ok(page.indexOf('hero-cta--primary') < page.indexOf('hero-cta--secondary'), 'résumé first, contact second');
   assert.match(island, /<section class="hero hero-live" aria-labelledby="hero-title">/);
   assert.ok(island.indexOf('<slot />') < island.indexOf('<figure class="hero-mesh"'), 'copy precedes the mesh');
 

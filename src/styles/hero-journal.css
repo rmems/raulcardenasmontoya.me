@@ -46,36 +46,11 @@
 }
 
 /* ---------- Header: journal masthead (both themes) ---------- */
-body.theme-signal { --j-red: #8b1e14; }
-@media (prefers-color-scheme: dark) {
-  body.theme-signal { --j-red: #ff6b4a; }
-}
-@media all {
-  body.theme-signal .site-header {
-    border-top: 1px solid var(--ink);
-    border-bottom: 1px solid var(--ink);
-    border-radius: 0;
-    background: var(--paper);
-  }
-  body.theme-signal .brand span {
-    font-family: var(--serif);
-    font-size: 1rem;
-    font-weight: 500;
-    letter-spacing: 0.14em;
-    white-space: nowrap;
-    text-transform: uppercase;
-  }
-  body.theme-signal .primary-nav a {
-    font-family: var(--serif);
-    font-size: 1rem;
-    font-weight: 400;
-    letter-spacing: 0.01em;
-    text-transform: none;
-  }
-  body.theme-signal .primary-nav a[aria-current='page'],
-  body.theme-signal .primary-nav a:hover { color: var(--j-red); text-decoration: underline; text-underline-offset: 0.25em; }
-  body.theme-signal .header-profile { font-family: var(--serif); font-weight: 400; letter-spacing: 0.01em; text-transform: none; }
-}
+/* #181 rolled the masthead into `src/styles/global.css`: ink rules on a paper
+   ground, the serif name and links, --j-red on hover and on the current page.
+   What stays scoped is the one declaration the overflow contract forbids in
+   that file — a brand name that cannot wrap. */
+body.theme-signal .brand span { white-space: nowrap; }
 
 /* ---------- Layout ---------- */
 .live-hero--journal { --j-rule: var(--line-strong); }
@@ -321,8 +296,9 @@ body.theme-signal { --j-red: #8b1e14; }
 }
 
 @media (max-width: 680px) {
-  body.theme-signal .brand span { font-size: 0.9rem; letter-spacing: 0.08em; white-space: normal; }
-  body.theme-signal .primary-nav a { font-size: 0.95rem; }
+  /* The masthead sizes live in global.css's own 680px block (#181); only the
+     homepage's non-wrapping name needs the reset here. */
+  body.theme-signal .brand span { white-space: normal; }
 }
 
 /* ---------- Tablet and phone: stack, figure under the copy ---------- */
