@@ -142,19 +142,11 @@
     --accent-strong: #ff7a45;
     --teal-text: #5eead4;
     --spike-text: #fda4af;
-    --gradient-accent: linear-gradient(#ff5a1f, #ff5a1f);
-    --gradient-text: linear-gradient(currentColor, currentColor);
-    --gradient-surface: none;
+    /* The flat stops (--gradient-accent/text/surface, --glow-*, --shadow-*,
+       --ambient-*, --grid-line) are identical in both schemes, so they live
+       only on `:root` above and inherit here; repeating them would duplicate
+       the block line-for-line. */
     --gradient-hairline: linear-gradient(90deg, #47433d, #47433d);
-    --glow-accent: none;
-    --glow-soft: none;
-    --shadow-sm: none;
-    --shadow-md: none;
-    --shadow-lg: none;
-    --ambient-1: transparent;
-    --ambient-2: transparent;
-    --ambient-3: transparent;
-    --grid-line: transparent;
     color-scheme: dark;
   }
 }
