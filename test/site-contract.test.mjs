@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 
+import { contrast, tokenScheme } from './css-contrast.mjs';
+
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 // Files whose links are checked. Markdown is in on purpose: notes hold hand-written links.
 const isScanned = (path) => /\.(astro|css|json|md|mdx|mjs|ts)$/.test(path);
@@ -464,24 +466,10 @@ test('visual foundations use accessible tokens and honor reduced motion', () => 
   assert.match(styles, /--accent:\s*#a8360c/);
   // Both schemes keep the text tokens readable: muted and accent at 4.5:1 or
   // better against the paper they are set on.
-  const luminance = (hex) => {
-    const value = Number.parseInt(hex.slice(1), 16);
-    const channel = (shift) => {
-      const c = ((value >> shift) & 255) / 255;
-      return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-    };
-    return 0.2126 * channel(16) + 0.7152 * channel(8) + 0.0722 * channel(0);
-  };
-  const contrast = (a, b) => {
-    const [lighter, darker] = [luminance(a), luminance(b)].sort((x, y) => y - x);
-    return (lighter + 0.05) / (darker + 0.05);
-  };
-  const scheme = (block) =>
-    Object.fromEntries([...block.matchAll(/--([\w-]+): (#(?:[0-9a-f]{6}));/g)].map((match) => [match[1], match[2]]));
   const light = styles.match(/^:root \{([\s\S]*?)\}/m);
   const dark = styles.match(/@media \(prefers-color-scheme: dark\) \{\s*:root \{([\s\S]*?)\}/);
   assert.ok(light && dark, 'both token blocks');
-  for (const [name, tokens] of [['light', scheme(light[1])], ['dark', scheme(dark[1])]]) {
+  for (const [name, tokens] of [['light', tokenScheme(light[1])], ['dark', tokenScheme(dark[1])]]) {
     assert.ok(contrast(tokens.muted, tokens.paper) >= 4.5, `${name} muted on paper (${contrast(tokens.muted, tokens.paper).toFixed(2)}:1)`);
     assert.ok(contrast(tokens.accent, tokens.paper) >= 4.5, `${name} accent on paper (${contrast(tokens.accent, tokens.paper).toFixed(2)}:1)`);
   }
