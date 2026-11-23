@@ -651,6 +651,19 @@ test('the homepage hero hosts the live demo static-first and traces it to its cr
   const meshColumnPx = (1240 - 96 - 72) * (heroFr[1] / (heroFr[0] + heroFr[1]));
   assert.ok(meshColumnPx >= 480, `the mesh column is ≥ 480 px at 1440 px (it is ${meshColumnPx.toFixed(1)} px)`);
 
+  // The journal homepage re-grids the hero, so the same bar is measured
+  // against the journal tracks (devin analysis on #187): the second track
+  // hosts the stage, and the drawing itself is inset 6% on each side.
+  const journalStyles = read('src/styles/hero-journal.css');
+  const journalGrid = journalStyles.match(/\.live-hero--journal \.hero\.hero-live \{[^}]*grid-template-columns: ([^;]+);/);
+  assert.ok(journalGrid, 'the journal hero grid columns');
+  assert.match(journalStyles, /\.live-hero--journal \.hero\.hero-live \{[^}]*column-gap: 0;/);
+  assert.match(journalStyles, /top: 4%;\s*left: 6%;\s*width: 88%;\s*height: 92%;/);
+  const journalFr = [...journalGrid[1].matchAll(/minmax\(0, ([\d.]+)fr\)/g)].map((match) => Number(match[1]));
+  assert.ok(journalFr.length === 2 && journalFr.every((fr) => fr > 0), 'two journal minmax(0, …fr) tracks');
+  const journalMeshPx = (1240 - 96) * (journalFr[1] / (journalFr[0] + journalFr[1])) * 0.88;
+  assert.ok(journalMeshPx >= 480, `the journal drawing is ≥ 480 px at 1440 px (it is ${journalMeshPx.toFixed(1)} px)`);
+
   // Provenance: runtime-bound origin label, static crate links, evidence kept apart.
   assert.match(island, /simulating in this browser/);
   // The caption states the replay rate from the renderer's own constants, and
