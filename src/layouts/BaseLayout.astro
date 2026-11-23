@@ -3,7 +3,7 @@ import '../styles/global.css';
 import '../styles/polish.css';
 import SiteHeader from '../components/SiteHeader.astro';
 import { footerLinks, site } from '../data/site';
-interface Props { title?: string; description?: string; /** Pages whose heading uses the serif italic preload it, so the headline does not reflow. */ preloadSerif?: boolean; /** Keeps a route out of search results: the 404 page, and anything else that should not rank. */ noindex?: boolean; /** Round-2 homepage mockup: warm paper + one signal orange, Newsreader display, JetBrains Mono labels. */ theme?: 'signal'; }
+interface Props { title?: string; description?: string; /** Pages whose heading uses the serif italic preload it, so the headline does not reflow. */ preloadSerif?: boolean; /** Keeps a route out of search results: the 404 page, and anything else that should not rank. */ noindex?: boolean; /** The homepage body flag: the palette and faces are global (#181); this only opts the page into its own scoped CSS. */ theme?: 'signal'; }
 const { title, description = site.description, preloadSerif = false, noindex = false, theme } = Astro.props;
 const brandTitle = `${site.fullName} — ${site.title}`;
 const pageTitle = title ? `${brandTitle} · ${title}` : brandTitle;
@@ -32,11 +32,11 @@ const socialImageAlt = `${site.fullName} — ${site.title}, raulcardenasmontoya.
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={metaDescription} />
     {noindex ? <meta name="robots" content="noindex" /> : null}
-    <meta name="theme-color" content="#f7f8fa" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0f1218" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f5f1ea" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0d0d0f" media="(prefers-color-scheme: dark)" />
     <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
     {preloadSerif ? <link rel="preload" href="/fonts/newsreader-italic-latin.woff2" as="font" type="font/woff2" crossorigin /> : null}
-    {theme === 'signal' ? <link rel="preload" href="/fonts/newsreader-latin.woff2" as="font" type="font/woff2" crossorigin /> : null}
+    <link rel="preload" href="/fonts/newsreader-latin.woff2" as="font" type="font/woff2" crossorigin />
     <meta name="generator" content={Astro.generator} />
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={metaDescription} />
@@ -57,6 +57,7 @@ const socialImageAlt = `${site.fullName} — ${site.title}, raulcardenasmontoya.
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <noscript><style>body .site-header { position: relative; }</style></noscript>
     <link rel="canonical" href={canonicalUrl} />
     <title>{pageTitle}</title>
     <script type="application/ld+json" set:html={JSON.stringify(personJsonLd)} />
@@ -73,5 +74,36 @@ const socialImageAlt = `${site.fullName} — ${site.title}, raulcardenasmontoya.
         <nav aria-label="Contact and profiles"><ul class="footer-links">{footerLinks.map((link) => <li><a href={link.href} aria-label={link.ariaLabel ?? (link.external ? `${link.label} (opens in new tab)` : undefined)} target={link.external ? '_blank' : undefined} rel={link.external ? 'me noopener noreferrer' : undefined}>{link.label}</a></li>)}</ul></nav>
       </footer>
     </div>
+    <script is:inline>
+      // Unstick the masthead once it wraps: a tall sticky header would cover
+      // anchor targets and much of the viewport at large text. The phone CSS
+      // already scrolls the header away below 900px; this covers wrapping at
+      // wider viewports, which no px- or em-based media query can detect.
+      // Rows are counted by vertical overlap (not by distinct tops: brand,
+      // nav and pill have different heights even on one line). Guarded like
+      // the renderer's observer: without ResizeObserver the header simply
+      // stays sticky, as before.
+      if (typeof ResizeObserver === 'function') {
+        const header = document.querySelector('.site-header');
+        if (header) {
+          new ResizeObserver(() => {
+            const boxes = [...header.children].map((child) => child.getBoundingClientRect());
+            boxes.sort((a, b) => a.top - b.top);
+            let rows = 0;
+            let bottom = -Infinity;
+            for (const box of boxes) {
+              if (box.top > bottom + 1) {
+                rows += 1;
+                bottom = box.bottom;
+              } else {
+                bottom = Math.max(bottom, box.bottom);
+              }
+            }
+            if (rows > 1) header.setAttribute('data-stacked', '');
+            else header.removeAttribute('data-stacked');
+          }).observe(header);
+        }
+      }
+    </script>
   </body>
 </html>
