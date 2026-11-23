@@ -1198,7 +1198,7 @@ button.button {
   .primary-nav a, .header-profile { font-size: 0.68rem; }
   /* Masthead type on phones (#181): the serif name and links at the sizes the
      homepage mockup verified at 320 px. The profile pill keeps 0.68rem. */
-  .brand span { font-size: 0.9rem; letter-spacing: 0.08em; white-space: normal; }
+  .brand-mark > span { font-size: 0.9rem; letter-spacing: 0.08em; white-space: normal; }
   .primary-nav a { font-size: 0.95rem; }
   .hero { min-height: 0; padding-top: 5rem; }
   .hero-coordinate { display: none; }
@@ -1228,7 +1228,9 @@ button.button {
 }
 
 @media (max-width: 360px) {
-  .brand span:last-child { max-width: 8rem; line-height: 1.15; }
+  /* The cap targets the name only: `.brand-mark` is itself the brand's last
+     child, so the old descendant selector capped logo + name together. */
+  .brand-mark > span:last-child { max-width: 8rem; line-height: 1.15; }
   .primary-nav { flex-wrap: wrap; }
   .hero h1 { font-size: min(18vw, 3.7rem); }
   .page-intro h1, .resume-panel h1, .note-article h1 { font-size: min(15.5vw, 3.7rem); }
