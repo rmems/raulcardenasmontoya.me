@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 
+import { contrast, tokenScheme } from './css-contrast.mjs';
+
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 // Files whose links are checked. Markdown is in on purpose: notes hold hand-written links.
 const isScanned = (path) => /\.(astro|css|json|md|mdx|mjs|ts)$/.test(path);
@@ -53,8 +55,16 @@ test('the responsive stylesheet does not force horizontal scrolling on narrow sc
   assert.match(styles, /font-size: min\(17vw, 5rem\)/);
   // Fraction tracks may shrink below their content (`minmax(0, …fr)`, or a
   // minimum no wider than the grid), so a wide fallback font wraps text
-  // instead of widening the page. Only the desktop header keeps
-  // content-sized side tracks (its navigation wraps).
+  // instead of widening the page. No grid keeps bare content-sized `fr`
+  // tracks. The masthead is a wrapping flex row whose side blocks grow
+  // equally from a zero basis, so the navigation stays truly centered
+  // whatever the brand and pill widths (devin analysis on #184: paired auto
+  // margins and unequal shares cannot center when the sides differ). Every
+  // box keeps its default min-content floor (no `min-width: 0`), so when the
+  // row runs out of room the blocks wrap onto their own rows instead of
+  // squeezing into slivers or spilling into each other — a collision the
+  // overflow gate cannot see (devin BUGs on #184). A flex item can never
+  // paint past a sibling, only wrap.
   const contentSizedTracks = [...styles.matchAll(/grid-template-columns:\s*([^;]+);/g)]
     .map((match) => match[1].trim())
     .filter((tracks) =>
@@ -62,7 +72,39 @@ test('the responsive stylesheet does not force horizontal scrolling on narrow sc
         tracks.replace(/minmax\(0, \d*\.?\d+fr\)/g, '').replace(/minmax\(min\(100%, \d*\.?\d+rem\), \d*\.?\d+fr\)/g, ''),
       ),
     );
-  assert.deepEqual(contentSizedTracks, ['1fr auto 1fr']);
+  assert.deepEqual(contentSizedTracks, []);
+  assert.match(styles, /\.site-header \{[^}]*display: flex;/);
+  assert.match(styles, /\.site-header \{[^}]*flex-wrap: wrap;/);
+  // Equal shares from a zero basis: the nav between two equal boxes is
+  // centered, whatever the brand and pill widths.
+  assert.match(styles, /\.brand \{[^}]*flex: 1 1 0;/);
+  assert.match(styles, /\.header-profile \{[^}]*flex: 1 1 0;/);
+  // The pill hugs the right edge of its (equal-share) box via an inner span,
+  // so the visible pill never stretches while the box does. Only the pill
+  // is interactive: the stretched box passes clicks through and the focus
+  // ring draws around the pill (kilo + devin BUG on #184). The brand mark
+  // works the same way: its equal-share box never navigates home from empty
+  // space, and its focus ring hugs the mark.
+  assert.match(styles, /\.header-profile > span \{[^}]*border: 1px solid var\(--ink\);/);
+  assert.match(styles, /\.header-profile \{[^}]*pointer-events: none;/);
+  assert.match(styles, /\.header-profile > span \{[^}]*pointer-events: auto;/);
+  assert.match(styles, /\.header-profile:focus-visible > span \{[^}]*outline: 3px solid var\(--accent\);/);
+  assert.match(styles, /\.brand \{[^}]*pointer-events: none;/);
+  assert.match(styles, /\.brand-mark \{[^}]*pointer-events: auto;/);
+  assert.match(styles, /\.brand:focus-visible > \.brand-mark \{[^}]*outline: 3px solid var\(--accent\);/);
+  // Sticky is opt-in: the inline script adds `has-row-observer` only where
+  // ResizeObserver exists, so browsers without it — and renders without
+  // scripts, where the script never runs — keep the static masthead instead
+  // of pinning wrapped rows over the viewport (sourcery on #187).
+  assert.match(read('src/layouts/BaseLayout.astro'), /classList\.add\('has-row-observer'\)/);
+  assert.match(styles, /html\.has-row-observer \.site-header \{[^}]*position: sticky;/);
+  // A wrapped masthead scrolls away: the inline script counts rendered
+  // header rows and sets data-stacked, which beats the opt-in sticky rule.
+  // No px- or em-based media query can detect wrapping.
+  assert.match(read('src/layouts/BaseLayout.astro'), /data-stacked/);
+  assert.match(read('src/layouts/BaseLayout.astro'), /getBoundingClientRect/);
+  assert.match(read('src/layouts/BaseLayout.astro'), /typeof ResizeObserver === 'function'/);
+  assert.match(styles, /html\.has-row-observer \.site-header\[data-stacked\] \{[^}]*position: relative;/);
   assert.doesNotMatch(styles, /white-space: nowrap/, 'labels and links wrap when their box is narrow');
   // The live telemetry panel (homepage) shrinks and stacks with text size,
   // and the layout check measures the homepage with it open.
@@ -103,11 +145,16 @@ test('every count on the site comes from a dated snapshot, never from the copy',
   );
   assert.match(counts, /Object\.hasOwn\(counts, key\)/);
   const home = read('src/pages/index.astro');
-  assert.match(home, /<ul class="hero-stats" aria-label="Proof points">/);
+  assert.match(home, /<p class="proof-bar" aria-label="Proof points">/);
   assert.match(home, /counts\.cratesAsOf/);
   assert.match(home, /counts\.datasetsAsOf/);
   assert.match(home, /counts\.mergedPrsVerifiedAt/);
   assert.match(home, /href: '\/artifacts\/#upstream'/);
+  // The proof bar renders one dated link per count, in the order it is defined.
+  assert.match(home, /\{proof\.map\(\(item\) => <a href=\{item\.href\}/);
+  // The as-of date is rendered text in the bar, not just a data reference:
+  // dropping it would leave undated proof (sourcery on #187).
+  assert.match(home, /<span class="proof-dated">as of \{proofAsOf\}<\/span>/);
 });
 
 test('the static site does not depend on remotely hosted fonts', () => {
@@ -117,14 +164,24 @@ test('the static site does not depend on remotely hosted fonts', () => {
 test('the fonts are self-hosted Latin subsets with their licences, preloaded where the headline uses them', () => {
   const styles = read('src/styles/global.css');
   const layout = read('src/layouts/BaseLayout.astro');
-  for (const file of ['inter-latin.woff2', 'inter-italic-latin.woff2', 'newsreader-italic-latin.woff2', 'LICENSE-Inter.txt', 'LICENSE-Newsreader.txt']) {
+  for (const file of ['inter-latin.woff2', 'inter-italic-latin.woff2', 'newsreader-latin.woff2', 'newsreader-italic-latin.woff2', 'jetbrains-mono-latin.woff2', 'LICENSE-Inter.txt', 'LICENSE-Newsreader.txt', 'LICENSE-JetBrainsMono.txt']) {
     assert.equal(existsSync(new URL(`../public/fonts/${file}`, import.meta.url)), true, file);
   }
   assert.match(styles, /@font-face \{\s*font-family: Inter;\s*font-style: normal;\s*font-weight: 400 800;\s*font-display: swap;\s*src: url\('\/fonts\/inter-latin\.woff2'\)/);
   assert.match(styles, /@font-face \{\s*font-family: Inter;\s*font-style: italic;/);
   assert.match(styles, /@font-face \{\s*font-family: Newsreader;\s*font-style: italic;/);
+  assert.match(styles, /@font-face \{\s*font-family: Newsreader;\s*font-style: normal;[^}]*src: url\('\/fonts\/newsreader-latin\.woff2'\)/);
+  assert.match(styles, /@font-face \{\s*font-family: 'JetBrains Mono';\s*font-style: normal;[^}]*src: url\('\/fonts\/jetbrains-mono-latin\.woff2'\)/);
+  assert.match(styles, /--mono: 'JetBrains Mono'/);
   assert.match(styles, /--serif: Newsreader, 'Iowan Old Style'/);
   assert.match(layout, /<link rel="preload" href="\/fonts\/inter-latin\.woff2" as="font" type="font\/woff2" crossorigin \/>/);
+  // Every page's headlines are the serif now (#181), so the upright face
+  // preloads on every page, not only on the one that once asked for it.
+  // The preload is a bare top-level link: wrapping it in a conditional
+  // would still match a substring test while shipping pages without the
+  // font (sourcery on #187).
+  assert.match(layout, /^ {4}<link rel="preload" href="\/fonts\/newsreader-latin\.woff2" as="font" type="font\/woff2" crossorigin \/>$/m);
+  assert.doesNotMatch(layout, /theme === 'signal' \? <link rel="preload"/, 'the upright serif preload is not gated on the homepage theme');
   assert.match(layout, /preloadSerif \? <link rel="preload" href="\/fonts\/newsreader-italic-latin\.woff2"/);
   assert.match(read('src/pages/index.astro'), /<BaseLayout preloadSerif /);
   assert.match(read('src/pages/work.astro'), /<BaseLayout preloadSerif /);
@@ -132,6 +189,15 @@ test('the fonts are self-hosted Latin subsets with their licences, preloaded whe
     if (!/\.(astro|css|ts|mjs)$/.test(String(file))) continue;
     assert.doesNotMatch(read(`src/${file}`), /fonts\.googleapis\.com|fonts\.gstatic\.com/, `${file} references a remote font host`);
   }
+});
+
+test('the hero controls stay open through a WASM restart and never focus a hidden toggle', () => {
+  // An encoder switch restarts the session through the transient
+  // `initializing` mode; tearing the row down mid-restart strands keyboard
+  // focus (devin + greptile + sourcery on #187).
+  const controls = read('src/runtime/hero-controls.ts');
+  assert.match(controls, /\['live', 'awaiting-play', 'initializing'\]/);
+  assert.match(controls, /if \(!toggle\.hidden\) toggle\.focus/);
 });
 
 test('small labels stay at or above 0.72rem, apart from the phone navigation', () => {
@@ -168,7 +234,8 @@ test('the site has a dark scheme through the tokens, and the hero drawing carrie
   }
   assert.match(dark[1], /color-scheme: dark;/);
   assert.match(styles, /^code \{[^}]*background: var\(--code-bg\);/m);
-  assert.match(read('src/layouts/BaseLayout.astro'), /name="theme-color" content="#0f1218" media="\(prefers-color-scheme: dark\)"/);
+  assert.match(read('src/layouts/BaseLayout.astro'), /name="theme-color" content="#f5f1ea" media="\(prefers-color-scheme: light\)"/);
+  assert.match(read('src/layouts/BaseLayout.astro'), /name="theme-color" content="#0d0d0f" media="\(prefers-color-scheme: dark\)"/);
   assert.match(island, /staticMeshGeometry\(topology, SITE_TOPOLOGY_PALETTE_DARK\)/);
   assert.match(island, /class="hero-mesh-edges hero-mesh-edges-light"/);
   assert.match(island, /class="hero-mesh-edges hero-mesh-edges-dark"/);
@@ -265,6 +332,24 @@ test('the work page expands existing project data without unsupported outcomes o
   }
 });
 
+test('the agoge canary visual reads structured data that matches the brief copy', () => {
+  // The numbers live in one structured export, not parsed out of prose, so a
+  // copy edit cannot silently empty the visual (sourcery on #187); the test
+  // below keeps the sentence and the data in agreement instead.
+  const projects = read('src/data/projects.ts');
+  const canary = /export const agogeCanary = \{ score: (\d+), total: (\d+), improved: (\d+), regressed: (\d+), tied: (\d+) \}(?: as const)?;/.exec(projects);
+  assert.ok(canary, 'structured agoge canary');
+  const [, score, total, improved, regressed, tied] = canary;
+  assert.ok(
+    projects.includes(`same ${score}/${total} on hidden cases (${improved} improved, ${regressed} regressed, ${tied} tied)`),
+    'brief copy carries the canary numbers',
+  );
+  const visual = read('src/components/home/AgogeVisual.astro');
+  assert.match(visual, /import \{ agogeCanary \} from '\.\.\/\.\.\/data\/projects'/);
+  assert.doesNotMatch(visual, /\.match\(/, 'no regex parsing of copy');
+  assert.match(read('src/pages/index.astro'), /<AgogeVisual \/>/);
+});
+
 test('the Grok-1/SAAQ brief is a long-term programme with public links and no claimed result', () => {
   const projects = read('src/data/projects.ts');
   const brief = projects.slice(projects.indexOf("'Grok-1/SAAQ research'"));
@@ -302,8 +387,12 @@ test('every profile link carries rel="me" and the 404 stays out of search result
   assert.match(contact, /const profileRel = 'me noopener noreferrer'/);
   assert.match(contact, /profiles\.map\(\(profile\) => <a href=\{profile\.href\} target="_blank" rel=\{profile\.rel\}>/);
   assert.match(contact, /label: 'Limen Neural', href: site\.social\.limenneural, detail: '@Limen-Neural', rel: profileRel/);
-  assert.match(home, /href=\{site\.social\.linkedin\} target="_blank" rel="me noopener noreferrer"/);
-  assert.match(home, /href=\{site\.social\.github\} target="_blank" rel="me noopener noreferrer"/);
+  // The homepage's profile links are the dated-proof links (crates.io,
+  // Hugging Face): they open in a new tab and carry rel="me" like the footer's,
+  // so identity verification works from the first screen too.
+  assert.match(home, /href: site\.social\.cratesio, external: true/);
+  assert.match(home, /href: site\.social\.huggingface, external: true/);
+  assert.match(home, /target=\{item\.external \? '_blank' : undefined\} rel=\{item\.external \? 'me noreferrer' : undefined\}/);
 
   // The 404 page is the one route a crawler must not rank, and no other page sets noindex.
   assert.match(read('src/pages/404.astro'), /<BaseLayout title="Page not found"[^>]*noindex>/);
@@ -408,7 +497,30 @@ test('notes publish only non-draft Markdown entries and format date-only values 
 });
 
 test('editable project cards receive their ordinal from the rendered collection order', () => {
-  assert.match(read('src/pages/index.astro'), /map\(\(project, index\) => <ProjectCard project=\{project\} index=\{index\}/);
+  // The work page numbers every brief with the map index of the list it
+  // renders — never with a slug lookup.
+  const work = read('src/pages/work.astro');
+  assert.match(work, /projects\.map\(\(project, index\) => \(/);
+  assert.match(work, /String\(index \+ 1\)\.padStart\(2, '0'\)/);
+  assert.ok(work.indexOf('projects.map((project, index) => (') < work.indexOf("String(index + 1).padStart(2, '0')"), 'the ordinal is the index of the rendered list');
+  // The case-study articles are numbered by the same map index: the ordinal
+  // inside the second `projects.map` (the `<article>` list) must come from
+  // that map's index, not from a slug lookup — pinning only the index list
+  // above would still pass if the articles regressed (sourcery on #184).
+  const indexListMap = work.indexOf('projects.map((project, index) => (');
+  const articleMap = work.indexOf('projects.map((project, index) => (', indexListMap + 1);
+  const articleTag = work.indexOf('<article class="case-study"', articleMap);
+  const articleOrdinal = work.indexOf("String(index + 1).padStart(2, '0')", articleTag);
+  assert.ok(indexListMap !== -1 && articleMap > indexListMap, 'the work page renders an index list and an article list');
+  assert.ok(articleTag > articleMap && articleOrdinal > articleTag, 'the case-study ordinal comes from the article list map index');
+  assert.doesNotMatch(work, /\.indexOf\(project\.slug\)/);
+  // The homepage renders the featured subset in collection order and marks the
+  // first card from that same map index.
+  const home = read('src/pages/index.astro');
+  assert.match(home, /featured\.map\(\(project, index\) => \(/);
+  assert.match(home, /<HomeProjectCard project=\{project\} featured=\{index === 0\}/);
+  assert.doesNotMatch(home, /\.indexOf\(project\.slug\)/);
+  // The editable card still takes the ordinal as a prop.
   assert.match(read('src/components/ProjectCard.astro'), /project, index/);
   assert.doesNotMatch(read('src/components/ProjectCard.astro'), /\.indexOf\(project\.slug\)/);
 });
@@ -436,8 +548,18 @@ test('supported Node versions match the locked build tooling', () => {
 test('visual foundations use accessible tokens and honor reduced motion', () => {
   const styles = read('src/styles/global.css');
 
-  assert.match(styles, /--muted:\s*#5b6474/);
-  assert.match(styles, /--accent:\s*#4f46e5/);
+  // The journal palette (#181): warm paper, ink text, a text-safe rust accent.
+  assert.match(styles, /--muted:\s*#5f574e/);
+  assert.match(styles, /--accent:\s*#a8360c/);
+  // Both schemes keep the text tokens readable: muted and accent at 4.5:1 or
+  // better against the paper they are set on.
+  const light = styles.match(/^:root \{([\s\S]*?)\}/m);
+  const dark = styles.match(/@media \(prefers-color-scheme: dark\) \{\s*:root \{([\s\S]*?)\}/);
+  assert.ok(light && dark, 'both token blocks');
+  for (const [name, tokens] of [['light', tokenScheme(light[1])], ['dark', tokenScheme(dark[1])]]) {
+    assert.ok(contrast(tokens.muted, tokens.paper) >= 4.5, `${name} muted on paper (${contrast(tokens.muted, tokens.paper).toFixed(2)}:1)`);
+    assert.ok(contrast(tokens.accent, tokens.paper) >= 4.5, `${name} accent on paper (${contrast(tokens.accent, tokens.paper).toFixed(2)}:1)`);
+  }
   assert.match(styles, /prefers-reduced-motion:\s*reduce/);
   assert.match(styles, /animation:\s*none/);
   assert.match(styles, /button:focus-visible/);
@@ -498,11 +620,19 @@ test('the homepage hero hosts the live demo static-first and traces it to its cr
   const enhance = read('src/runtime/enhance-demo.ts');
 
   // The hero copy stays in the page and is the first thing in the island.
-  assert.match(page, /<NeuromorphicDemo>\s*<div class="hero-heading" slot="heading">/);
-  assert.match(page, /<h1 id="hero-title">I build infrastructure for <em>agentic systems<\/em>, synthetic data, and model evaluation\.<\/h1>/);
-  assert.match(page, /class="button button-primary" href=\{site\.resumePath\}/);
-  assert.match(page, /href=\{`mailto:\$\{site\.email\}`\}/);
-  assert.match(island, /<section class="hero hero-live" aria-labelledby="hero-title">/);
+  assert.match(page, /<NeuromorphicDemo compact journal>\s*<div class="hero-heading" slot="heading">/);
+  assert.match(page, /<h1 id="hero-title">I build infrastructure for agentic systems, synthetic data, and <em>model evaluation\.<\/em><\/h1>/);
+  // The two actions: the résumé (the primary) and the contact route that
+  // carries the address, each with its own class.
+  assert.match(page, /<div class="hero-actions"><a class="hero-cta hero-cta--primary" href=\{site\.resumePath\}/);
+  assert.match(page, /<a class="hero-cta hero-cta--secondary" href="\/contact\/"/);
+  assert.ok(page.indexOf('hero-cta--primary') < page.indexOf('hero-cta--secondary'), 'résumé first, contact second');
+  // The section is labelled by the page's headline: the island takes the id
+  // through a prop that defaults to `hero-title`, and the homepage passes no
+  // override, so it always points at the h1 asserted above.
+  assert.match(island, /labelledBy = 'hero-title'/);
+  assert.match(island, /<section class="hero hero-live" aria-labelledby=\{labelledBy\}>/);
+  assert.doesNotMatch(page, /labelledBy/, 'the homepage uses the default headline id');
   assert.ok(island.indexOf('<slot />') < island.indexOf('<figure class="hero-mesh"'), 'copy precedes the mesh');
 
   // Static first: the build draws the audited topology into a reserved box,
@@ -514,15 +644,47 @@ test('the homepage hero hosts the live demo static-first and traces it to its cr
   assert.match(styles, /\.hero-mesh \.demo-surface:not\(\[hidden\]\) \+ \.hero-mesh-static \{ visibility: hidden; \}/);
 
   // RM-2354: the mesh column is at least 480 px wide at 1440 px, so the
-  // 1/4-speed pulses have room to read. At that width the 1240 px shell keeps
-  // 2 × 3rem gutters and the hero gap clamps to 4.5rem: 1072 px of free track
-  // space shared by the two `minmax(0, …fr)` columns.
-  const heroTracks = styles.match(/\.hero\.hero-live \{[\s\S]*?grid-template-columns: ([^;]+);/);
+  // 1/4-speed pulses have room to read. Dimensions below come from the
+  // stylesheet tokens, each parsed where it lives, so the two computations
+  // cannot drift apart when the stylesheet changes (mlai on #187). The 16px
+  // root is the browser default the layout check runs at, not a token.
+  const shellMax = Number(read('src/styles/global.css').match(/--max: (\d+)px/)[1]);
+  const gutterCapRem = Number(read('src/styles/global.css').match(/--gutter: clamp\([\d.]+rem, [\d.]+vw, ([\d.]+)rem\)/)[1]);
+  const ROOT_PX = 16;
+  const GUTTER_PX = 2 * gutterCapRem * ROOT_PX;
+  const heroRule = styles.match(/\.hero\.hero-live \{([^}]*)\}/);
+  assert.ok(heroRule, 'the hero-live grid rule');
+  const heroTracks = /grid-template-columns: ([^;]+);/.exec(heroRule[1]);
   assert.ok(heroTracks, 'the hero-live grid columns');
   const heroFr = [...heroTracks[1].matchAll(/minmax\(0, ([\d.]+)fr\)/g)].map((match) => Number(match[1]));
   assert.ok(heroFr.length === 2 && heroFr.every((fr) => fr > 0), 'two minmax(0, …fr) tracks');
-  const meshColumnPx = (1240 - 96 - 72) * (heroFr[1] / (heroFr[0] + heroFr[1]));
+  const heroGap = /column-gap: clamp\(([\d.]+)rem, ([\d.]+)vw, ([\d.]+)rem\)/.exec(heroRule[1]);
+  assert.ok(heroGap, 'the hero-live column gap clamp');
+  const [, gapMin, gapVw, gapMax] = heroGap.map(Number);
+  const VIEWPORT_PX = 1440;
+  const gapPx = Math.min(Math.max(gapMin * ROOT_PX, (VIEWPORT_PX * gapVw) / 100), gapMax * ROOT_PX);
+  const meshColumnPx = (shellMax - GUTTER_PX - gapPx) * (heroFr[1] / (heroFr[0] + heroFr[1]));
   assert.ok(meshColumnPx >= 480, `the mesh column is ≥ 480 px at 1440 px (it is ${meshColumnPx.toFixed(1)} px)`);
+
+  // The journal homepage re-grids the hero, so the same bar is measured
+  // against the journal tracks (devin analysis on #187): the second track
+  // hosts the stage, and the drawing itself is inset within the stage.
+  const journalStyles = read('src/styles/hero-journal.css');
+  const journalGrid = journalStyles.match(/\.live-hero--journal \.hero\.hero-live \{[^}]*grid-template-columns: ([^;]+);/);
+  assert.ok(journalGrid, 'the journal hero grid columns');
+  assert.match(journalStyles, /\.live-hero--journal \.hero\.hero-live \{[^}]*column-gap: 0;/);
+  const journalInsetRule = journalStyles.match(/\.live-hero--journal \.hero-mesh-static,[\s\S]*?\.live-hero--journal \.hero-callouts \{([^}]*)\}/);
+  assert.ok(journalInsetRule, 'the journal drawing inset rule');
+  for (const declaration of ['top: 4%', 'left: 6%', 'width: 88%', 'height: 92%']) {
+    assert.ok(journalInsetRule[1].includes(declaration), `inset keeps ${declaration} (order-independent)`);
+  }
+  const journalFr = [...journalGrid[1].matchAll(/minmax\(0, ([\d.]+)fr\)/g)].map((match) => Number(match[1]));
+  assert.ok(journalFr.length === 2 && journalFr.every((fr) => fr > 0), 'two journal minmax(0, …fr) tracks');
+  const insetLeft = Number(/left: ([\d.]+)%/.exec(journalInsetRule[1])[1]) / 100;
+  const insetWidth = Number(/width: ([\d.]+)%/.exec(journalInsetRule[1])[1]) / 100;
+  assert.equal(insetWidth, 1 - 2 * insetLeft, 'the inset is symmetric');
+  const journalMeshPx = (shellMax - GUTTER_PX) * (journalFr[1] / (journalFr[0] + journalFr[1])) * insetWidth;
+  assert.ok(journalMeshPx >= 480, `the journal drawing is ≥ 480 px at 1440 px (it is ${journalMeshPx.toFixed(1)} px)`);
 
   // Provenance: runtime-bound origin label, static crate links, evidence kept apart.
   assert.match(island, /simulating in this browser/);
@@ -530,10 +692,16 @@ test('the homepage hero hosts the live demo static-first and traces it to its cr
   // uses neutral wording whenever motion is off (including pauses).
   assert.match(island, /const simulationHz = 1000 \/ DEMO_TICK_MS;/);
   assert.match(island, /const pulseSpeedLabel = `1\/\$\{Math\.round\(1 \/ PULSE_DISPLAY_SPEED\)\}`;/);
-  assert.match(island, /<span data-when="live">[^<]*simulating in this browser at \{simulationHz\} Hz · pulses shown at \{pulseSpeedLabel\} speed<\/span>/);
+  // Both spec lines state the rate: the homepage's compact one, and the full
+  // one the labs island shows. The full branches are pinned inside their own
+  // `data-when` spans (devin analysis on #184): asserting the bare text would
+  // still pass if the message moved to the wrong state.
+  assert.match(island, /<span data-when="live">\{compact \? `\$\{nodeCount\} neurons · \$\{edgeCount\} synapses · Rust → WASM · live at \$\{simulationHz\} Hz` : null\}/);
+  assert.match(island, /<span data-when="live-still">\{compact \? `\$\{nodeCount\} neurons · \$\{edgeCount\} synapses · Rust → WASM · live at \$\{simulationHz\} Hz · view held still` : null\}/);
+  assert.match(island, /<span data-when="live">\{compact \? `\$\{nodeCount\} neurons · \$\{edgeCount\} synapses · Rust → WASM · live at \$\{simulationHz\} Hz` : null\}\{compact \? null : <>\{nodeCount\} neurons · \{edgeCount\} synapses · simulating in this browser at \{simulationHz\} Hz · pulses shown at \{pulseSpeedLabel\} speed<\/>\}<\/span>/);
   // Reduced motion holds the camera still after Play; pulses still travel,
   // except in the lightest quality mode, which hides them.
-  assert.match(island, /<span data-when="live-still">[^<]*simulating in this browser at \{simulationHz\} Hz · pulses shown at \{pulseSpeedLabel\} speed \(none in the lightest quality mode\) · view held still<\/span>/);
+  assert.match(island, /<span data-when="live-still">\{compact \? `\$\{nodeCount\} neurons · \$\{edgeCount\} synapses · Rust → WASM · live at \$\{simulationHz\} Hz · view held still` : null\}\{compact \? null : <>\{nodeCount\} neurons · \{edgeCount\} synapses · simulating in this browser at \{simulationHz\} Hz · pulses shown at \{pulseSpeedLabel\} speed \(none in the lightest quality mode\) · view held still<\/>\}<\/span>/);
   assert.doesNotMatch(island, /pulses off/);
   // The reduced-motion notice appears with the Play control: the media query
   // lets it show, and `data-mode` — which only the runtime writes — is what

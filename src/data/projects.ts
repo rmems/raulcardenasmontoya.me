@@ -36,6 +36,14 @@ export interface Project {
 
 const repository = (href: string) => [{ label: 'Repository', href }];
 
+/**
+ * The recorded base-versus-SFT canary the homepage agoge-forger visual draws,
+ * one cell per hidden case. Stored as structured data (not parsed out of the
+ * brief copy) so a copy edit can never silently empty the visual; the site
+ * contract asserts the brief's sentence still carries the same numbers.
+ */
+export const agogeCanary = { score: 10, total: 16, improved: 2, regressed: 2, tied: 12 } as const;
+
 interface ProjectExtras {
   links?: Project['links'];
   featured?: boolean;
