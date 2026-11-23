@@ -7,7 +7,6 @@ import test from 'node:test';
 import * as THREE from 'three';
 
 import { loadTsModule, readSource } from './load-ts-module.mjs';
-import { contrast, tokenScheme } from './css-contrast.mjs';
 
 const layout = await loadTsModule('../src/runtime/topology-layout.ts');
 const renderer = await loadTsModule('../src/runtime/topology-renderer.ts');
@@ -312,9 +311,23 @@ test('the visible legend sits under the stage and passes contrast in both scheme
   // WCAG contrast per scheme: every key needs 3:1 against the page as a
   // graphic, from its fill or its --muted ring (light --secondary is below
   // 3:1 alone), and the labels need 4.5:1 as text in --ink.
+  const luminance = (hex) => {
+    const value = Number.parseInt(hex.slice(1), 16);
+    const channel = (shift) => {
+      const c = ((value >> shift) & 255) / 255;
+      return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    };
+    return 0.2126 * channel(16) + 0.7152 * channel(8) + 0.0722 * channel(0);
+  };
+  const contrast = (a, b) => {
+    const [lighter, darker] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+    return (lighter + 0.05) / (darker + 0.05);
+  };
+  const scheme = (block) =>
+    Object.fromEntries([...block.matchAll(/--([\w-]+): (#(?:[0-9a-f]{6}));/g)].map((match) => [match[1], match[2]]));
   const schemes = [
-    tokenScheme(styles.match(/^:root \{([\s\S]*?)\}/m)[1]),
-    tokenScheme(styles.match(/@media \(prefers-color-scheme: dark\) \{\s*:root \{([\s\S]*?)\}/)[1]),
+    scheme(styles.match(/^:root \{([\s\S]*?)\}/m)[1]),
+    scheme(styles.match(/@media \(prefers-color-scheme: dark\) \{\s*:root \{([\s\S]*?)\}/)[1]),
   ];
   for (const tokens of schemes) {
     assert.ok(contrast(tokens.ink, tokens.paper) >= 4.5, `legend labels pass text contrast (${contrast(tokens.ink, tokens.paper).toFixed(2)}:1)`);

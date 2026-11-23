@@ -288,9 +288,6 @@ async function main() {
           `(${[...panelStates].join(' and ')}); the homepage (demo mode: ${mode}) requested no labs package.\n`,
       );
     }
-  // eslint-disable-next-line no-useless-catch -- the rethrow keeps the security-node rule's handler lookup from crashing on a handler-less try, with identical behavior on every path; the cleanup below must run regardless.
-  } catch (error) {
-    throw error;
   } finally {
     await chrome?.close();
     server?.close();
