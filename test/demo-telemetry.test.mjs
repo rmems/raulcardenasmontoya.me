@@ -348,6 +348,9 @@ test('the controller samples per step but renders only at its cadence', async ()
       clock.advance(50);
     }
     assert.equal(renders.length, 4, 'two seconds at 2 Hz');
+  // eslint-disable-next-line no-useless-catch -- the rethrow keeps the security-node rule's handler lookup from crashing on a handler-less try, with identical behavior on every path; the cleanup below must run regardless.
+  } catch (error) {
+    throw error;
   } finally {
     controller.dispose();
     rig.dispose();
@@ -489,6 +492,9 @@ test('the simulation produces identical state with telemetry open, closed, or fa
         });
       }
       runs.push({ variant, trace, events: rig.buffer.stats().emitted, errors: rig.errors.length, reported: reported.length });
+    // eslint-disable-next-line no-useless-catch -- the rethrow keeps the security-node rule's handler lookup from crashing on a handler-less try, with identical behavior on every path; the cleanup below must run regardless.
+    } catch (error) {
+      throw error;
     } finally {
       globalThis.reportError = originalReport;
       controller?.dispose();
@@ -587,6 +593,9 @@ test('a selected neuron exposes only runtime-provided fields from the live WASM 
     const unsampled = telemetry.inspectNeuron(state, null, spiking);
     assert.equal(unsampled.spikedAtStep, null, 'without a raster, spike state is unknown rather than false');
     assert.deepEqual(unsampled.recentSpikeSteps, []);
+  // eslint-disable-next-line no-useless-catch -- the rethrow keeps the security-node rule's handler lookup from crashing on a handler-less try, with identical behavior on every path; the cleanup below must run regardless.
+  } catch (error) {
+    throw error;
   } finally {
     rig.dispose();
   }
@@ -629,6 +638,9 @@ test('encoder inspection shows the active axon-encoder mode and the exported kin
     assert.equal(renders.at(-1).encoder.inputSource, 'pointer');
     controller.dispose();
     assert.deepEqual(encoder.features.map((feature) => feature.label), telemetry.KINETIC_FEATURE_LABELS);
+  // eslint-disable-next-line no-useless-catch -- the rethrow keeps the security-node rule's handler lookup from crashing on a handler-less try, with identical behavior on every path; the cleanup below must run regardless.
+  } catch (error) {
+    throw error;
   } finally {
     rig.dispose();
   }
@@ -716,6 +728,9 @@ test('a pause during an in-flight tick keeps the displayed step and its own inpu
     clock.advance(250);
     assert.equal(renders.at(-1).state, 'frozen');
     assert.equal(renders.at(-1).encoder.inputSource, 'pointer');
+  // eslint-disable-next-line no-useless-catch -- the rethrow keeps the security-node rule's handler lookup from crashing on a handler-less try, with identical behavior on every path; the cleanup below must run regardless.
+  } catch (error) {
+    throw error;
   } finally {
     controller.dispose();
     rig.dispose();
@@ -794,6 +809,9 @@ test('only live-wasm data is labeled as the live Rust/WASM runtime', async () =>
     assert.equal(liveRenders.at(-1).state, 'unavailable');
     assert.equal(liveRenders.at(-1).neuron, null, 'nothing is shown once the runtime is gone');
     assert.equal(liveRenders.at(-1).encoder, null);
+  // eslint-disable-next-line no-useless-catch -- the rethrow keeps the security-node rule's handler lookup from crashing on a handler-less try, with identical behavior on every path; the cleanup below must run regardless.
+  } catch (error) {
+    throw error;
   } finally {
     liveController.dispose();
     rig.dispose();
@@ -902,6 +920,9 @@ test('the committed WASM package drives the raster and inspector through the rea
     assert.equal(controller.inspect().flushes, flushes);
     assert.equal(controller.inspect().samples > 0, true);
     assert.equal(controller.inspect().rasterRows, 0, 'closing drops the sampled window');
+  // eslint-disable-next-line no-useless-catch -- the rethrow keeps the security-node rule's handler lookup from crashing on a handler-less try, with identical behavior on every path; the cleanup below must run regardless.
+  } catch (error) {
+    throw error;
   } finally {
     controller.dispose();
     rig.dispose();
