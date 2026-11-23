@@ -815,9 +815,6 @@ async function firstLiveState() {
   const rig = await liveRig();
   try {
     return rig.step();
-  // eslint-disable-next-line no-useless-catch -- the rethrow keeps the security-node rule's handler lookup from crashing on a handler-less try, with identical behavior on every path; the cleanup below must run regardless.
-  } catch (error) {
-    throw error;
   } finally {
     rig.dispose();
   }

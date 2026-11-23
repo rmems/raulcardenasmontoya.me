@@ -1227,9 +1227,6 @@ async function withBoundDemo(
   try {
     binding = enhance.bindDemoIsland(island.root, boundDemo);
     await run({ demo: boundDemo, binding, restoreHost, ...island });
-  // eslint-disable-next-line no-useless-catch -- the rethrow keeps the security-node rule's handler lookup from crashing on a handler-less try, with identical behavior on every path; the cleanup below must run regardless.
-  } catch (error) {
-    throw error;
   } finally {
     binding?.dispose();
     restoreHost();

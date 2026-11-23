@@ -147,11 +147,11 @@ export interface TopologyPalette {
  * computed style exists. `test/hero-live-mesh.test.mjs` keeps them in sync.
  */
 export const SITE_TOPOLOGY_PALETTE: TopologyPalette = Object.freeze({
-  accent: '#a8360c',
-  secondary: '#0f766e',
+  accent: '#4f46e5',
+  secondary: '#0ea5a4',
   spike: '#f43f5e',
-  muted: '#5f574e',
-  line: '#ded5c7',
+  muted: '#5b6474',
+  line: '#e3e7ed',
 });
 
 /**
@@ -161,11 +161,11 @@ export const SITE_TOPOLOGY_PALETTE: TopologyPalette = Object.freeze({
  * computed tokens, lands on the drawing in either scheme.
  */
 export const SITE_TOPOLOGY_PALETTE_DARK: TopologyPalette = Object.freeze({
-  accent: '#ff5a1f',
+  accent: '#8b85ff',
   secondary: '#2dd4bf',
   spike: '#fb7185',
-  muted: '#a59d92',
-  line: '#2a2926',
+  muted: '#9aa3b2',
+  line: '#2a3140',
 });
 
 /** Canonical topology fields the drawing needs (a contract-5 snapshot subset). */

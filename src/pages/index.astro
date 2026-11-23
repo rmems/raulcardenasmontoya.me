@@ -72,7 +72,7 @@ const featured = projects
   .filter((project) => project.featured && cards[project.slug])
   .sort((a, b) => (order.indexOf(a.slug) + 1 || 99) - (order.indexOf(b.slug) + 1 || 99));
 ---
-<BaseLayout preloadSerif theme="signal" description={`Rust and Python infrastructure for agentic systems, synthetic data, and model evaluation: ${counts.crates} published Rust crates, ${counts.datasets} Hugging Face datasets, and a spiking-network demo that runs in your browser.`}>
+<BaseLayout theme="signal" description={`Rust and Python infrastructure for agentic systems, synthetic data, and model evaluation: ${counts.crates} published Rust crates, ${counts.datasets} Hugging Face datasets, and a spiking-network demo that runs in your browser.`}>
   <div class="home-lab">
     <NeuromorphicDemo compact journal>
       <div class="hero-heading" slot="heading">
@@ -86,7 +86,7 @@ const featured = projects
     </NeuromorphicDemo>
 
     <p class="proof-bar" aria-label="Proof points">
-      {proof.map((item) => <a href={item.href} target={item.external ? '_blank' : undefined} rel={item.external ? 'me noreferrer' : undefined}><strong>{item.value}</strong> <span>{item.label}</span></a>)}
+      {proof.map((item) => <a href={item.href} target={item.external ? '_blank' : undefined} rel={item.external ? 'noreferrer' : undefined}><strong>{item.value}</strong> <span>{item.label}</span></a>)}
       <span class="proof-dated">as of {proofAsOf}</span>
     </p>
 
