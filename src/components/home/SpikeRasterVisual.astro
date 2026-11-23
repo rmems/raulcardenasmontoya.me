@@ -1,0 +1,49 @@
+---
+import trace from '../../../crates/neuromorphic-adapter/tests/fixtures/contract8-seed9-trace.json';
+import { auditedBrowserTopology } from '../../runtime/neuromorphic-adapter';
+import { staticMeshGeometry } from '../../runtime/topology-layout';
+// Featured visual for the neuromorphic crate stack, from committed data only:
+// the recorded contract-8 golden trace (seed 9) that the Rust adapter tests
+// replay, as a spike raster (time across, neuron down) under the pointer
+// samples that drove it, beside the 64-neuron ring the homepage demo runs.
+type Op = { op: string; samples?: number[]; expected?: { spikes?: number[] } };
+const ops = (trace as { operations: Op[] }).operations;
+// Walk the operations in order: an input packet belongs to the step that
+// follows it. Packets bunch up (ops 8-10 all arrive before step 8) and a
+// trailing input may follow the last step, so the packet's column is the
+// count of steps seen so far, clamped into the drawn range.
+const inputs: number[][] = [];
+const inputSteps: number[] = [];
+const steps: number[][] = [];
+for (const op of ops) {
+  if (op.op === 'step' && op.expected) steps.push(op.expected.spikes ?? []);
+  else if (op.op === 'input' && op.samples) {
+    inputs.push(op.samples);
+    inputSteps.push(steps.length);
+  }
+}
+const topology = auditedBrowserTopology();
+const neurons = topology.nodeIds.length;
+const spikeCount = steps.reduce((sum, spikes) => sum + spikes.length, 0);
+const mesh = staticMeshGeometry(topology, { accent: '#cfc6b8', secondary: '#6d665d', spike: '#ff5a1f', muted: '#8a8178', line: '#2a2926' });
+// Neurons that fired three or more times in the trace are drawn in orange.
+const fireCount = new Map<number, number>();
+for (const neuron of steps.flat()) fireCount.set(neuron, (fireCount.get(neuron) ?? 0) + 1);
+const busy = (index: number) => (fireCount.get(index) ?? 0) >= 3;
+const W = 180; // raster width in viewBox units
+const colW = W / steps.length;
+const channels = inputs[0]?.length ?? 0;
+const spark = (channel: number) => inputs.map((sample, index) => `${index === 0 ? 'M' : 'L'}${(Math.min(inputSteps[index], steps.length - 1) + 0.5) * colW} ${10 - sample[channel] * 9}`).join('');
+---
+<div class="visual visual--ink visual-raster">
+  <svg class="visual-raster-ring" viewBox={mesh.viewBox} aria-hidden="true" focusable="false">
+    <g fill="none" stroke-width="1" stroke-opacity={mesh.edgeOpacity * 0.8}>{mesh.edges.map((edge) => <line x1={edge.x1} y1={edge.y1} x2={edge.x2} y2={edge.y2} stroke={edge.stroke} vector-effect="non-scaling-stroke" />)}</g>
+    {mesh.nodes.map((node, index) => <circle cx={node.x} cy={node.y} r={mesh.nodeSize / 2} fill={busy(index) ? '#ff5a1f' : '#8a8178'} />)}
+  </svg>
+  <svg class="visual-raster-plot" viewBox={`0 0 ${W} ${neurons + 16}`} preserveAspectRatio="none" role="img" aria-label={`Spike raster of the recorded contract-8 golden trace: ${neurons} neurons over ${steps.length} steps, ${spikeCount} spikes, under the ${channels} pointer input channels that drove it.`}>
+    <g class="raster-inputs" fill="none" stroke-width="0.6">{Array.from({ length: channels }, (_, channel) => <path d={spark(channel)} vector-effect="non-scaling-stroke" />)}</g>
+    <g class="raster-grid">{steps.map((_, index) => <rect x={index * colW} y="14" width="0.25" height={neurons + 2} />)}</g>
+    <g class="raster-spikes">{steps.flatMap((spikes, step) => spikes.map((neuron) => <rect x={step * colW + colW * 0.42} y={14.6 + neuron} width={colW * 0.16} height="0.85" />))}</g>
+  </svg>
+  <p class="visual-caption">contract-8 golden trace · seed 9 · {steps.length} steps · {spikeCount} spikes · {neurons} neurons</p>
+</div>

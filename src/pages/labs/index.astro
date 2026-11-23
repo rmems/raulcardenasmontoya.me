@@ -1,17 +1,26 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ExecutionOrigin from '../../components/ExecutionOrigin.astro';
+import NeuromorphicDemo from '../../components/NeuromorphicDemo.astro';
 import NirDiagramPreview from '../../components/NirDiagramPreview.astro';
 import PlasticityNetworkPreview from '../../components/PlasticityNetworkPreview.astro';
 import { ADAPTER_SOURCE_URL } from '../../data/live-runtime';
 import { labs } from '../../data/labs';
 import '../../styles/labs.css';
+import '../../styles/home-lab.css';
 ---
 <BaseLayout title="Labs" description="Focused neuromorphic experiments. Each lab labels where its data comes from and stays readable without JavaScript.">
   <section class="page-intro compact" aria-labelledby="labs-title">
     <p class="eyebrow">Labs</p>
     <h1 id="labs-title">Focused experiments, one question each.</h1>
-    <p>Each lab isolates one part of the neuromorphic stack. Every page states where its data comes from, and none of them is the live simulation on the homepage.</p>
+    <p>Each lab isolates one part of the neuromorphic stack. Every page states where its data comes from, and the live simulation from the homepage, with its full telemetry, is right below.</p>
+  </section>
+  <section class="labs-signal" id="live-demo" aria-label="Live demo with full telemetry">
+    <NeuromorphicDemo labelledBy="live-telemetry-title" signalMesh>
+      <div class="hero-heading" slot="heading"><p class="eyebrow">Live demo · full telemetry</p></div>
+      <h2 id="live-telemetry-title">The homepage network, with every reading open.</h2>
+      <p class="hero-copy">The same Rust/WASM simulation as the homepage hero, with the crate trail, the encoder switch and the full telemetry panel: spike rates, neuron chips and per-synapse tables, read from each live snapshot.</p>
+    </NeuromorphicDemo>
   </section>
   <section class="labs-index" aria-label="Available labs">
     <ol class="labs-list">

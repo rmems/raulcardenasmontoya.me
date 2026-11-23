@@ -15,19 +15,68 @@ import '../styles/hero.css';
 // by the renderer's own rules. WebGL later draws over the same reserved box,
 // so nothing moves when it takes over. The surrounding hero copy comes from
 // the page through the slots.
+// `backdrop` (round 2 of mockup/home-lab-direction): the mesh fills the whole
+// dark hero behind the copy, in the signal palette (warm greys, one orange for
+// spikes), so both edge sets carry that palette.
+const { compact = false, backdrop = false, journal = false, labelledBy = 'hero-title', signalMesh = backdrop || journal } = Astro.props as { compact?: boolean; backdrop?: boolean; journal?: boolean; labelledBy?: string; signalMesh?: boolean };
+// `journal` (round 5): the homepage hero as a two-column research-journal
+// figure (ink diagram, ringed neurons, teal firing, callouts on real nodes) in
+// both themes; dark swaps paper for ink and ink lines for bone.
+const homeHero = backdrop || journal;
+// Round 4: neurons are cool teal and flash brighter (near-white on ink) when
+// they fire; synapses stay neutral (warm bone = excitatory, slate blue =
+// inhibitory). Orange is kept for UI only. The ink hero always uses the dark
+// set; `signalMesh` (the /labs/ demo) follows the colour scheme. The live
+// renderer reads the same values from CSS tokens scoped to the surface
+// (home-lab.css), so first paint and live frames match.
+const SIGNAL_MESH_PALETTE = Object.freeze({ accent: '#d8d0c4', secondary: '#7d8fb3', spike: '#e6fffb', muted: '#2dd4bf', line: '#2a2926' });
+const SIGNAL_MESH_PALETTE_LIGHT = Object.freeze({ accent: '#5f574e', secondary: '#4a5f8c', spike: '#14b8a6', muted: '#0f766e', line: '#ded5c7' });
+// Light journal figure: ink synapses (slate for inhibitory), white neuron fill
+// that fills deep teal as a neuron fires (teal neurons in both themes). The ink ring is drawn separately.
+const INK_MESH_PALETTE = Object.freeze({ accent: '#23211e', secondary: '#5b6b88', spike: '#0f766e', muted: '#ffffff', line: '#e2d9cb' });
+// Dark (r6): the same figure on ink — bone lines, ink fill inside a white
+// ring, #2dd4bf firing. One renderer and one layout for both themes.
+const INK_MESH_PALETTE_DARK = Object.freeze({ accent: '#e8e1d4', secondary: '#9aa8c7', spike: '#2dd4bf', muted: '#0d0d0f', line: '#2a2926' });
 const topology = auditedBrowserTopology();
-const mesh = staticMeshGeometry(topology);
+const mesh = journal ? staticMeshGeometry(topology, INK_MESH_PALETTE) : backdrop ? staticMeshGeometry(topology, SIGNAL_MESH_PALETTE) : signalMesh ? staticMeshGeometry(topology, SIGNAL_MESH_PALETTE_LIGHT) : staticMeshGeometry(topology);
 // The dark-scheme edge colours; hero.css shows one set per colour scheme.
-const meshDark = staticMeshGeometry(topology, SITE_TOPOLOGY_PALETTE_DARK);
+const meshDark = journal ? staticMeshGeometry(topology, INK_MESH_PALETTE_DARK) : signalMesh ? staticMeshGeometry(topology, SIGNAL_MESH_PALETTE) : staticMeshGeometry(topology, SITE_TOPOLOGY_PALETTE_DARK);
 const nodeCount = mesh.nodes.length;
 const edgeCount = mesh.edges.length;
 const nodePath = mesh.nodes.map((node) => `M${node.x} ${node.y}h0`).join('');
+// Journal callouts, anchored at build time to real geometry: the strongest
+// synapse (by |weight|) and neuron 0, which axon-encoder channel 0 drives
+// (channel c drives every neuron n with n mod 16 = c). The "spike event"
+// callout is placed at runtime on a neuron that just fired.
+let strongest = 0;
+for (let edge = 1; edge < topology.edgeWeights.length; edge += 1) {
+  if (Math.abs(topology.edgeWeights[edge]) > Math.abs(topology.edgeWeights[strongest])) strongest = edge;
+}
+const strongEdge = mesh.edges[strongest];
+const strongMid = { x: (strongEdge.x1 + strongEdge.x2) / 2, y: (strongEdge.y1 + strongEdge.y2) / 2 };
+const strongWeight = Math.abs(topology.edgeWeights[strongest]).toFixed(2);
+// Labels sit in the empty corners of the square around the ring: spike event
+// top right, input bottom left, the synapse in whichever other corner is on
+// its side (top left above the centre, bottom right below it).
+const strongSide = strongMid.y < 0 ? -1 : 1;
+// Text runs inward from the corner (left labels start-anchored, right ones
+// end-anchored), so it stays inside the figure's box.
+const strongLabel = strongSide < 0 ? { x: -1.42, y: -1.24 } : { x: 1.42, y: 1.2 };
+const strongAnchor = strongSide < 0 ? 'start' : 'end';
+const strongLeaderFrom = strongSide < 0 ? { x: -1.0, y: -1.12 } : { x: 1.0, y: 1.08 };
+const inputNode = mesh.nodes[0];
+const inputLabel = { x: -1.42, y: 1.2 };
+const spikeLabel = { x: 1.42, y: -1.24 };
+const calloutNodes = JSON.stringify(mesh.nodes.map((node) => [node.x, node.y]));
 // The caption states the replay rate from the same constants the renderer uses.
 const simulationHz = 1000 / DEMO_TICK_MS;
 const pulseSpeedLabel = `1/${Math.round(1 / PULSE_DISPLAY_SPEED)}`;
+// `compact` (mockup/home-lab-direction): the homepage keeps the live plate,
+// Play/Pause, a tiny legend and a one-line spec; the long explanation, the
+// crate trail, the encoder switch and the telemetry panel live on /labs/.
 ---
-<div class="live-hero" data-neuromorphic-demo>
-  <section class="hero hero-live" aria-labelledby="hero-title">
+<div class:list={['live-hero', { 'live-hero--compact': compact, 'live-hero--backdrop': backdrop, 'live-hero--journal': journal, 'live-hero--signal-mesh': signalMesh && !journal }]} data-neuromorphic-demo>
+  <section class="hero hero-live" aria-labelledby={labelledBy}>
     <slot name="heading" />
     <div class="hero-text"><slot /></div>
     <figure class="hero-mesh" data-demo-viewport>
@@ -44,9 +93,35 @@ const pulseSpeedLabel = `1/${Math.round(1 / PULSE_DISPLAY_SPEED)}`;
             {meshDark.edges.map((edge) => <line x1={edge.x1} y1={edge.y1} x2={edge.x2} y2={edge.y2} stroke={edge.stroke} />)}
           </g>
           <path class="hero-mesh-nodes" d={nodePath} stroke={mesh.nodeFill} stroke-width={mesh.nodeSize} />
+          {journal ? <path class="hero-mesh-nodes-core" d={nodePath} stroke-width={mesh.nodeSize * 0.7} /> : null}
         </svg>
+        {journal ? (
+          <svg class="hero-callouts" viewBox={mesh.viewBox} aria-hidden="true" font-size="0.08" data-callouts data-callout-nodes={calloutNodes}>
+            <defs>
+              <marker id="callout-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="0.07" markerHeight="0.07" orient="auto-start-reverse"><path d="M0 1 L9 5 L0 9" fill="none" stroke="currentColor" stroke-width="1.4" /></marker>
+            </defs>
+            <g class="hero-callout hero-callout--synapse">
+              <line class="hero-callout-strong" x1={strongEdge.x1} y1={strongEdge.y1} x2={strongEdge.x2} y2={strongEdge.y2} />
+              <line class="hero-callout-leader" x1={strongLeaderFrom.x} y1={strongLeaderFrom.y} x2={strongMid.x} y2={strongMid.y} marker-end="url(#callout-arrow)" />
+              <text x={strongLabel.x} y={strongLabel.y} text-anchor={strongAnchor}>synapse weight</text>
+              <text class="hero-callout-sub" font-size="0.062" x={strongLabel.x} y={strongLabel.y + 0.09} text-anchor={strongAnchor}>{`strongest, |w| = ${strongWeight}`}</text>
+            </g>
+            <g class="hero-callout hero-callout--input">
+              <line class="hero-callout-leader" x1={-1.0} y1={1.08} x2={inputNode.x - 0.05} y2={inputNode.y + 0.04} marker-end="url(#callout-arrow)" />
+              <text x={inputLabel.x} y={inputLabel.y} text-anchor="start">input</text>
+              <text class="hero-callout-sub" font-size="0.062" x={inputLabel.x} y={inputLabel.y + 0.09} text-anchor="start">encoder channel 0 → n0</text>
+            </g>
+            <g class="hero-callout hero-callout--spike" data-callout-spike>
+              <line class="hero-callout-leader" data-callout-spike-leader x1={1.0} y1={-1.12} x2={0.8} y2={-0.9} marker-end="url(#callout-arrow)" />
+              <text x={spikeLabel.x} y={spikeLabel.y} text-anchor="end">spike event</text>
+              <text class="hero-callout-sub" font-size="0.062" data-callout-spike-sub x={spikeLabel.x} y={spikeLabel.y + 0.09} text-anchor="end">a neuron that just fired</text>
+            </g>
+          </svg>
+        ) : null}
+        {backdrop ? <span class="hero-stage-scrim" aria-hidden="true"></span> : null}
+        {homeHero ? <div class="hero-controls-pad" data-controls-pad role="application" aria-label="Network input: arrow keys move it, Space presses" aria-describedby="hero-controls-hint" hidden><span class="hero-controls-cursor" aria-hidden="true"></span></div> : null}
         <p class="hero-mesh-input"><span data-input="scripted">input: scripted path</span><span data-input="pointer">input: your pointer</span></p>
-        <button type="button" class="button button-secondary hero-mesh-play" data-demo-play hidden>Play animation</button>
+        {journal ? null : <button type="button" class="button button-secondary hero-mesh-play" data-demo-play hidden>Play animation</button>}
         <span class="hero-stage-hud" aria-hidden="true"><span class="hero-stage-hud-label">SNN // LIVE MESH</span><span class="hero-stage-hud-label hero-stage-hud-label--end">RUST → WASM</span><span class="hero-stage-corner hero-stage-corner--tl"></span><span class="hero-stage-corner hero-stage-corner--tr"></span><span class="hero-stage-corner hero-stage-corner--bl"></span><span class="hero-stage-corner hero-stage-corner--br"></span></span>
       </div>
       <figcaption class="hero-mesh-caption">
@@ -56,14 +131,44 @@ const pulseSpeedLabel = `1/${Math.round(1 / PULSE_DISPLAY_SPEED)}`;
           <li><span class="hero-mesh-legend-key hero-mesh-legend-synapse hero-mesh-legend-excitatory" aria-hidden="true"></span>Excitatory synapse</li>
           <li><span class="hero-mesh-legend-key hero-mesh-legend-synapse hero-mesh-legend-inhibitory" aria-hidden="true"></span>Inhibitory synapse</li>
         </ul>
+        {journal ? (
+          <p class="hero-fig">
+            <span data-when="idle">Fig. 01 — {nodeCount} neurons, {edgeCount} synapses, drawn from the topology the live simulation runs.</span>
+            <span data-when="live">Fig. 01 — {nodeCount} neurons, {edgeCount} synapses, simulated live in the browser.</span>
+          </p>
+        ) : null}
         <div class="hero-mesh-meta">
           <ExecutionOrigin origin="static-diagram" runtimeBound />
           <span class="hero-mesh-mode">
-            <span data-when="idle">{nodeCount} neurons · {edgeCount} synapses</span>
-            <span data-when="live">{nodeCount} neurons · {edgeCount} synapses · simulating in this browser at {simulationHz} Hz · pulses shown at {pulseSpeedLabel} speed</span>
-            <span data-when="live-still">{nodeCount} neurons · {edgeCount} synapses · simulating in this browser at {simulationHz} Hz · pulses shown at {pulseSpeedLabel} speed (none in the lightest quality mode) · view held still</span>
+            <span data-when="idle">{nodeCount} neurons · {edgeCount} synapses{compact ? ' · Rust → WASM' : ''}</span>
+            <span data-when="live">{compact ? `${nodeCount} neurons · ${edgeCount} synapses · Rust → WASM · live at ${simulationHz} Hz` : null}{compact ? null : <>{nodeCount} neurons · {edgeCount} synapses · simulating in this browser at {simulationHz} Hz · pulses shown at {pulseSpeedLabel} speed</>}</span>
+            <span data-when="live-still">{compact ? `${nodeCount} neurons · ${edgeCount} synapses · Rust → WASM · live at ${simulationHz} Hz · view held still` : null}{compact ? null : <>{nodeCount} neurons · {edgeCount} synapses · simulating in this browser at {simulationHz} Hz · pulses shown at {pulseSpeedLabel} speed (none in the lightest quality mode) · view held still</>}</span>
           </span>
         </div>
+        {compact ? (
+          <>
+            <p class="hero-mesh-links"><a href="/labs/#live-telemetry">Full telemetry on Labs <span aria-hidden="true">→</span></a></p>
+            {homeHero ? (
+              <>
+                {journal ? <button type="button" class="button button-secondary hero-mesh-play" data-demo-play hidden>Play animation</button> : null}
+                <button type="button" class="hero-controls-toggle" data-controls-toggle aria-pressed="false" aria-controls="hero-controls-row" hidden>Take the controls</button>
+                <div class="hero-controls-row" id="hero-controls-row" data-controls-row hidden>
+                  <fieldset class="hero-mesh-encoder" data-demo-encoder disabled>
+                    <legend>Encoder</legend>
+                    <div class="hero-mesh-encoder-options">
+                      {ENCODER_MODE_NAMES.map((mode) => (
+                        <label><input type="radio" name="encoder-mode" value={mode} checked={mode === DEFAULT_ENCODER_MODE} /> {mode}</label>
+                      ))}
+                    </div>
+                  </fieldset>
+                  <p class="hero-controls-hint" id="hero-controls-hint">Move or press on the network to drive its input. Keys: arrows move, Space presses, Esc exits. Switching the encoder restarts the run with the same seed.</p>
+                  <button type="button" class="hero-controls-exit" data-controls-exit>Exit <kbd>Esc</kbd></button>
+                </div>
+              </>
+            ) : null}
+          </>
+        ) : (
+          <>
         <ol class="crate-trail" aria-label="Crate layers behind the live simulation, in pipeline order">
           {liveCrateLayers.map((layer) => (
             <li><a href={crateLayerHref(layer)}>{layer.name}</a> <span class="crate-pin">{crateLayerPin(layer)}</span></li>
@@ -78,6 +183,8 @@ const pulseSpeedLabel = `1/${Math.round(1 / PULSE_DISPLAY_SPEED)}`;
             ))}
           </div>
         </fieldset>
+          </>
+        )}
         <p class="demo-status" data-demo-status role="status" aria-live="polite">{STATIC_DEMO_STATUS}</p>
         <noscript>
           <p class="demo-status demo-status-noscript">JavaScript is required for the live visualization. Navigation and the rest of this page remain available.</p>
@@ -86,6 +193,7 @@ const pulseSpeedLabel = `1/${Math.round(1 / PULSE_DISPLAY_SPEED)}`;
     </figure>
     <slot name="index" />
   </section>
+  {compact ? null : (
   <section class="hero-runtime" aria-labelledby="demo-title">
     <div class="hero-runtime-heading">
       <p class="eyebrow">Neuromorphic demo</p>
@@ -98,11 +206,45 @@ const pulseSpeedLabel = `1/${Math.round(1 / PULSE_DISPLAY_SPEED)}`;
     </div>
     <DemoTelemetry />
   </section>
+  )}
 </div>
 <script>
   import { enhanceNeuromorphicDemos } from '../runtime/enhance-demo';
+  import { bindHeroControls } from '../runtime/hero-controls';
+  import { bindHeroCallouts } from '../runtime/hero-callouts';
   try {
     enhanceNeuromorphicDemos();
+    const disposers: Array<() => void> = [];
+    for (const root of document.querySelectorAll<HTMLElement>('[data-neuromorphic-demo]')) {
+      const disposeControls = bindHeroControls(root);
+      if (disposeControls) disposers.push(disposeControls);
+      const disposeCallouts = bindHeroCallouts(root);
+      if (disposeCallouts) disposers.push(disposeCallouts);
+    }
+    // Astro page swaps replace the island without unloading the document:
+    // release the hero bindings first so repeated mounts do not accumulate
+    // stale document/window listeners and retained DOM.
+    let heroBindingsDisposed = false;
+    const disposeHeroBindings = () => {
+      if (heroBindingsDisposed) return;
+      heroBindingsDisposed = true;
+      document.removeEventListener('astro:before-swap', disposeHeroBindings);
+      for (const dispose of disposers.splice(0)) {
+        try {
+          dispose();
+        } catch {
+          // Teardown must not break swaps.
+        }
+      }
+    };
+    document.addEventListener('astro:before-swap', disposeHeroBindings);
+    // The homepage caption links to /labs/#live-telemetry: open the panel it points at.
+    const openTelemetryFromHash = () => {
+      const panel = location.hash === '#live-telemetry' ? document.querySelector<HTMLDetailsElement>('details#live-telemetry') : null;
+      if (panel) panel.open = true;
+    };
+    openTelemetryFromHash();
+    addEventListener('hashchange', openTelemetryFromHash);
   } catch {
     // Keep static navigation and explanatory content available.
   }

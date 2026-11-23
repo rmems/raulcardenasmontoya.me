@@ -1,0 +1,7 @@
+---
+import SpikeGlyph from './SpikeGlyph.astro';
+// Numbered section marker: "01 / WORK". Purely a wayfinding label; each
+// section keeps its own <h2>.
+const { number, label } = Astro.props as { number: string; label: string };
+---
+<p class="section-marker"><SpikeGlyph /><span class="section-marker-number">{number}</span><span class="section-marker-slash" aria-hidden="true">/</span><span>{label}</span></p>

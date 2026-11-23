@@ -1,0 +1,25 @@
+---
+import type { Project } from '../../data/projects';
+// Image-led homepage card (round 2): a large visual on top, then a mono
+// kicker, a Newsreader title, a one-line outcome, up to two snapshot-backed
+// metrics, mono tags, "Read the brief" and a quiet repository link.
+interface Metric { value: string; label: string }
+interface Props { project: Project; outcome: string; metrics: Metric[]; featured?: boolean }
+const { project, outcome, metrics, featured = false } = Astro.props as Props;
+const repository = project.links.find((link) => link.label === 'Repository') ?? project.links[0];
+const titleId = `home-card-${project.slug}`;
+---
+<article class:list={['home-card', { 'home-card--featured': featured }]} aria-labelledby={titleId}>
+  <div class="home-card-visual"><slot /></div>
+  <div class="home-card-body">
+    <p class="home-card-kicker">{project.category}</p>
+    <h3 id={titleId}><a href={`/work/#${project.slug}`}>{project.name}</a></h3>
+    <p class="home-card-outcome">{outcome}</p>
+    {metrics.length > 0 ? <dl class="home-card-metrics">{metrics.slice(0, 2).map((metric) => <div><dt>{metric.label}</dt><dd>{metric.value}</dd></div>)}</dl> : null}
+    <ul class="home-card-tags" aria-label={`${project.name} technologies`}>{project.technologies.slice(0, 3).map((tag) => <li>{tag}</li>)}</ul>
+    <p class="home-card-links">
+      <a class="home-card-brief" href={`/work/#${project.slug}`}>Read the brief<span class="visually-hidden"> on {project.name}</span> <span aria-hidden="true">→</span></a>
+      {repository ? <a class="home-card-repo" href={repository.href} target="_blank" rel="noreferrer">{repository.label}<span class="visually-hidden"> for {project.name} (opens in new tab)</span> <span aria-hidden="true">↗</span></a> : null}
+    </p>
+  </div>
+</article>

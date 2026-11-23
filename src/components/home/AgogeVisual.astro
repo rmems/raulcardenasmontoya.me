@@ -1,0 +1,13 @@
+---
+// agoge-forger visual: the recorded base-versus-SFT canary from structured
+// project data (src/data/projects.ts), one cell per hidden case.
+import { agogeCanary } from '../../data/projects';
+const { score, total, improved, regressed, tied } = agogeCanary;
+const cells = [...Array(improved).fill('up'), ...Array(regressed).fill('down'), ...Array(tied).fill('tie')];
+---
+  <div class="visual visual--paper visual-agoge">
+    <p class="visual-stat"><strong>{score}/{total}</strong> base = <strong>{score}/{total}</strong> SFT</p>
+    <ol class="case-grid" aria-label={`${total} hidden cases: ${improved} improved, ${regressed} regressed, ${tied} tied`}>{cells.map((kind) => <li class={`case case-${kind}`}></li>)}</ol>
+    <p class="case-legend"><span class="case case-up"></span>{improved} improved <span class="case case-down"></span>{regressed} regressed <span class="case case-tie"></span>{tied} tied</p>
+    <p class="visual-caption">hidden cases · fence-normalized outputs</p>
+  </div>
