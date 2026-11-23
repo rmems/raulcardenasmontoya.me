@@ -347,11 +347,16 @@ code {
 /* The pill hugs the right edge of an equal-share box: the box (this link)
    matches the brand's share so the nav stays centered, while the visible
    pill itself shrink-wraps its text via the inner span. Styling the span —
-   not the stretched box — keeps the pill compact on one line and on rows. */
+   not the stretched box — keeps the pill compact on one line and on rows.
+   Only the pill is interactive: the stretched box passes clicks through and
+   the keyboard focus ring draws around the pill, so the whole empty share
+   neither opens a draft on click nor outlines half the header on Tab
+   (kilo on #184). */
 .header-profile {
   flex: 1 1 0;
   display: flex;
   justify-content: flex-end;
+  pointer-events: none;
 }
 
 .header-profile > span {
@@ -360,11 +365,20 @@ code {
   border-radius: var(--radius-pill);
   background: var(--surface-glass);
   transition: color 180ms ease, border-color 180ms ease;
+  pointer-events: auto;
 }
 
 .header-profile:hover > span {
   color: var(--accent);
   border-color: var(--accent);
+}
+
+.header-profile:focus-visible { outline: none; }
+
+.header-profile:focus-visible > span {
+  outline: 3px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 2px;
 }
 
 .hero {

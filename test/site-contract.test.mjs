@@ -80,13 +80,21 @@ test('the responsive stylesheet does not force horizontal scrolling on narrow sc
   assert.match(styles, /\.brand \{[^}]*flex: 1 1 0;/);
   assert.match(styles, /\.header-profile \{[^}]*flex: 1 1 0;/);
   // The pill hugs the right edge of its (equal-share) box via an inner span,
-  // so the visible pill never stretches while the box does.
+  // so the visible pill never stretches while the box does. Only the pill
+  // is interactive: the stretched box passes clicks through and the focus
+  // ring draws around the pill (kilo on #184).
   assert.match(styles, /\.header-profile > span \{[^}]*border: 1px solid var\(--ink\);/);
+  assert.match(styles, /\.header-profile \{[^}]*pointer-events: none;/);
+  assert.match(styles, /\.header-profile > span \{[^}]*pointer-events: auto;/);
+  assert.match(styles, /\.header-profile:focus-visible > span \{[^}]*outline: 3px solid var\(--accent\);/);
   // A wrapped masthead scrolls away: the inline script in BaseLayout counts
   // rendered header rows and sets data-stacked, which beats the sticky rule
   // by specificity. No px- or em-based media query can detect wrapping.
+  // The observer is guarded like the renderer's: without it the header
+  // simply stays sticky, as before (kilo on #184).
   assert.match(read('src/layouts/BaseLayout.astro'), /data-stacked/);
   assert.match(read('src/layouts/BaseLayout.astro'), /getBoundingClientRect/);
+  assert.match(read('src/layouts/BaseLayout.astro'), /typeof ResizeObserver === 'function'/);
   assert.match(styles, /\.site-header\[data-stacked\] \{[^}]*position: relative;/);
   assert.doesNotMatch(styles, /white-space: nowrap/, 'labels and links wrap when their box is narrow');
   // The live telemetry panel (homepage) shrinks and stacks with text size,

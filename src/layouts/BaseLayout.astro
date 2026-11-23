@@ -79,25 +79,30 @@ const socialImageAlt = `${site.fullName} — ${site.title}, raulcardenasmontoya.
       // already scrolls the header away below 900px; this covers wrapping at
       // wider viewports, which no px- or em-based media query can detect.
       // Rows are counted by vertical overlap (not by distinct tops: brand,
-      // nav and pill have different heights even on one line).
-      new ResizeObserver(() => {
+      // nav and pill have different heights even on one line). Guarded like
+      // the renderer's observer: without ResizeObserver the header simply
+      // stays sticky, as before.
+      if (typeof ResizeObserver === 'function') {
         const header = document.querySelector('.site-header');
-        if (!header) return;
-        const boxes = [...header.children].map((child) => child.getBoundingClientRect());
-        boxes.sort((a, b) => a.top - b.top);
-        let rows = 0;
-        let bottom = -Infinity;
-        for (const box of boxes) {
-          if (box.top > bottom + 1) {
-            rows += 1;
-            bottom = box.bottom;
-          } else {
-            bottom = Math.max(bottom, box.bottom);
-          }
+        if (header) {
+          new ResizeObserver(() => {
+            const boxes = [...header.children].map((child) => child.getBoundingClientRect());
+            boxes.sort((a, b) => a.top - b.top);
+            let rows = 0;
+            let bottom = -Infinity;
+            for (const box of boxes) {
+              if (box.top > bottom + 1) {
+                rows += 1;
+                bottom = box.bottom;
+              } else {
+                bottom = Math.max(bottom, box.bottom);
+              }
+            }
+            if (rows > 1) header.setAttribute('data-stacked', '');
+            else header.removeAttribute('data-stacked');
+          }).observe(header);
         }
-        if (rows > 1) header.setAttribute('data-stacked', '');
-        else header.removeAttribute('data-stacked');
-      }).observe(document.querySelector('.site-header'));
+      }
     </script>
   </body>
 </html>
