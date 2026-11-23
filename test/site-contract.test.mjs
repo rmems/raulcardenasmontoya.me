@@ -645,17 +645,18 @@ test('the homepage hero hosts the live demo static-first and traces it to its cr
 
   // RM-2354: the mesh column is at least 480 px wide at 1440 px, so the
   // 1/4-speed pulses have room to read. Dimensions below come from the
-  // stylesheet tokens, defined once so the two computations below cannot
-  // drift apart (mlai on #187): the shell keeps --max, the gutters are
-  // two --gutter columns at the 3rem cap (4vw exceeds it above 1200 px),
-  // and the base hero gap clamps at 4.5rem — all at the 16px test root.
+  // stylesheet tokens, each parsed where it lives, so the two computations
+  // cannot drift apart when the stylesheet changes (mlai on #187). The 16px
+  // root is the browser default the layout check runs at, not a token.
   const shellMax = Number(read('src/styles/global.css').match(/--max: (\d+)px/)[1]);
-  const GUTTER_PX = 2 * 3 * 16;
+  const gutterCapRem = Number(read('src/styles/global.css').match(/--gutter: clamp\([\d.]+rem, [\d.]+vw, ([\d.]+)rem\)/)[1]);
+  const ROOT_PX = 16;
+  const GUTTER_PX = 2 * gutterCapRem * ROOT_PX;
   const heroTracks = styles.match(/\.hero\.hero-live \{[\s\S]*?grid-template-columns: ([^;]+);/);
   assert.ok(heroTracks, 'the hero-live grid columns');
   const heroFr = [...heroTracks[1].matchAll(/minmax\(0, ([\d.]+)fr\)/g)].map((match) => Number(match[1]));
   assert.ok(heroFr.length === 2 && heroFr.every((fr) => fr > 0), 'two minmax(0, …fr) tracks');
-  const meshColumnPx = (shellMax - GUTTER_PX - 4.5 * 16) * (heroFr[1] / (heroFr[0] + heroFr[1]));
+  const meshColumnPx = (shellMax - GUTTER_PX - 4.5 * ROOT_PX) * (heroFr[1] / (heroFr[0] + heroFr[1]));
   assert.ok(meshColumnPx >= 480, `the mesh column is ≥ 480 px at 1440 px (it is ${meshColumnPx.toFixed(1)} px)`);
 
   // The journal homepage re-grids the hero, so the same bar is measured

@@ -110,6 +110,23 @@ export function bindHeroControls(root: HTMLElement): (() => void) | null {
       set(false);
     }
   };
+  // Held presses need a keepalive that does not depend on OS key repeat:
+  // with repeat disabled no repeat events arrive, and the telemetry would
+  // otherwise idle back to its scripted path mid-press (devin analysis on
+  // #187). A 500 ms interval comfortably beats its ~3 s idle timeout.
+  let keepAlive: ReturnType<typeof setInterval> | null = null;
+  const startKeepAlive = () => {
+    if (keepAlive !== null) return;
+    keepAlive = setInterval(() => {
+      if (pressed) dispatch('pointermove', 0.5);
+    }, 500);
+  };
+  const stopKeepAlive = () => {
+    if (keepAlive !== null) {
+      clearInterval(keepAlive);
+      keepAlive = null;
+    }
+  };
   const onPadKeydown = (event: KeyboardEvent) => {
     const step = event.shiftKey ? BIG_STEP : STEP;
     const moves: Record<string, [number, number] | undefined> = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
@@ -123,17 +140,15 @@ export function bindHeroControls(root: HTMLElement): (() => void) | null {
     } else if (event.key === ' ' || event.key === 'Enter') {
       // Cancel every handled keydown, not just the first: repeated keydowns
       // have their own default actions, and an uncancelled one scrolls the
-      // page while the visitor holds the press. Repeats while held keep the
-      // pointer stream alive instead of idling the telemetry back to its
-      // scripted path (coderabbit on #187).
+      // page while the visitor holds the press (devin BUG + coderabbit on
+      // #187). The keep-alive interval below — not repeats — sustains the
+      // gesture, so held presses work with key repeat on or off.
       event.preventDefault();
-      if (event.repeat) {
-        if (pressed) dispatch('pointermove', 0.5);
-        return;
-      }
+      if (event.repeat) return;
       pressed = true;
       pad.dataset.pressed = 'true';
       dispatch('pointerdown', 0.5);
+      startKeepAlive();
     }
   };
   const onPadKeyup = (event: KeyboardEvent) => {
@@ -143,11 +158,13 @@ export function bindHeroControls(root: HTMLElement): (() => void) | null {
       delete pad.dataset.pressed;
       dispatch('pointerup', 0);
     }
+    stopKeepAlive();
   };
   const onPadBlur = () => {
     if (pressed) dispatch('pointerup', 0);
     pressed = false;
     delete pad.dataset.pressed;
+    stopKeepAlive();
   };
 
   const observer = new MutationObserver(syncAvailability);
@@ -163,6 +180,7 @@ export function bindHeroControls(root: HTMLElement): (() => void) | null {
   window.addEventListener('resize', placeCursor);
 
   return () => {
+    stopKeepAlive();
     observer.disconnect();
     toggle.removeEventListener('click', onToggle);
     exit.removeEventListener('click', onExit);
