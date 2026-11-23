@@ -652,11 +652,18 @@ test('the homepage hero hosts the live demo static-first and traces it to its cr
   const gutterCapRem = Number(read('src/styles/global.css').match(/--gutter: clamp\([\d.]+rem, [\d.]+vw, ([\d.]+)rem\)/)[1]);
   const ROOT_PX = 16;
   const GUTTER_PX = 2 * gutterCapRem * ROOT_PX;
-  const heroTracks = styles.match(/\.hero\.hero-live \{[\s\S]*?grid-template-columns: ([^;]+);/);
+  const heroRule = styles.match(/\.hero\.hero-live \{([^}]*)\}/);
+  assert.ok(heroRule, 'the hero-live grid rule');
+  const heroTracks = /grid-template-columns: ([^;]+);/.exec(heroRule[1]);
   assert.ok(heroTracks, 'the hero-live grid columns');
   const heroFr = [...heroTracks[1].matchAll(/minmax\(0, ([\d.]+)fr\)/g)].map((match) => Number(match[1]));
   assert.ok(heroFr.length === 2 && heroFr.every((fr) => fr > 0), 'two minmax(0, …fr) tracks');
-  const meshColumnPx = (shellMax - GUTTER_PX - 4.5 * ROOT_PX) * (heroFr[1] / (heroFr[0] + heroFr[1]));
+  const heroGap = /column-gap: clamp\(([\d.]+)rem, ([\d.]+)vw, ([\d.]+)rem\)/.exec(heroRule[1]);
+  assert.ok(heroGap, 'the hero-live column gap clamp');
+  const [, gapMin, gapVw, gapMax] = heroGap.map(Number);
+  const VIEWPORT_PX = 1440;
+  const gapPx = Math.min(Math.max(gapMin * ROOT_PX, (VIEWPORT_PX * gapVw) / 100), gapMax * ROOT_PX);
+  const meshColumnPx = (shellMax - GUTTER_PX - gapPx) * (heroFr[1] / (heroFr[0] + heroFr[1]));
   assert.ok(meshColumnPx >= 480, `the mesh column is ≥ 480 px at 1440 px (it is ${meshColumnPx.toFixed(1)} px)`);
 
   // The journal homepage re-grids the hero, so the same bar is measured
