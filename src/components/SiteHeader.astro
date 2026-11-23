@@ -14,5 +14,5 @@ const visibleNavigation = navigation.filter((item) => !item.requires || availabl
 <header class="site-header">
   <a class="brand" href="/" aria-label={`${site.name} home`}><Monogram /><span>{site.name}</span></a>
   <nav class="primary-nav" aria-label="Primary navigation">{visibleNavigation.map((item) => <a href={item.href} aria-current={isCurrent(item.href) ? 'page' : undefined}>{item.label}</a>)}</nav>
-  <a class="header-profile" href={`mailto:${site.email}`}>Email <span aria-hidden="true">↗</span></a>
+  <a class="header-profile" href={`mailto:${site.email}`}><span>Email <span aria-hidden="true">↗</span></span></a>
 </header>

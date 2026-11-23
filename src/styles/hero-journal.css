@@ -49,7 +49,7 @@
 /* #181 rolled the masthead into `src/styles/global.css`: ink rules on a paper
    ground, the serif name and links, --j-red on hover and on the current page.
    The name wraps like any other label when its box is narrow (the overflow
-   contract forbids `white-space: nowrap`, and CI's wide fallback font at 200%
+   contract forbids a no-wrap declaration, and CI's wide fallback font at 200%
    text overflows the header grid when the name cannot wrap), so nothing about
    the header stays scoped here. */
 

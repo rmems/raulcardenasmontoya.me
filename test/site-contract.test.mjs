@@ -56,16 +56,15 @@ test('the responsive stylesheet does not force horizontal scrolling on narrow sc
   // Fraction tracks may shrink below their content (`minmax(0, …fr)`, or a
   // minimum no wider than the grid), so a wide fallback font wraps text
   // instead of widening the page. No grid keeps bare content-sized `fr`
-  // tracks. The masthead is a one-line grid with equal side tracks, so the
-  // navigation stays truly centered whatever the brand and pill widths
-  // (devin analysis on #184: paired flex auto-margins cannot center when the
-  // sides differ). Once the shell narrows past 40rem of *root text* — a
-  // container query, because `px` media queries cannot see a larger root text
-  // size (`em` would resolve against the container's own body-pinned font,
-  // but `rem` always tracks the root) —
-  // the three blocks stack onto their own rows instead of squeezing onto one
-  // line and spilling into each other (a collision the overflow gate cannot
-  // see; devin BUG on #184).
+  // tracks. The masthead is a wrapping flex row whose side blocks grow
+  // equally from a zero basis, so the navigation stays truly centered
+  // whatever the brand and pill widths (devin analysis on #184: paired auto
+  // margins and unequal shares cannot center when the sides differ). Every
+  // box keeps its default min-content floor (no `min-width: 0`), so when the
+  // row runs out of room the blocks wrap onto their own rows instead of
+  // squeezing into slivers or spilling into each other — a collision the
+  // overflow gate cannot see (devin BUGs on #184). A flex item can never
+  // paint past a sibling, only wrap.
   const contentSizedTracks = [...styles.matchAll(/grid-template-columns:\s*([^;]+);/g)]
     .map((match) => match[1].trim())
     .filter((tracks) =>
@@ -74,18 +73,21 @@ test('the responsive stylesheet does not force horizontal scrolling on narrow sc
       ),
     );
   assert.deepEqual(contentSizedTracks, []);
-  assert.match(styles, /\.site-header \{[^}]*display: grid;/);
-  assert.match(styles, /\.site-header \{[^}]*grid-template-columns: minmax\(0, 1fr\) auto minmax\(0, 1fr\);/);
-  assert.match(styles, /\.brand \{[^}]*justify-self: start;/);
-  assert.match(styles, /\.header-profile \{[^}]*justify-self: end;/);
-  // The shell is a font-relative query container, and the masthead stacks
-  // inside it once text outgrows the row.
-  assert.match(styles, /\.page-shell \{[^}]*container-type: inline-size;/);
-  assert.match(styles, /@container \(max-width: 40rem\) \{\s*\.site-header \{\s*display: flex;\s*flex-wrap: wrap;/);
-  assert.match(styles, /@container \(max-width: 40rem\) \{\s*\.site-header \{[^}]*\}\s*\.brand \{[^}]*margin-right: auto;/);
-  assert.match(styles, /\.header-profile \{[^}]*margin-left: auto;/);
-  // The stacked masthead scrolls away instead of pinning three rows.
-  assert.match(styles, /@container \(max-width: 40rem\) \{[\s\S]*?\.site-header \{[^}]*position: relative;/);
+  assert.match(styles, /\.site-header \{[^}]*display: flex;/);
+  assert.match(styles, /\.site-header \{[^}]*flex-wrap: wrap;/);
+  // Equal shares from a zero basis: the nav between two equal boxes is
+  // centered, whatever the brand and pill widths.
+  assert.match(styles, /\.brand \{[^}]*flex: 1 1 0;/);
+  assert.match(styles, /\.header-profile \{[^}]*flex: 1 1 0;/);
+  // The pill hugs the right edge of its (equal-share) box via an inner span,
+  // so the visible pill never stretches while the box does.
+  assert.match(styles, /\.header-profile > span \{[^}]*border: 1px solid var\(--ink\);/);
+  // A wrapped masthead scrolls away: the inline script in BaseLayout counts
+  // rendered header rows and sets data-stacked, which beats the sticky rule
+  // by specificity. No px- or em-based media query can detect wrapping.
+  assert.match(read('src/layouts/BaseLayout.astro'), /data-stacked/);
+  assert.match(read('src/layouts/BaseLayout.astro'), /getBoundingClientRect/);
+  assert.match(styles, /\.site-header\[data-stacked\] \{[^}]*position: relative;/);
   assert.doesNotMatch(styles, /white-space: nowrap/, 'labels and links wrap when their box is narrow');
   // The live telemetry panel (homepage) shrinks and stacks with text size,
   // and the layout check measures the homepage with it open.
