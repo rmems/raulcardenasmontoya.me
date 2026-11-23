@@ -340,7 +340,10 @@ test('the agoge canary visual reads structured data that matches the brief copy'
   const canary = /export const agogeCanary = \{ score: (\d+), total: (\d+), improved: (\d+), regressed: (\d+), tied: (\d+) \}(?: as const)?;/.exec(projects);
   assert.ok(canary, 'structured agoge canary');
   const [, score, total, improved, regressed, tied] = canary;
-  assert.match(projects, new RegExp(`same ${score}\\/${total} on hidden cases \\(${improved} improved, ${regressed} regressed, ${tied} tied\\)`), 'brief copy carries the canary numbers');
+  assert.ok(
+    projects.includes(`same ${score}/${total} on hidden cases (${improved} improved, ${regressed} regressed, ${tied} tied)`),
+    'brief copy carries the canary numbers',
+  );
   const visual = read('src/components/home/AgogeVisual.astro');
   assert.match(visual, /import \{ agogeCanary \} from '\.\.\/\.\.\/data\/projects'/);
   assert.doesNotMatch(visual, /\.match\(/, 'no regex parsing of copy');

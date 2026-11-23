@@ -828,7 +828,11 @@ export function createTopologyRendererSeam(options: TopologyRendererSeamOptions)
         }
       };
       schemeQuery.addEventListener('change', onSchemeChange);
-      disposables.push({ dispose: () => schemeQuery.removeEventListener('change', onSchemeChange) });
+      disposables.push({
+        dispose: () => {
+          schemeQuery.removeEventListener('change', onSchemeChange);
+        },
+      });
 
       canvas.addEventListener('webglcontextlost', (event) => {
         event.preventDefault();

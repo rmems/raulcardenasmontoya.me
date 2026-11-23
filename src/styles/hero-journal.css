@@ -289,7 +289,7 @@
    Fig. 01 caption already says the rest. Frozen counts as wrong: the
    renderer holds its last frame, so sighted visitors need the explanation
    that screen readers get from the announcement. */
-.live-hero--journal:not([data-mode='fallback']):not([data-mode='frozen']) .hero-mesh .demo-status:not(.demo-status-noscript) {
+.live-hero--journal:not([data-mode='fallback'], [data-mode='frozen']) .hero-mesh .demo-status:not(.demo-status-noscript) {
   position: absolute;
   width: 1px;
   height: 1px;

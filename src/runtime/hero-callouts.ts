@@ -51,6 +51,10 @@ export function bindHeroCallouts(root: HTMLElement): (() => void) | null {
     }
     delete group.dataset.active;
   };
+  const pokeCallout = () => {
+    if (clearTimer !== null) clearTimeout(clearTimer);
+    clearTimer = setTimeout(clearCallout, reduced.matches ? HOLD_REDUCED_MS : HOLD_MS);
+  };
 
   const onSpikes = (event: Event) => {
     // Listeners also receive plain Events, whose `detail` is undefined.
@@ -59,9 +63,8 @@ export function bindHeroCallouts(root: HTMLElement): (() => void) | null {
     // Any spike activity keeps a visible callout alive: clearing only on the
     // re-target gate would blink it off every hold interval during a live run
     // with steady spikes (devin BUG on #187). It hides once spikes stop, the
-    // mode leaves live, or the island tears down.
-    if (clearTimer !== null) clearTimeout(clearTimer);
-    clearTimer = setTimeout(clearCallout, reduced.matches ? HOLD_REDUCED_MS : HOLD_MS);
+    // mode changes, or the island tears down.
+    pokeCallout();
     const now = performance.now();
     if (now - lastMove < (reduced.matches ? HOLD_REDUCED_MS : HOLD_MS)) return;
     // The firing neuron nearest the label keeps the leader short.
