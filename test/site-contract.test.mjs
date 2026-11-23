@@ -82,11 +82,21 @@ test('the responsive stylesheet does not force horizontal scrolling on narrow sc
   // The pill hugs the right edge of its (equal-share) box via an inner span,
   // so the visible pill never stretches while the box does. Only the pill
   // is interactive: the stretched box passes clicks through and the focus
-  // ring draws around the pill (kilo on #184).
+  // ring draws around the pill (kilo + devin BUG on #184). The brand mark
+  // works the same way: its equal-share box never navigates home from empty
+  // space, and its focus ring hugs the mark.
   assert.match(styles, /\.header-profile > span \{[^}]*border: 1px solid var\(--ink\);/);
   assert.match(styles, /\.header-profile \{[^}]*pointer-events: none;/);
   assert.match(styles, /\.header-profile > span \{[^}]*pointer-events: auto;/);
   assert.match(styles, /\.header-profile:focus-visible > span \{[^}]*outline: 3px solid var\(--accent\);/);
+  assert.match(styles, /\.brand \{[^}]*pointer-events: none;/);
+  assert.match(styles, /\.brand-mark \{[^}]*pointer-events: auto;/);
+  assert.match(styles, /\.brand:focus-visible > \.brand-mark \{[^}]*outline: 3px solid var\(--accent\);/);
+  // Without JavaScript the masthead never sticks: the row observer cannot
+  // run, so a wrapped header must not pin itself over anchor targets
+  // (devin analysis on #184). `body` outranks the sticky rule by
+  // specificity, whatever the order.
+  assert.match(read('src/layouts/BaseLayout.astro'), /<noscript><style>body \.site-header \{ position: relative; \}<\/style><\/noscript>/);
   // A wrapped masthead scrolls away: the inline script in BaseLayout counts
   // rendered header rows and sets data-stacked, which beats the sticky rule
   // by specificity. No px- or em-based media query can detect wrapping.

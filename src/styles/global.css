@@ -282,8 +282,6 @@ code {
 
 .brand {
   display: inline-flex;
-  align-items: center;
-  gap: 0.7rem;
   /* Equal share with the profile block: the navigation between two equal
      boxes is centered on the page. No min-width override: the min-content
      floor (monogram plus the longest word) forces a wrap instead of mush. */
@@ -292,13 +290,33 @@ code {
   letter-spacing: -0.03em;
   text-decoration: none;
   transition: color 180ms ease;
+  /* The box spans the equal share for centering, but only the mark inside
+     is interactive: clicking the empty share must not navigate home, and the
+     keyboard focus ring draws around the mark — not half the header (devin
+     BUG on #184, same class as the profile pill). */
+  pointer-events: none;
+}
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  pointer-events: auto;
+}
+
+.brand:focus-visible { outline: none; }
+
+.brand:focus-visible > .brand-mark {
+  outline: 3px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 2px;
 }
 
 /* Masthead name in the serif, set like a journal's running head (#181).
    It wraps like any other label when its box is narrow: the overflow
    contract forbids a no-wrap declaration in this file, because a label that
    cannot wrap can widen a narrow header. */
-.brand span {
+.brand-mark > span {
   font-family: var(--serif);
   font-size: 1rem;
   font-weight: 500;
