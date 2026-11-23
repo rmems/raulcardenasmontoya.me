@@ -16,6 +16,18 @@ export const contrast = (a, b) => {
   return (lighter + 0.05) / (darker + 0.05);
 };
 
-/** Custom properties of one `:root { … }` block, as `{ name: '#rrggbb' }`. */
+/** Custom properties of one `:root { … }` block, as `{ name: '#rrggbb' }`.
+    Parsed without a nested-quantifier regex (Sonar S8786 flags those for
+    super-linear backtracking): strip comments, split the block into
+    declarations, then keep the `name: #rrggbb` ones. Only exact 6-digit hex
+    values are kept, so `rgb()`/`linear-gradient()` tokens never enter the
+    contrast math. */
 export const tokenScheme = (block) =>
-  Object.fromEntries([...block.matchAll(/--([\w-]+): (#(?:[0-9a-f]{6}));/g)].map((match) => [match[1], match[2]]));
+  Object.fromEntries(
+    block
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .split(';')
+      .map((declaration) => declaration.trim().split(':').map((part) => part.trim()))
+      .filter((parts) => parts.length === 2 && /^--[\w-]+$/.test(parts[0]) && /^#[0-9a-f]{6}$/.test(parts[1]))
+      .map(([name, value]) => [name.slice(2), value]),
+  );
