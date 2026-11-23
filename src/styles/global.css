@@ -233,22 +233,24 @@ code {
   width: min(100%, var(--max));
   margin: 0 auto;
   padding: 0 var(--gutter);
+  /* Query container for the font-relative masthead rule below. */
+  container-type: inline-size;
 }
 
 .site-header {
   position: relative;
   z-index: 30;
   min-height: 94px;
-  /* Wrapping flex, not grid (#181): at large text sizes in a wide fallback
-     font the three masthead blocks wrap onto their own rows instead of
-     squeezing onto one line and spilling into each other — a collision the
-     overflow gate cannot see (devin BUG on #184). On one line the paired auto
-     margins below read exactly like the old 1fr-auto-1fr grid: brand left,
-     navigation centered, profile right. */
-  display: flex;
-  flex-wrap: wrap;
+  /* One-line journal masthead (r6): equal side tracks keep the navigation
+     truly centered, whatever the brand and pill widths. The tracks are
+     zero-minimum so nothing sticks out while space remains; once the shell
+     narrows past 62em of text, the container query below stacks the three
+     blocks onto their own rows instead of squeezing them onto one line and
+     spilling into each other (a collision the overflow gate cannot see). */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  gap: 1rem 2rem;
+  gap: 2rem;
   /* Journal masthead (#181): ink rules top and bottom on a flat paper ground,
      identical on every page and in both schemes (the old indigo/teal gradient
      wash and hairline are gone with the palette). */
@@ -273,8 +275,8 @@ code {
   display: inline-flex;
   align-items: center;
   gap: 0.7rem;
+  justify-self: start;
   min-width: 0;
-  margin-right: auto;
   font-weight: 750;
   letter-spacing: -0.03em;
   text-decoration: none;
@@ -332,9 +334,9 @@ code {
 }
 
 .header-profile {
+  justify-self: end;
   min-width: 0;
   max-width: 100%;
-  margin-left: auto;
   padding: 0.55rem 0.75rem;
   border: 1px solid var(--ink);
   border-radius: var(--radius-pill);
@@ -345,6 +347,28 @@ code {
 .header-profile:hover {
   color: var(--accent);
   border-color: var(--accent);
+}
+
+/* Narrow-in-root-text shell: stack the masthead instead of squeezing it.
+   `px` media queries cannot respond to a larger root text size, and `em` in
+   a container query resolves against the container's own (here body-pinned)
+   font — but `rem` always tracks the root size, so this fires exactly when
+   the text outgrows the row. The 40rem line sits just above the width one
+   row of masthead needs in any single face size, with room to spare; a
+   1024px laptop at default text holds the one-line grid. Older browsers
+   ignore it and keep the grid above. */
+@container (max-width: 40rem) {
+  .site-header {
+    display: flex;
+    flex-wrap: wrap;
+    row-gap: 1rem;
+    /* A stacked masthead scrolls away: sticky would pin three rows over the
+       viewport at large text (the phone rule below does the same). This sits
+       after the sticky media query so it wins where both match. */
+    position: relative;
+  }
+  .brand { margin-right: auto; }
+  .header-profile { margin-left: auto; }
 }
 
 .hero {
@@ -464,6 +488,9 @@ code {
 button.button {
   font: inherit;
   font-family: var(--mono);
+  /* ...including its size: link buttons are 0.82rem, so action buttons match
+     instead of rendering at the 1rem body size (codeant nit on #184). */
+  font-size: 0.82rem;
   font-weight: 600;
   color: inherit;
   background: transparent;

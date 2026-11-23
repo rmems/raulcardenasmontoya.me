@@ -56,12 +56,16 @@ test('the responsive stylesheet does not force horizontal scrolling on narrow sc
   // Fraction tracks may shrink below their content (`minmax(0, …fr)`, or a
   // minimum no wider than the grid), so a wide fallback font wraps text
   // instead of widening the page. No grid keeps bare content-sized `fr`
-  // tracks. The masthead is not a grid at all: it is a wrapping flex row, so
-  // at 1024px / 200% text the brand, navigation and profile stack onto their
-  // own rows instead of squeezing onto one and spilling into each other (a
-  // collision the overflow gate cannot see; devin BUG on #184). On one line
-  // the paired auto margins center the navigation exactly, like the old
-  // 1fr-auto-1fr grid did.
+  // tracks. The masthead is a one-line grid with equal side tracks, so the
+  // navigation stays truly centered whatever the brand and pill widths
+  // (devin analysis on #184: paired flex auto-margins cannot center when the
+  // sides differ). Once the shell narrows past 40rem of *root text* — a
+  // container query, because `px` media queries cannot see a larger root text
+  // size (`em` would resolve against the container's own body-pinned font,
+  // but `rem` always tracks the root) —
+  // the three blocks stack onto their own rows instead of squeezing onto one
+  // line and spilling into each other (a collision the overflow gate cannot
+  // see; devin BUG on #184).
   const contentSizedTracks = [...styles.matchAll(/grid-template-columns:\s*([^;]+);/g)]
     .map((match) => match[1].trim())
     .filter((tracks) =>
@@ -70,10 +74,18 @@ test('the responsive stylesheet does not force horizontal scrolling on narrow sc
       ),
     );
   assert.deepEqual(contentSizedTracks, []);
-  assert.match(styles, /\.site-header \{[^}]*display: flex;/);
-  assert.match(styles, /\.site-header \{[^}]*flex-wrap: wrap;/);
-  assert.match(styles, /\.brand \{[^}]*margin-right: auto;/);
+  assert.match(styles, /\.site-header \{[^}]*display: grid;/);
+  assert.match(styles, /\.site-header \{[^}]*grid-template-columns: minmax\(0, 1fr\) auto minmax\(0, 1fr\);/);
+  assert.match(styles, /\.brand \{[^}]*justify-self: start;/);
+  assert.match(styles, /\.header-profile \{[^}]*justify-self: end;/);
+  // The shell is a font-relative query container, and the masthead stacks
+  // inside it once text outgrows the row.
+  assert.match(styles, /\.page-shell \{[^}]*container-type: inline-size;/);
+  assert.match(styles, /@container \(max-width: 40rem\) \{\s*\.site-header \{\s*display: flex;\s*flex-wrap: wrap;/);
+  assert.match(styles, /@container \(max-width: 40rem\) \{\s*\.site-header \{[^}]*\}\s*\.brand \{[^}]*margin-right: auto;/);
   assert.match(styles, /\.header-profile \{[^}]*margin-left: auto;/);
+  // The stacked masthead scrolls away instead of pinning three rows.
+  assert.match(styles, /@container \(max-width: 40rem\) \{[\s\S]*?\.site-header \{[^}]*position: relative;/);
   assert.doesNotMatch(styles, /white-space: nowrap/, 'labels and links wrap when their box is narrow');
   // The live telemetry panel (homepage) shrinks and stacks with text size,
   // and the layout check measures the homepage with it open.
@@ -599,10 +611,10 @@ test('the homepage hero hosts the live demo static-first and traces it to its cr
   // still pass if the message moved to the wrong state.
   assert.match(island, /<span data-when="live">\{compact \? `\$\{nodeCount\} neurons · \$\{edgeCount\} synapses · Rust → WASM · live at \$\{simulationHz\} Hz` : null\}/);
   assert.match(island, /<span data-when="live-still">\{compact \? `\$\{nodeCount\} neurons · \$\{edgeCount\} synapses · Rust → WASM · live at \$\{simulationHz\} Hz · view held still` : null\}/);
-  assert.match(island, /<span data-when="live">\{compact \? `\$\{nodeCount\} neurons . \$\{edgeCount\} synapses . Rust . WASM . live at \$\{simulationHz\} Hz` : null\}\{compact \? null : <>\{nodeCount\} neurons . \{edgeCount\} synapses . simulating in this browser at \{simulationHz\} Hz . pulses shown at \{pulseSpeedLabel\} speed<\/>\}<\/span>/);
+  assert.match(island, /<span data-when="live">\{compact \? `\$\{nodeCount\} neurons · \$\{edgeCount\} synapses · Rust → WASM · live at \$\{simulationHz\} Hz` : null\}\{compact \? null : <>\{nodeCount\} neurons · \{edgeCount\} synapses · simulating in this browser at \{simulationHz\} Hz · pulses shown at \{pulseSpeedLabel\} speed<\/>\}<\/span>/);
   // Reduced motion holds the camera still after Play; pulses still travel,
   // except in the lightest quality mode, which hides them.
-  assert.match(island, /<span data-when="live-still">\{compact \? `\$\{nodeCount\} neurons . \$\{edgeCount\} synapses . Rust . WASM . live at \$\{simulationHz\} Hz . view held still` : null\}\{compact \? null : <>\{nodeCount\} neurons . \{edgeCount\} synapses . simulating in this browser at \{simulationHz\} Hz . pulses shown at \{pulseSpeedLabel\} speed \(none in the lightest quality mode\) . view held still<\/>\}<\/span>/);
+  assert.match(island, /<span data-when="live-still">\{compact \? `\$\{nodeCount\} neurons · \$\{edgeCount\} synapses · Rust → WASM · live at \$\{simulationHz\} Hz · view held still` : null\}\{compact \? null : <>\{nodeCount\} neurons · \{edgeCount\} synapses · simulating in this browser at \{simulationHz\} Hz · pulses shown at \{pulseSpeedLabel\} speed \(none in the lightest quality mode\) · view held still<\/>\}<\/span>/);
   assert.doesNotMatch(island, /pulses off/);
   // The reduced-motion notice appears with the Play control: the media query
   // lets it show, and `data-mode` — which only the runtime writes — is what
