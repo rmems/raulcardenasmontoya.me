@@ -641,27 +641,38 @@ test('the homepage hero hosts the live demo static-first and traces it to its cr
   assert.match(styles, /\.hero-mesh \.demo-surface:not\(\[hidden\]\) \+ \.hero-mesh-static \{ visibility: hidden; \}/);
 
   // RM-2354: the mesh column is at least 480 px wide at 1440 px, so the
-  // 1/4-speed pulses have room to read. At that width the 1240 px shell keeps
-  // 2 × 3rem gutters and the hero gap clamps to 4.5rem: 1072 px of free track
-  // space shared by the two `minmax(0, …fr)` columns.
+  // 1/4-speed pulses have room to read. Dimensions below come from the
+  // stylesheet tokens, defined once so the two computations below cannot
+  // drift apart (mlai on #187): the shell keeps --max, the gutters are
+  // two --gutter columns at the 3rem cap (4vw exceeds it above 1200 px),
+  // and the base hero gap clamps at 4.5rem — all at the 16px test root.
+  const shellMax = Number(read('src/styles/global.css').match(/--max: (\d+)px/)[1]);
+  const GUTTER_PX = 2 * 3 * 16;
   const heroTracks = styles.match(/\.hero\.hero-live \{[\s\S]*?grid-template-columns: ([^;]+);/);
   assert.ok(heroTracks, 'the hero-live grid columns');
   const heroFr = [...heroTracks[1].matchAll(/minmax\(0, ([\d.]+)fr\)/g)].map((match) => Number(match[1]));
   assert.ok(heroFr.length === 2 && heroFr.every((fr) => fr > 0), 'two minmax(0, …fr) tracks');
-  const meshColumnPx = (1240 - 96 - 72) * (heroFr[1] / (heroFr[0] + heroFr[1]));
+  const meshColumnPx = (shellMax - GUTTER_PX - 4.5 * 16) * (heroFr[1] / (heroFr[0] + heroFr[1]));
   assert.ok(meshColumnPx >= 480, `the mesh column is ≥ 480 px at 1440 px (it is ${meshColumnPx.toFixed(1)} px)`);
 
   // The journal homepage re-grids the hero, so the same bar is measured
   // against the journal tracks (devin analysis on #187): the second track
-  // hosts the stage, and the drawing itself is inset 6% on each side.
+  // hosts the stage, and the drawing itself is inset within the stage.
   const journalStyles = read('src/styles/hero-journal.css');
   const journalGrid = journalStyles.match(/\.live-hero--journal \.hero\.hero-live \{[^}]*grid-template-columns: ([^;]+);/);
   assert.ok(journalGrid, 'the journal hero grid columns');
   assert.match(journalStyles, /\.live-hero--journal \.hero\.hero-live \{[^}]*column-gap: 0;/);
-  assert.match(journalStyles, /top: 4%;\s*left: 6%;\s*width: 88%;\s*height: 92%;/);
+  const journalInsetRule = journalStyles.match(/\.live-hero--journal \.hero-mesh-static,[\s\S]*?\.live-hero--journal \.hero-callouts \{([^}]*)\}/);
+  assert.ok(journalInsetRule, 'the journal drawing inset rule');
+  for (const declaration of ['top: 4%', 'left: 6%', 'width: 88%', 'height: 92%']) {
+    assert.ok(journalInsetRule[1].includes(declaration), `inset keeps ${declaration} (order-independent)`);
+  }
   const journalFr = [...journalGrid[1].matchAll(/minmax\(0, ([\d.]+)fr\)/g)].map((match) => Number(match[1]));
   assert.ok(journalFr.length === 2 && journalFr.every((fr) => fr > 0), 'two journal minmax(0, …fr) tracks');
-  const journalMeshPx = (1240 - 96) * (journalFr[1] / (journalFr[0] + journalFr[1])) * 0.88;
+  const insetLeft = Number(/left: ([\d.]+)%/.exec(journalInsetRule[1])[1]) / 100;
+  const insetWidth = Number(/width: ([\d.]+)%/.exec(journalInsetRule[1])[1]) / 100;
+  assert.equal(insetWidth, 1 - 2 * insetLeft, 'the inset is symmetric');
+  const journalMeshPx = (shellMax - GUTTER_PX) * (journalFr[1] / (journalFr[0] + journalFr[1])) * insetWidth;
   assert.ok(journalMeshPx >= 480, `the journal drawing is ≥ 480 px at 1440 px (it is ${journalMeshPx.toFixed(1)} px)`);
 
   // Provenance: runtime-bound origin label, static crate links, evidence kept apart.

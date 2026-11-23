@@ -123,9 +123,14 @@ export function bindHeroControls(root: HTMLElement): (() => void) | null {
     } else if (event.key === ' ' || event.key === 'Enter') {
       // Cancel every handled keydown, not just the first: repeated keydowns
       // have their own default actions, and an uncancelled one scrolls the
-      // page while the visitor holds the press.
+      // page while the visitor holds the press. Repeats while held keep the
+      // pointer stream alive instead of idling the telemetry back to its
+      // scripted path (coderabbit on #187).
       event.preventDefault();
-      if (event.repeat) return;
+      if (event.repeat) {
+        if (pressed) dispatch('pointermove', 0.5);
+        return;
+      }
       pressed = true;
       pad.dataset.pressed = 'true';
       dispatch('pointerdown', 0.5);

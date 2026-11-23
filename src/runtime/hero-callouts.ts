@@ -55,8 +55,15 @@ export function bindHeroCallouts(root: HTMLElement): (() => void) | null {
   const onSpikes = (event: Event) => {
     // Listeners also receive plain Events, whose `detail` is undefined.
     const neurons = (event as CustomEvent<{ neurons?: number[] } | undefined>).detail?.neurons ?? [];
+    if (neurons.length === 0) return;
+    // Any spike activity keeps a visible callout alive: clearing only on the
+    // re-target gate would blink it off every hold interval during a live run
+    // with steady spikes (devin BUG on #187). It hides once spikes stop, the
+    // mode leaves live, or the island tears down.
+    if (clearTimer !== null) clearTimeout(clearTimer);
+    clearTimer = setTimeout(clearCallout, reduced.matches ? HOLD_REDUCED_MS : HOLD_MS);
     const now = performance.now();
-    if (neurons.length === 0 || now - lastMove < (reduced.matches ? HOLD_REDUCED_MS : HOLD_MS)) return;
+    if (now - lastMove < (reduced.matches ? HOLD_REDUCED_MS : HOLD_MS)) return;
     // The firing neuron nearest the label keeps the leader short.
     const hit = nearest(neurons);
     if (!hit) return;
@@ -71,8 +78,6 @@ export function bindHeroCallouts(root: HTMLElement): (() => void) | null {
     leader.setAttribute('y2', String(y - dy * back));
     sub.textContent = `n${hit.neuron}, just fired`;
     group.dataset.active = 'true';
-    if (clearTimer !== null) clearTimeout(clearTimer);
-    clearTimer = setTimeout(clearCallout, reduced.matches ? HOLD_REDUCED_MS : HOLD_MS);
   };
 
   // Hide again whenever the run stops being live (paused, fallback).
