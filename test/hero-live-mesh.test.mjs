@@ -52,9 +52,6 @@ test('the audited topology is exactly what the committed homepage package export
       [...audited.weightBits],
       'weights are the exact f32 values, not rounded copies',
     );
-  // eslint-disable-next-line no-useless-catch -- the rethrow keeps the security-node rule's handler lookup from crashing on a handler-less try, with identical behavior on every path; the cleanup below must run regardless.
-  } catch (error) {
-    throw error;
   } finally {
     adapter.dispose();
   }
