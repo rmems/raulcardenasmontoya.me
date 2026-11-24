@@ -60,6 +60,53 @@ function fakeAdapter(state = fakeState()) {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+test('the homepage encoder readout derives step, window, total, and raster from snapshots', () => {
+  const cells = Array.from({ length: 20 }, () => ({ style: {} }));
+  const values = new Map([
+    ['[data-readout-encoder]', { textContent: 'temporal' }],
+    ['[data-readout-step]', { textContent: '0' }],
+    ['[data-readout-window]', { textContent: '0' }],
+    ['[data-readout-total]', { textContent: '0' }],
+    ['[data-readout-restart]', { textContent: 'ready' }],
+  ]);
+  const island = {
+    dataset: { encoderMode: 'temporal' },
+    querySelector(selector) {
+      return values.get(selector) ?? null;
+    },
+    querySelectorAll() {
+      return cells;
+    },
+  };
+  const readout = liveSeams.createHeroEncoderReadout(island);
+  readout.update(fakeState({
+    completedStep: 1n,
+    encoderName: 'temporal',
+    spikeNeurons: new Uint32Array([0, 1]),
+  }));
+  readout.update(fakeState({
+    completedStep: 2n,
+    encoderName: 'temporal',
+    spikeNeurons: new Uint32Array(),
+  }));
+  assert.equal(values.get('[data-readout-step]').textContent, '2');
+  assert.equal(values.get('[data-readout-window]').textContent, '2');
+  assert.equal(values.get('[data-readout-total]').textContent, '2');
+  assert.equal(cells[0].style.height, '4px');
+
+  readout.update(fakeState({
+    completedStep: 1n,
+    encoderName: 'rate',
+    spikeNeurons: new Uint32Array([0, 1, 2, 3]),
+  }));
+  assert.equal(values.get('[data-readout-encoder]').textContent, 'rate');
+  assert.equal(values.get('[data-readout-step]').textContent, '1');
+  assert.equal(values.get('[data-readout-window]').textContent, '4');
+  assert.equal(values.get('[data-readout-total]').textContent, '4');
+  assert.equal(values.get('[data-readout-restart]').textContent, 'restarted');
+  assert.equal(island.dataset.encoderRestart, 'restarted');
+});
+
 test('scripted telemetry is a deterministic [x, y, pressure] path inside the island', () => {
   assert.deepEqual(stimulus.scriptedTelemetry(7n), stimulus.scriptedTelemetry(7n));
   assert.notDeepEqual(stimulus.scriptedTelemetry(7n), stimulus.scriptedTelemetry(8n));

@@ -92,6 +92,9 @@ export function bindDemoIsland(root: HTMLElement, runtime?: DemoRuntime): BoundI
   const onEncoderChange = (event: Event) => {
     const target = event.target;
     if (target instanceof HTMLInputElement && target.name === 'encoder-mode' && isEncoderModeName(target.value)) {
+      const readoutRestart = root.querySelector<HTMLElement>('[data-readout-restart]');
+      if (readoutRestart) readoutRestart.textContent = 'restart queued';
+      root.dataset.encoderRestart = 'queued';
       const pending = boundRuntime.setEncoderMode(target.value);
       paint();
       void pending.then(paint);

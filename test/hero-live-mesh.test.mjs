@@ -19,7 +19,7 @@ const runtimeData = await loadTsModule('../src/data/live-runtime.ts');
 const wasmUrl = new URL('../public/wasm/neuromorphic-adapter/neuromorphic_adapter.js', import.meta.url);
 const wasmBytes = readFileSync(new URL('../public/wasm/neuromorphic-adapter/neuromorphic_adapter_bg.wasm', import.meta.url));
 
-async function liveAdapter() {
+async function liveAdapter(encoderMode) {
   // The committed homepage package through the shipped bridge and live options.
   return adapterModule.initNeuromorphicAdapter(
     async () => {
@@ -30,9 +30,30 @@ async function liveAdapter() {
       };
     },
     stimulus.DEMO_SEED,
-    wasmSession.LIVE_ADAPTER_OPTIONS,
+    encoderMode ? wasmSession.liveAdapterOptions(encoderMode) : wasmSession.LIVE_ADAPTER_OPTIONS,
   );
 }
+
+test('the same seed and scripted drive produce measurably distinct encoder activity', async () => {
+  const counts = {};
+  for (const mode of ['delta', 'temporal', 'rate']) {
+    const adapter = await liveAdapter(mode);
+    try {
+      let spikes = 0;
+      for (let sequence = 1n; sequence <= 100n; sequence += 1n) {
+        adapter.input(sequence, stimulus.scriptedTelemetry(sequence));
+        const state = adapter.step();
+        assert.equal(state.seed, stimulus.DEMO_SEED);
+        assert.equal(state.encoderName, mode);
+        spikes += state.spikeNeurons.length;
+      }
+      counts[mode] = spikes;
+    } finally {
+      adapter.dispose();
+    }
+  }
+  assert.equal(new Set(Object.values(counts)).size > 1, true, `mode spike counts differ: ${JSON.stringify(counts)}`);
+});
 
 test('the audited topology is exactly what the committed homepage package exports', async () => {
   const audited = adapterModule.auditedBrowserTopology();
@@ -300,7 +321,7 @@ test('the visible legend sits under the stage and passes contrast in both scheme
   // desktop and mobile, beside it on tablet. No mode or scheme hides them.
   // The reduced-motion note (RM-2355) sits above them, hidden unless the
   // device asks for reduced motion.
-  assert.match(island, /<figcaption class="hero-mesh-caption">\s*<p class="hero-mesh-motion-note">[^<]+<\/p>\s*<ul class="hero-mesh-legend" aria-label="What the colours in the drawing mean">/);
+  assert.match(island, /<figcaption class="hero-mesh-caption">\s*<p class="hero-mesh-motion-note">[^<]+<\/p>\s*<div class="hero-encoder-readout" data-encoder-readout[^>]*>/);
   for (const item of ['Neuron spike', 'Excitatory synapse', 'Inhibitory synapse']) {
     assert.match(island, new RegExp(`>${item}</li>`), item);
   }

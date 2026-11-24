@@ -258,4 +258,16 @@ test('each session records its own [contract, mode] config and the worker is tol
   assert.match(source, /options: adapterOptions,/);
   assert.match(source, /createTelemetryRecorder\(DEMO_SEED, config\)/);
   assert.doesNotMatch(source, /LIVE_ADAPTER_CONFIG/);
+
+  const island = readSource('../src/components/NeuromorphicDemo.astro');
+  assert.match(island, /data-readout-step/);
+  assert.match(island, /data-readout-window/);
+  assert.match(island, /data-readout-total/);
+  assert.match(island, /data-readout-raster/);
+
+  const liveSeamsSource = readSource('../src/runtime/live-seams.ts');
+  assert.match(liveSeamsSource, /completedStep < lastStep \|\| state\.encoderName !== encoderName/);
+  assert.match(liveSeamsSource, /windowCounts\.slice\(-100\)/);
+  assert.match(liveSeamsSource, /rasterCounts\.slice\(-20\)/);
+  assert.match(liveSeamsSource, /totalSpikes \+= spikes/);
 });

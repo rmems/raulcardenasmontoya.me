@@ -23,6 +23,75 @@ import {
 } from './telemetry-entry';
 import { createTopologyRendererSeam, type TopologyRendererSeam } from './topology-renderer';
 import { createWasmSeam, type TelemetryFrame } from './wasm-session';
+import type { NeuromorphicState } from './neuromorphic-adapter';
+
+export interface HeroEncoderReadout {
+  update: (state: NeuromorphicState) => void;
+  reset: (encoderName: string) => void;
+}
+
+/** Snapshot-only homepage readout: it never invents counts or advances on its own. */
+export function createHeroEncoderReadout(island: HTMLElement): HeroEncoderReadout {
+  const query = <T extends Element>(selector: string): T | null =>
+    typeof island.querySelector === 'function' ? island.querySelector<T>(selector) : null;
+  const encoder = query<HTMLElement>('[data-readout-encoder]');
+  const step = query<HTMLElement>('[data-readout-step]');
+  const window = query<HTMLElement>('[data-readout-window]');
+  const total = query<HTMLElement>('[data-readout-total]');
+  const restart = query<HTMLElement>('[data-readout-restart]');
+  const cells = typeof island.querySelectorAll === 'function'
+    ? Array.from(island.querySelectorAll<HTMLElement>('[data-raster-cell]'))
+    : [];
+  let encoderName = island.dataset.encoderMode ?? 'temporal';
+  let lastStep = -1n;
+  let windowCounts: number[] = [];
+  let rasterCounts: number[] = [];
+  let totalSpikes = 0;
+
+  const reset = (name: string) => {
+    encoderName = name;
+    lastStep = -1n;
+    windowCounts = [];
+    rasterCounts = [];
+    totalSpikes = 0;
+    if (encoder) encoder.textContent = name;
+    if (step) step.textContent = '0';
+    if (window) window.textContent = '0';
+    if (total) total.textContent = '0';
+    if (restart) restart.textContent = 'restarted';
+    island.dataset.encoderRestart = 'restarted';
+    for (const cell of cells) {
+      cell.style.height = '1px';
+      cell.style.opacity = '0.25';
+    }
+  };
+
+  const update = (state: NeuromorphicState) => {
+    const newRun = state.completedStep < lastStep || state.encoderName !== encoderName;
+    if (newRun) reset(state.encoderName);
+    lastStep = state.completedStep;
+
+    const spikes = state.spikeNeurons.length;
+    windowCounts.push(spikes);
+    if (windowCounts.length > 100) windowCounts = windowCounts.slice(-100);
+    rasterCounts.push(spikes);
+    if (rasterCounts.length > 20) rasterCounts = rasterCounts.slice(-20);
+    totalSpikes += spikes;
+
+    if (encoder) encoder.textContent = state.encoderName;
+    if (step) step.textContent = state.completedStep.toString();
+    if (window) window.textContent = String(windowCounts.reduce((sum, count) => sum + count, 0));
+    if (total) total.textContent = String(totalSpikes);
+    for (let index = 0; index < cells.length; index += 1) {
+      const count = rasterCounts[index] ?? 0;
+      const height = count === 0 ? 1 : Math.min(12, 2 + count);
+      cells[index].style.height = `${height}px`;
+      cells[index].style.opacity = count === 0 ? '0.25' : '1';
+    }
+  };
+
+  return { update, reset };
+}
 
 /** Development-only inspector installed on `globalThis` by `astro dev`. */
 export interface TelemetryInspector {
@@ -161,6 +230,7 @@ export function createLiveDemoSeams(
         : null;
   const quality = options.quality ?? createAdaptiveQuality();
   const spikeEvents = createSpikeEventBuffer({ provenance: LIVE_SPIKE_EVENT_PROVENANCE });
+  const heroReadout = island ? createHeroEncoderReadout(island) : null;
   const renderer = createTopologyRendererSeam({
     channel,
     island,
@@ -221,6 +291,7 @@ export function createLiveDemoSeams(
       probe,
       onFrame(frame) {
         latestFrame = frame;
+        heroReadout?.update(frame.state);
         inputSources.record(frame.state.completedStep, frame.source);
         if (island && island.dataset.demoInputSource !== frame.source) {
           island.dataset.demoInputSource = frame.source;
