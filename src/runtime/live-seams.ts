@@ -25,11 +25,16 @@ import { createTopologyRendererSeam, type TopologyRendererSeam } from './topolog
 import { createWasmSeam, type TelemetryFrame } from './wasm-session';
 import type { NeuromorphicState } from './neuromorphic-adapter';
 
-const rasterMarkers = ['', '.', ':', '-', '=', '+', '*', '#', '@'];
-
 function rasterMarker(count: number): string {
-  const level = Math.min(Math.max(Math.floor(count), 0), rasterMarkers.length - 1);
-  return rasterMarkers[level];
+  if (count < 1) return '';
+  if (count < 2) return '.';
+  if (count < 3) return ':';
+  if (count < 4) return '-';
+  if (count < 5) return '=';
+  if (count < 6) return '+';
+  if (count < 7) return '*';
+  if (count < 8) return '#';
+  return '@';
 }
 
 /** Snapshot-only homepage readout: it never invents counts or advances on its own. */
@@ -52,8 +57,14 @@ export function createHeroEncoderReadout(island: HTMLElement) {
   let hasSnapshot = false;
 
   const renderRaster = (counts: number[]) => {
-    for (let index = 0; index < cells.length; index += 1) {
-      cells[index].textContent = rasterMarker(counts[index] ?? 0);
+    const cellIterator = cells.values();
+    for (const count of counts) {
+      const cell = cellIterator.next();
+      if (cell.done) break;
+      cell.value.textContent = rasterMarker(count);
+    }
+    for (const cell of cellIterator) {
+      cell.textContent = '';
     }
     const raster = query<HTMLElement>('[data-readout-raster]');
     if (raster) {
