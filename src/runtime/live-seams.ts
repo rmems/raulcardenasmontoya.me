@@ -25,11 +25,37 @@ import { createTopologyRendererSeam, type TopologyRendererSeam } from './topolog
 import { createWasmSeam, type TelemetryFrame } from './wasm-session';
 import type { NeuromorphicState } from './neuromorphic-adapter';
 
-const rasterMarkers = ['', '.', ':', '-', '=', '+', '*', '#', '@'];
+function lowRasterMarker(level: number): string {
+  switch (level) {
+    case 0:
+      return '';
+    case 1:
+      return '.';
+    case 2:
+      return ':';
+    case 3:
+      return '-';
+    default:
+      return '=';
+  }
+}
+
+function highRasterMarker(level: number): string {
+  switch (level) {
+    case 0:
+      return '+';
+    case 1:
+      return '*';
+    case 2:
+      return '#';
+    default:
+      return '@';
+  }
+}
 
 function rasterMarker(count: number): string {
-  const level = Math.min(Math.max(Math.floor(count), 0), rasterMarkers.length - 1);
-  return rasterMarkers[level];
+  const level = Math.min(Math.max(Math.floor(count), 0), 7);
+  return level <= 4 ? lowRasterMarker(level) : highRasterMarker(level - 5);
 }
 
 /** Snapshot-only homepage readout: it never invents counts or advances on its own. */
