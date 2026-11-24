@@ -134,7 +134,7 @@ const pulseSpeedLabel = `1/${Math.round(1 / PULSE_DISPLAY_SPEED)}`;
             <span><span>Total spikes</span> <strong data-readout-total>0</strong></span>
             <span data-readout-restart aria-live="polite">waiting to start</span>
           </div>
-          <div class="hero-encoder-raster" data-readout-raster role="img" aria-label="Recent network spike activity: no ticks recorded, 0 spikes across the 20-tick raster">
+          <div class="hero-encoder-raster" data-readout-raster role="img" tabindex="0" aria-label="Recent network spike activity: no ticks recorded, 0 spikes across the 20-tick raster">
             {Array.from({ length: 20 }, (_, index) => <span data-raster-cell={index} aria-hidden="true"></span>)}
           </div>
           <p class="hero-encoder-raster-key">blank unused · 0 quiet · .:-=+*#@ = 1–8+ spikes/tick · oldest → newest</p>
