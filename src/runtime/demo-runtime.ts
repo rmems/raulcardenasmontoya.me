@@ -345,6 +345,9 @@ export function applyDemoView(snapshot: DemoSnapshot, elements: DemoViewElements
   elements.play.disabled = !snapshot.playEnabled;
   elements.play.textContent = snapshot.playLabel;
   elements.root.dataset.encoderMode = snapshot.encoderMode;
+  if (snapshot.mode === 'live') {
+    elements.root.dataset.demoHasRun = 'true';
+  }
   if (elements.encoder) {
     elements.encoder.fieldset.disabled = !snapshot.encoderSwitchEnabled;
     for (let index = 0; index < elements.encoder.inputs.length; index += 1) {
@@ -362,8 +365,14 @@ export function applyDemoView(snapshot: DemoSnapshot, elements: DemoViewElements
           : snapshot.mode === 'static'
             ? 'waiting to start'
             : snapshot.mode === 'initializing'
-              ? 'restarting'
-              : elements.readout.restart.textContent ?? 'ready';
+              ? elements.root.dataset.encoderRestart === 'queued' ? 'restarting' : 'starting'
+              : snapshot.mode === 'awaiting-play'
+                ? elements.root.dataset.encoderRestart === 'restarted'
+                  ? 'restarted'
+                  : elements.root.dataset.demoHasRun === 'true' ? 'paused' : 'waiting to start'
+                : elements.root.dataset.encoderRestart === 'queued'
+                  ? 'restart queued'
+                  : elements.root.dataset.encoderRestart === 'restarted' ? 'restarted' : 'ready';
     }
   }
   if (elements.surface) {

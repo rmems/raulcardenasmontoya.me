@@ -282,5 +282,7 @@ test('each session records its own [contract, mode] config and the worker is tol
 
   const enhanceSource = readSource('../src/runtime/enhance-demo.ts');
   assert.match(enhanceSource, /restart failed/);
-  assert.match(enhanceSource, /resetHeroReadout\(root, boundRuntime\.getSnapshot\(\)\.encoderMode, 'restarted'\)/);
+  assert.match(enhanceSource, /root\.dataset\.demoHasRun === 'true'/);
+  assert.match(enhanceSource, /token !== encoderChangeToken/);
+  assert.match(enhanceSource, /resetHeroReadout\(root, snapshot\.encoderMode, state\)/);
 });

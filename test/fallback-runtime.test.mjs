@@ -368,23 +368,26 @@ test('applyDemoView exposes status, play affordance, and reason for assistive te
     play: { hidden: true, disabled: false, textContent: '' },
     surface: { hidden: true },
     origin: { textContent: 'STATIC · diagram', dataset: { origin: 'static' } },
+    readout: {
+      encoder: { textContent: '' },
+      restart: { textContent: 'waiting to start' },
+    },
   };
 
-  runtime.applyDemoView(
-    {
-      mode: 'awaiting-play',
-      reason: 'reduced-motion',
-      status: 'Motion is paused. Play animation to start the live visualization.',
-      liveControlsEnabled: true,
-      playVisible: true,
-      playEnabled: true,
-      playLabel: 'Play animation',
-      cameraMotionEnabled: false,
-      freezeFrame: false,
-      hasGraphicsSurface: false,
-    },
-    elements,
-  );
+  const snapshot = {
+    mode: 'awaiting-play',
+    reason: 'reduced-motion',
+    status: 'Motion is paused. Play animation to start the live visualization.',
+    liveControlsEnabled: true,
+    playVisible: true,
+    playEnabled: true,
+    playLabel: 'Play animation',
+    cameraMotionEnabled: false,
+    freezeFrame: false,
+    hasGraphicsSurface: false,
+    encoderMode: 'temporal',
+  };
+  runtime.applyDemoView(snapshot, elements);
 
   assert.equal(elements.root.dataset.mode, 'awaiting-play');
   assert.equal(elements.root.dataset.reason, 'reduced-motion');
@@ -396,6 +399,19 @@ test('applyDemoView exposes status, play affordance, and reason for assistive te
   assert.match(elements.status.textContent, /Play animation/);
   assert.equal(elements.origin.textContent, 'STATIC · diagram');
   assert.equal(elements.origin.dataset.origin, 'static');
+  assert.equal(elements.readout.restart.textContent, 'waiting to start');
+
+  elements.root.dataset.encoderRestart = 'queued';
+  runtime.applyDemoView({ ...snapshot, mode: 'initializing' }, elements);
+  assert.equal(elements.readout.restart.textContent, 'restarting');
+  delete elements.root.dataset.encoderRestart;
+  runtime.applyDemoView({ ...snapshot, mode: 'initializing' }, elements);
+  assert.equal(elements.readout.restart.textContent, 'starting');
+  runtime.applyDemoView({ ...snapshot, mode: 'live' }, elements);
+  assert.equal(elements.readout.restart.textContent, 'ready');
+  assert.equal(elements.root.dataset.demoHasRun, 'true');
+  runtime.applyDemoView({ ...snapshot, mode: 'fallback' }, elements);
+  assert.equal(elements.readout.restart.textContent, 'unavailable');
 });
 
 test('the paused wording only appears for a user pause or reduced motion (RM-2354)', async () => {

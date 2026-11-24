@@ -26,8 +26,8 @@ import { createWasmSeam, type TelemetryFrame } from './wasm-session';
 import type { NeuromorphicState } from './neuromorphic-adapter';
 
 export interface HeroEncoderReadout {
-  update: (state: NeuromorphicState) => void;
-  reset: (encoderName: string) => void;
+  update: (_state: NeuromorphicState) => void;
+  reset: (_encoderName: string) => void;
 }
 
 /** Snapshot-only homepage readout: it never invents counts or advances on its own. */
@@ -49,6 +49,21 @@ export function createHeroEncoderReadout(island: HTMLElement): HeroEncoderReadou
   let totalSpikes = 0;
   let hasSnapshot = false;
 
+  const renderRaster = (counts: number[]) => {
+    for (let index = 0; index < cells.length; index += 1) {
+      cells[index].dataset.spikeLevel = String(Math.min(counts[index] ?? 0, 10));
+    }
+    const raster = query<HTMLElement>('[data-readout-raster]');
+    if (raster) {
+      const spikes = counts.reduce((sum, count) => sum + count, 0);
+      const tickLabel = counts.length === 1 ? 'tick' : 'ticks';
+      raster.setAttribute(
+        'aria-label',
+        `Recent network spike activity: ${counts.length} ${tickLabel}, ${spikes} spikes`,
+      );
+    }
+  };
+
   const reset = (name: string) => {
     encoderName = name;
     lastStep = -1n;
@@ -62,14 +77,7 @@ export function createHeroEncoderReadout(island: HTMLElement): HeroEncoderReadou
     if (total) total.textContent = '0';
     if (restart) restart.textContent = 'restarted';
     island.dataset.encoderRestart = 'restarted';
-    for (const cell of cells) {
-      cell.style.height = '1px';
-      cell.style.opacity = '0.25';
-    }
-    const raster = typeof island.querySelector === 'function'
-      ? island.querySelector<HTMLElement>('[data-readout-raster]')
-      : null;
-    raster?.setAttribute('aria-label', 'Recent network spike activity: 20 ticks, no recorded spikes');
+    renderRaster([]);
   };
 
   const update = (state: NeuromorphicState) => {
@@ -89,22 +97,7 @@ export function createHeroEncoderReadout(island: HTMLElement): HeroEncoderReadou
     if (step) step.textContent = state.completedStep.toString();
     if (windowEl) windowEl.textContent = String(windowCounts.reduce((sum, count) => sum + count, 0));
     if (total) total.textContent = String(totalSpikes);
-    for (let index = 0; index < cells.length; index += 1) {
-      const count = rasterCounts[index] ?? 0;
-      const height = count === 0 ? 1 : Math.min(12, 2 + count);
-      cells[index].style.height = `${height}px`;
-      cells[index].style.opacity = count === 0 ? '0.25' : '1';
-    }
-    const raster = typeof island.querySelector === 'function'
-      ? island.querySelector<HTMLElement>('[data-readout-raster]')
-      : null;
-    if (raster) {
-      const windowSpikeCount = windowCounts.reduce((sum, count) => sum + count, 0);
-      raster.setAttribute(
-        'aria-label',
-        `Recent network spike activity: ${rasterCounts.length} ticks, ${windowSpikeCount} spikes in the 100-tick window`,
-      );
-    }
+    renderRaster(rasterCounts);
   };
 
   return { update, reset };

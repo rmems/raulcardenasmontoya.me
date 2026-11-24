@@ -61,13 +61,15 @@ function fakeAdapter(state = fakeState()) {
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 test('the homepage encoder readout derives step, window, total, and raster from snapshots', () => {
-  const cells = Array.from({ length: 20 }, () => ({ style: {} }));
+  const cells = Array.from({ length: 20 }, () => ({ dataset: {} }));
+  const raster = { setAttribute(name, value) { this[name] = value; } };
   const values = new Map([
     ['[data-readout-encoder]', { textContent: 'temporal' }],
     ['[data-readout-step]', { textContent: '0' }],
     ['[data-readout-window]', { textContent: '0' }],
     ['[data-readout-total]', { textContent: '0' }],
     ['[data-readout-restart]', { textContent: 'ready' }],
+    ['[data-readout-raster]', raster],
   ]);
   const island = {
     dataset: { encoderMode: 'temporal' },
@@ -92,7 +94,8 @@ test('the homepage encoder readout derives step, window, total, and raster from 
   assert.equal(values.get('[data-readout-step]').textContent, '2');
   assert.equal(values.get('[data-readout-window]').textContent, '2');
   assert.equal(values.get('[data-readout-total]').textContent, '2');
-  assert.equal(cells[0].style.height, '4px');
+  assert.equal(cells[0].dataset.spikeLevel, '2');
+  assert.equal(raster['aria-label'], 'Recent network spike activity: 2 ticks, 2 spikes');
 
   readout.update(fakeState({
     completedStep: 1n,
@@ -105,6 +108,14 @@ test('the homepage encoder readout derives step, window, total, and raster from 
   assert.equal(values.get('[data-readout-total]').textContent, '4');
   assert.equal(values.get('[data-readout-restart]').textContent, 'restarted');
   assert.equal(island.dataset.encoderRestart, 'restarted');
+  assert.equal(raster['aria-label'], 'Recent network spike activity: 1 tick, 4 spikes');
+
+  readout.reset('delta');
+  assert.equal(values.get('[data-readout-step]').textContent, '0');
+  assert.equal(values.get('[data-readout-window]').textContent, '0');
+  assert.equal(values.get('[data-readout-total]').textContent, '0');
+  assert.equal(cells[0].dataset.spikeLevel, '0');
+  assert.equal(raster['aria-label'], 'Recent network spike activity: 0 ticks, 0 spikes');
 });
 
 test('scripted telemetry is a deterministic [x, y, pressure] path inside the island', () => {

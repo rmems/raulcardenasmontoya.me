@@ -220,6 +220,16 @@
   background: var(--accent);
   opacity: 0.25;
 }
+.hero-encoder-raster [data-spike-level='1'] { height: 3px; opacity: 1; }
+.hero-encoder-raster [data-spike-level='2'] { height: 4px; opacity: 1; }
+.hero-encoder-raster [data-spike-level='3'] { height: 5px; opacity: 1; }
+.hero-encoder-raster [data-spike-level='4'] { height: 6px; opacity: 1; }
+.hero-encoder-raster [data-spike-level='5'] { height: 7px; opacity: 1; }
+.hero-encoder-raster [data-spike-level='6'] { height: 8px; opacity: 1; }
+.hero-encoder-raster [data-spike-level='7'] { height: 9px; opacity: 1; }
+.hero-encoder-raster [data-spike-level='8'] { height: 10px; opacity: 1; }
+.hero-encoder-raster [data-spike-level='9'] { height: 11px; opacity: 1; }
+.hero-encoder-raster [data-spike-level='10'] { height: 12px; opacity: 1; }
 @media (prefers-reduced-motion: no-preference) {
   .hero-encoder-raster span { transition: height 80ms linear, opacity 80ms linear; }
 }
