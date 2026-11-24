@@ -96,7 +96,7 @@ test('the homepage encoder readout derives step, window, total, and raster from 
   assert.equal(values.get('[data-readout-step]').textContent, '2');
   assert.equal(values.get('[data-readout-window]').textContent, '2');
   assert.equal(values.get('[data-readout-total]').textContent, '2');
-  assert.equal(cells[0].textContent, ':');
+  assert.equal(cells[0].textContent, '2');
   assert.equal(raster['aria-label'], 'Recent network spike activity: 2 recorded ticks, 2 spikes across the 20-tick raster');
 
   readout.update(fakeState({

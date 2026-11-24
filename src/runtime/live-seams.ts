@@ -25,37 +25,9 @@ import { createTopologyRendererSeam, type TopologyRendererSeam } from './topolog
 import { createWasmSeam, type TelemetryFrame } from './wasm-session';
 import type { NeuromorphicState } from './neuromorphic-adapter';
 
-function lowRasterMarker(level: number): string {
-  switch (level) {
-    case 0:
-      return '';
-    case 1:
-      return '.';
-    case 2:
-      return ':';
-    case 3:
-      return '-';
-    default:
-      return '=';
-  }
-}
-
-function highRasterMarker(level: number): string {
-  switch (level) {
-    case 0:
-      return '+';
-    case 1:
-      return '*';
-    case 2:
-      return '#';
-    default:
-      return '@';
-  }
-}
-
 function rasterMarker(count: number): string {
-  const level = Math.min(Math.max(Math.floor(count), 0), 7);
-  return level <= 4 ? lowRasterMarker(level) : highRasterMarker(level - 5);
+  const level = Math.min(Math.max(Math.floor(count), 0), 8);
+  return level === 0 ? '' : String.fromCharCode(48 + level);
 }
 
 /** Snapshot-only homepage readout: it never invents counts or advances on its own. */
@@ -78,8 +50,14 @@ export function createHeroEncoderReadout(island: HTMLElement) {
   let hasSnapshot = false;
 
   const renderRaster = (counts: number[]) => {
-    for (let index = 0; index < cells.length; index += 1) {
-      cells[index].textContent = rasterMarker(counts[index] ?? 0);
+    const cellIterator = cells.values();
+    for (const count of counts) {
+      const cell = cellIterator.next();
+      if (cell.done) break;
+      cell.value.textContent = rasterMarker(count);
+    }
+    for (const cell of cellIterator) {
+      cell.textContent = '';
     }
     const raster = query<HTMLElement>('[data-readout-raster]');
     if (raster) {
