@@ -62,18 +62,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 test('the homepage encoder readout derives step, window, total, and raster from snapshots', () => {
   const cells = Array.from({ length: 20 }, () => {
-    const active = new Set();
-    return {
-      classList: {
-        toggle(name, enabled) {
-          if (enabled) active.add(name);
-          else active.delete(name);
-        },
-        contains(name) {
-          return active.has(name);
-        },
-      },
-    };
+    return { textContent: '' };
   });
   const raster = { setAttribute(name, value) { this[name] = value; } };
   const values = new Map([
@@ -107,7 +96,7 @@ test('the homepage encoder readout derives step, window, total, and raster from 
   assert.equal(values.get('[data-readout-step]').textContent, '2');
   assert.equal(values.get('[data-readout-window]').textContent, '2');
   assert.equal(values.get('[data-readout-total]').textContent, '2');
-  assert.equal(cells[0].classList.contains('spike-level-2'), true);
+  assert.equal(cells[0].textContent, ':');
   assert.equal(raster['aria-label'], 'Recent network spike activity: 2 recorded ticks, 2 spikes across the 20-tick raster');
 
   readout.update(fakeState({
@@ -134,18 +123,7 @@ test('the homepage encoder readout reset clears counters and the raster label', 
     ['[data-readout-restart]', { textContent: 'ready' }],
     ['[data-readout-raster]', { setAttribute(name, value) { this[name] = value; } }],
   ]);
-  const active = new Set();
-  const cell = {
-    classList: {
-      toggle(name, enabled) {
-        if (enabled) active.add(name);
-        else active.delete(name);
-      },
-      contains(name) {
-        return active.has(name);
-      },
-    },
-  };
+  const cell = { textContent: '|' };
   const island = {
     dataset: { encoderMode: 'temporal' },
     querySelector(selector) { return values.get(selector) ?? null; },
@@ -157,7 +135,7 @@ test('the homepage encoder readout reset clears counters and the raster label', 
   assert.equal(values.get('[data-readout-step]').textContent, '0');
   assert.equal(values.get('[data-readout-window]').textContent, '0');
   assert.equal(values.get('[data-readout-total]').textContent, '0');
-  assert.equal(cell.classList.contains('spike-level-0'), true);
+  assert.equal(cell.textContent, '');
   assert.equal(values.get('[data-readout-raster]')['aria-label'], 'Recent network spike activity: no ticks recorded, 0 spikes across the 20-tick raster');
 });
 

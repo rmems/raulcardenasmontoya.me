@@ -25,25 +25,11 @@ import { createTopologyRendererSeam, type TopologyRendererSeam } from './topolog
 import { createWasmSeam, type TelemetryFrame } from './wasm-session';
 import type { NeuromorphicState } from './neuromorphic-adapter';
 
-const rasterLevelClasses = [
-  'spike-level-0',
-  'spike-level-1',
-  'spike-level-2',
-  'spike-level-3',
-  'spike-level-4',
-  'spike-level-5',
-  'spike-level-6',
-  'spike-level-7',
-  'spike-level-8',
-  'spike-level-9',
-  'spike-level-10',
-] as const;
+const rasterMarkers = ['', '.', ':', '-', '=', '+', '*', '#', '@'];
 
-export function setHeroRasterLevel(cell: HTMLElement, count: number): void {
-  const level = Math.min(Math.max(Math.floor(count), 0), rasterLevelClasses.length - 1);
-  for (let index = 0; index < rasterLevelClasses.length; index += 1) {
-    cell.classList.toggle(rasterLevelClasses[index], index === level);
-  }
+function rasterMarker(count: number): string {
+  const level = Math.min(Math.max(Math.floor(count), 0), rasterMarkers.length - 1);
+  return rasterMarkers[level];
 }
 
 /** Snapshot-only homepage readout: it never invents counts or advances on its own. */
@@ -67,7 +53,7 @@ export function createHeroEncoderReadout(island: HTMLElement) {
 
   const renderRaster = (counts: number[]) => {
     for (let index = 0; index < cells.length; index += 1) {
-      setHeroRasterLevel(cells[index], counts[index] ?? 0);
+      cells[index].textContent = rasterMarker(counts[index] ?? 0);
     }
     const raster = query<HTMLElement>('[data-readout-raster]');
     if (raster) {

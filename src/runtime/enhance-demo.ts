@@ -7,7 +7,7 @@ import {
   type DemoRuntime,
   type DemoViewElements,
 } from './demo-runtime';
-import { provideLiveDemoSeams, setHeroRasterLevel } from './live-seams';
+import { provideLiveDemoSeams } from './live-seams';
 import { bindDemoTelemetryPanel } from './telemetry-entry';
 
 interface BoundIsland {
@@ -70,7 +70,7 @@ function clearHeroReadout(root: HTMLElement): void {
     if (value) value.textContent = '0';
   }
   for (const cell of root.querySelectorAll<HTMLElement>('[data-raster-cell]')) {
-    setHeroRasterLevel(cell, 0);
+    cell.textContent = '';
   }
   root.querySelector<HTMLElement>('[data-readout-raster]')?.setAttribute(
     'aria-label',

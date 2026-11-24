@@ -278,7 +278,7 @@ test('each session records its own [contract, mode] config and the worker is tol
   assert.match(islandMarkup, /data-readout-restart aria-live="polite">waiting to start<\/span>/);
 
   const styles = readSource('../src/styles/hero.css');
-  assert.match(styles, /@media \(prefers-reduced-motion: no-preference\) \{\s*\.hero-encoder-raster span \{ transition: height 80ms linear, opacity 80ms linear; \}/);
+  assert.doesNotMatch(styles, /transition:\s*height 80ms linear/);
 
   const enhanceSource = readSource('../src/runtime/enhance-demo.ts');
   assert.match(enhanceSource, /restart failed/);
