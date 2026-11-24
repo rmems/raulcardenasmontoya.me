@@ -33,6 +33,19 @@ function rasterMarker(count: number): string {
   return RASTER_MARKERS.charAt(level - 1);
 }
 
+function startsNewRun(
+  state: NeuromorphicState,
+  encoderName: string,
+  lastStep: bigint,
+  hasSnapshot: boolean,
+  generation: string,
+  readoutGeneration: string,
+): boolean {
+  if (generation !== readoutGeneration) return true;
+  if (!hasSnapshot) return false;
+  return state.completedStep < lastStep || state.encoderName !== encoderName;
+}
+
 /** Snapshot-only homepage readout: it never invents counts or advances on its own. */
 export function createHeroEncoderReadout(island: HTMLElement) {
   const query = <T extends Element>(selector: string): T | null =>
@@ -95,10 +108,9 @@ export function createHeroEncoderReadout(island: HTMLElement) {
 
   const update = (state: NeuromorphicState) => {
     const generation = island.dataset.encoderReadoutGeneration ?? '';
-    const newRun =
-      generation !== readoutGeneration ||
-      (hasSnapshot && (state.completedStep < lastStep || state.encoderName !== encoderName));
-    if (newRun) reset(state.encoderName);
+    if (startsNewRun(state, encoderName, lastStep, hasSnapshot, generation, readoutGeneration)) {
+      reset(state.encoderName);
+    }
     readoutGeneration = generation;
     encoderName = state.encoderName;
     hasSnapshot = true;
