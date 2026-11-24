@@ -270,7 +270,7 @@ test('each session records its own [contract, mode] config and the worker is tol
   assert.match(liveSeamsSource, /slice\(-100\)/);
   assert.match(liveSeamsSource, /slice\(-20\)/);
   assert.match(liveSeamsSource, /totalSpikes \+= spikes/);
-  assert.match(liveSeamsSource, /hasSnapshot &&/);
+  assert.match(liveSeamsSource, /!hasSnapshot/);
   assert.match(liveSeamsSource, /Recent network spike activity/);
 
   const islandMarkup = readSource('../src/components/NeuromorphicDemo.astro');
