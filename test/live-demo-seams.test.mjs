@@ -228,6 +228,31 @@ test('an explicit readout generation reset wins over same-step same-encoder snap
   assert.equal(values.get('[data-readout-window]').textContent, '2');
 });
 
+test('queued encoder restarts ignore transitional frames', () => {
+  const values = new Map([
+    ['[data-readout-encoder]', { textContent: 'temporal' }],
+    ['[data-readout-step]', { textContent: '0' }],
+    ['[data-readout-window]', { textContent: '0' }],
+    ['[data-readout-total]', { textContent: '0' }],
+    ['[data-readout-restart]', { textContent: 'ready' }],
+    ['[data-readout-raster]', { setAttribute(name, value) { this[name] = value; } }],
+  ]);
+  const island = {
+    dataset: { encoderMode: 'temporal', encoderRestart: 'queued' },
+    querySelector(selector) { return values.get(selector) ?? null; },
+    querySelectorAll() { return Array.from({ length: 20 }, () => ({ textContent: '' })); },
+  };
+  const readout = liveSeams.createHeroEncoderReadout(island);
+  readout.update(fakeState({ completedStep: 99n, encoderName: 'temporal', spikeNeurons: new Uint32Array([0, 1, 2, 3, 4]) }));
+  assert.equal(values.get('[data-readout-total]').textContent, '0');
+
+  island.dataset.encoderRestart = 'restarted';
+  island.dataset.encoderReadoutGeneration = '2';
+  readout.update(fakeState({ completedStep: 1n, encoderName: 'rate', spikeNeurons: new Uint32Array([0]) }));
+  assert.equal(values.get('[data-readout-total]').textContent, '1');
+  assert.equal(values.get('[data-readout-encoder]').textContent, 'rate');
+});
+
 test('scripted telemetry is a deterministic [x, y, pressure] path inside the island', () => {
   assert.deepEqual(stimulus.scriptedTelemetry(7n), stimulus.scriptedTelemetry(7n));
   assert.notDeepEqual(stimulus.scriptedTelemetry(7n), stimulus.scriptedTelemetry(8n));

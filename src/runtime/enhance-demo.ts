@@ -87,7 +87,7 @@ function resetHeroReadout(root: HTMLElement, encoderName: EncoderModeName, state
     restart.textContent = restartMessage(state);
   }
   root.dataset.encoderRestart = state;
-  if (state === 'queued') {
+  if (state === 'restarted') {
     const generation = Number.parseInt(root.dataset.encoderReadoutGeneration ?? '0', 10);
     root.dataset.encoderReadoutGeneration = String((Number.isFinite(generation) ? generation : 0) + 1);
   }

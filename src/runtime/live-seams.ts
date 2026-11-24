@@ -107,6 +107,7 @@ export function createHeroEncoderReadout(island: HTMLElement) {
   };
 
   const update = (state: NeuromorphicState) => {
+    if (island.dataset.encoderRestart === 'queued') return;
     const generation = island.dataset.encoderReadoutGeneration ?? '';
     if (startsNewRun(state, encoderName, lastStep, hasSnapshot, generation, readoutGeneration)) {
       reset(state.encoderName);
