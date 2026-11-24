@@ -25,16 +25,11 @@ import { createTopologyRendererSeam, type TopologyRendererSeam } from './topolog
 import { createWasmSeam, type TelemetryFrame } from './wasm-session';
 import type { NeuromorphicState } from './neuromorphic-adapter';
 
+const RASTER_MARKERS = ' .:-=+*#@';
+
 function rasterMarker(count: number): string {
-  if (count < 1) return '';
-  if (count < 2) return '.';
-  if (count < 3) return ':';
-  if (count < 4) return '-';
-  if (count < 5) return '=';
-  if (count < 6) return '+';
-  if (count < 7) return '*';
-  if (count < 8) return '#';
-  return '@';
+  const level = Math.min(Math.max(Math.floor(count), 0), RASTER_MARKERS.length - 1);
+  return RASTER_MARKERS.charAt(level).trim();
 }
 
 /** Snapshot-only homepage readout: it never invents counts or advances on its own. */
