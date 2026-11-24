@@ -61,7 +61,7 @@ function fakeAdapter(state = fakeState()) {
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 test('the homepage encoder readout derives step, window, total, and raster from snapshots', () => {
-  const cells = Array.from({ length: 20 }, () => ({ dataset: {} }));
+  const cells = Array.from({ length: 20 }, () => ({ setAttribute(name, value) { this[name] = value; } }));
   const raster = { setAttribute(name, value) { this[name] = value; } };
   const values = new Map([
     ['[data-readout-encoder]', { textContent: 'temporal' }],
@@ -94,7 +94,7 @@ test('the homepage encoder readout derives step, window, total, and raster from 
   assert.equal(values.get('[data-readout-step]').textContent, '2');
   assert.equal(values.get('[data-readout-window]').textContent, '2');
   assert.equal(values.get('[data-readout-total]').textContent, '2');
-  assert.equal(cells[0].dataset.spikeLevel, '2');
+  assert.equal(cells[0]['data-spike-level'], '2');
   assert.equal(raster['aria-label'], 'Recent network spike activity: 2 ticks, 2 spikes');
 
   readout.update(fakeState({
@@ -110,12 +110,31 @@ test('the homepage encoder readout derives step, window, total, and raster from 
   assert.equal(island.dataset.encoderRestart, 'restarted');
   assert.equal(raster['aria-label'], 'Recent network spike activity: 1 tick, 4 spikes');
 
-  readout.reset('delta');
+});
+
+test('the homepage encoder readout reset clears counters and the raster label', () => {
+  const values = new Map([
+    ['[data-readout-encoder]', { textContent: 'temporal' }],
+    ['[data-readout-step]', { textContent: '12' }],
+    ['[data-readout-window]', { textContent: '7' }],
+    ['[data-readout-total]', { textContent: '30' }],
+    ['[data-readout-restart]', { textContent: 'ready' }],
+    ['[data-readout-raster]', { setAttribute(name, value) { this[name] = value; } }],
+  ]);
+  const cell = { setAttribute(name, value) { this[name] = value; } };
+  const island = {
+    dataset: { encoderMode: 'temporal' },
+    querySelector(selector) { return values.get(selector) ?? null; },
+    querySelectorAll() { return [cell]; },
+  };
+  liveSeams.createHeroEncoderReadout(island).reset('delta');
+
+  assert.equal(values.get('[data-readout-encoder]').textContent, 'delta');
   assert.equal(values.get('[data-readout-step]').textContent, '0');
   assert.equal(values.get('[data-readout-window]').textContent, '0');
   assert.equal(values.get('[data-readout-total]').textContent, '0');
-  assert.equal(cells[0].dataset.spikeLevel, '0');
-  assert.equal(raster['aria-label'], 'Recent network spike activity: 0 ticks, 0 spikes');
+  assert.equal(cell['data-spike-level'], '0');
+  assert.equal(values.get('[data-readout-raster]')['aria-label'], 'Recent network spike activity: 0 ticks, 0 spikes');
 });
 
 test('scripted telemetry is a deterministic [x, y, pressure] path inside the island', () => {

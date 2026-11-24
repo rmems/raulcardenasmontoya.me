@@ -51,13 +51,26 @@ function isEncoderModeName(value: string): value is EncoderModeName {
 
 type EncoderRestartState = 'queued' | 'restarted' | 'failed' | 'waiting';
 
+function restartMessage(state: EncoderRestartState): string {
+  switch (state) {
+    case 'queued':
+      return 'restart queued';
+    case 'restarted':
+      return 'restarted';
+    case 'failed':
+      return 'restart failed';
+    case 'waiting':
+      return 'waiting to start';
+  }
+}
+
 function clearHeroReadout(root: HTMLElement): void {
   for (const selector of ['[data-readout-step]', '[data-readout-window]', '[data-readout-total]']) {
     const value = root.querySelector<HTMLElement>(selector);
     if (value) value.textContent = '0';
   }
   for (const cell of root.querySelectorAll<HTMLElement>('[data-raster-cell]')) {
-    cell.dataset.spikeLevel = '0';
+    cell.setAttribute('data-spike-level', '0');
   }
   root.querySelector<HTMLElement>('[data-readout-raster]')?.setAttribute(
     'aria-label',
@@ -71,12 +84,7 @@ function resetHeroReadout(root: HTMLElement, encoderName: EncoderModeName, state
   if (encoder) encoder.textContent = encoderName;
   clearHeroReadout(root);
   if (restart) {
-    restart.textContent = {
-      queued: 'restart queued',
-      restarted: 'restarted',
-      failed: 'restart failed',
-      waiting: 'waiting to start',
-    }[state];
+    restart.textContent = restartMessage(state);
   }
   root.dataset.encoderRestart = state;
 }
@@ -129,16 +137,18 @@ export function bindDemoIsland(root: HTMLElement, runtime?: DemoRuntime): BoundI
   // The encoder radios: a change restarts the WASM session with the same seed
   // and the chosen `axon-encoder` mode; the runtime coalesces quick changes.
   const encoder = elements.encoder?.fieldset as HTMLFieldSetElement | undefined;
-  let encoderChangeToken = 0;
+  let encoderChangeController: AbortController | null = null;
   const onEncoderChange = (event: Event) => {
     const target = event.target;
     if (target instanceof HTMLInputElement && target.name === 'encoder-mode' && isEncoderModeName(target.value)) {
-      const token = ++encoderChangeToken;
+      encoderChangeController?.abort();
+      const controller = new AbortController();
+      encoderChangeController = controller;
       resetHeroReadout(root, target.value, 'queued');
       const pending = boundRuntime.setEncoderMode(target.value);
       paint();
       void pending.then(() => {
-        if (token !== encoderChangeToken) return;
+        if (controller.signal.aborted) return;
         const snapshot = boundRuntime.getSnapshot();
         const failed = snapshot.mode === 'fallback' || snapshot.mode === 'frozen';
         const state = failed
@@ -149,7 +159,7 @@ export function bindDemoIsland(root: HTMLElement, runtime?: DemoRuntime): BoundI
         resetHeroReadout(root, snapshot.encoderMode, state);
         paint();
       }).catch(() => {
-        if (token !== encoderChangeToken) return;
+        if (controller.signal.aborted) return;
         resetHeroReadout(root, boundRuntime.getSnapshot().encoderMode, 'failed');
         paint();
       });
@@ -194,6 +204,7 @@ export function bindDemoIsland(root: HTMLElement, runtime?: DemoRuntime): BoundI
     }
 
     disposed = true;
+    encoderChangeController?.abort();
     unsubscribeSnapshot();
     play.removeEventListener('click', onPlay);
     encoder?.removeEventListener('change', onEncoderChange);

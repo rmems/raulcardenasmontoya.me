@@ -267,8 +267,8 @@ test('each session records its own [contract, mode] config and the worker is tol
 
   const liveSeamsSource = readSource('../src/runtime/live-seams.ts');
   assert.match(liveSeamsSource, /completedStep < lastStep \|\| state\.encoderName !== encoderName/);
-  assert.match(liveSeamsSource, /windowCounts\.slice\(-100\)/);
-  assert.match(liveSeamsSource, /rasterCounts\.slice\(-20\)/);
+  assert.match(liveSeamsSource, /slice\(-100\)/);
+  assert.match(liveSeamsSource, /slice\(-20\)/);
   assert.match(liveSeamsSource, /totalSpikes \+= spikes/);
   assert.match(liveSeamsSource, /hasSnapshot &&/);
   assert.match(liveSeamsSource, /Recent network spike activity/);
@@ -283,6 +283,6 @@ test('each session records its own [contract, mode] config and the worker is tol
   const enhanceSource = readSource('../src/runtime/enhance-demo.ts');
   assert.match(enhanceSource, /restart failed/);
   assert.match(enhanceSource, /root\.dataset\.demoHasRun === 'true'/);
-  assert.match(enhanceSource, /token !== encoderChangeToken/);
+  assert.match(enhanceSource, /controller\.signal\.aborted/);
   assert.match(enhanceSource, /resetHeroReadout\(root, snapshot\.encoderMode, state\)/);
 });

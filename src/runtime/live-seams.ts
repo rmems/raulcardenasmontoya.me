@@ -26,8 +26,8 @@ import { createWasmSeam, type TelemetryFrame } from './wasm-session';
 import type { NeuromorphicState } from './neuromorphic-adapter';
 
 export interface HeroEncoderReadout {
-  update: (_state: NeuromorphicState) => void;
-  reset: (_encoderName: string) => void;
+  update: (...args: [NeuromorphicState]) => void;
+  reset: (...args: [string]) => void;
 }
 
 /** Snapshot-only homepage readout: it never invents counts or advances on its own. */
@@ -51,7 +51,7 @@ export function createHeroEncoderReadout(island: HTMLElement): HeroEncoderReadou
 
   const renderRaster = (counts: number[]) => {
     for (let index = 0; index < cells.length; index += 1) {
-      cells[index].dataset.spikeLevel = String(Math.min(counts[index] ?? 0, 10));
+      cells[index].setAttribute('data-spike-level', String(Math.min(counts[index] ?? 0, 10)));
     }
     const raster = query<HTMLElement>('[data-readout-raster]');
     if (raster) {
@@ -87,10 +87,8 @@ export function createHeroEncoderReadout(island: HTMLElement): HeroEncoderReadou
     lastStep = state.completedStep;
 
     const spikes = state.spikeNeurons.length;
-    windowCounts.push(spikes);
-    if (windowCounts.length > 100) windowCounts = windowCounts.slice(-100);
-    rasterCounts.push(spikes);
-    if (rasterCounts.length > 20) rasterCounts = rasterCounts.slice(-20);
+    windowCounts = [...windowCounts, spikes].slice(-100);
+    rasterCounts = [...rasterCounts, spikes].slice(-20);
     totalSpikes += spikes;
 
     if (encoder) encoder.textContent = state.encoderName;
