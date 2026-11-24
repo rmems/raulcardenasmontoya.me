@@ -146,12 +146,11 @@ export function bindDemoIsland(root: HTMLElement, runtime?: DemoRuntime): BoundI
   let encoderChangeController: AbortController | null = null;
   const onEncoderChange = (event: Event) => {
     const target = event.target;
-    const radio = target as HTMLInputElement | null;
-    if (radio?.name === 'encoder-mode' && isEncoderModeName(radio.value)) {
+    if (target instanceof HTMLInputElement && target.name === 'encoder-mode' && isEncoderModeName(target.value)) {
       encoderChangeController?.abort();
       const controller = new AbortController();
       encoderChangeController = controller;
-      const requestedMode = radio.value;
+      const requestedMode = target.value;
       resetHeroReadout(root, requestedMode, 'queued');
       const pending = boundRuntime.setEncoderMode(requestedMode);
       paint();

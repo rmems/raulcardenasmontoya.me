@@ -1161,11 +1161,14 @@ function createFakeIsland() {
   };
   const surface = { hidden: true };
   const origin = { textContent: 'STATIC · diagram', dataset: { origin: 'static' } };
-  const encoderInputs = ['delta', 'temporal', 'rate'].map((value) => ({
-    name: 'encoder-mode',
-    value,
-    checked: value === 'temporal',
-  }));
+  const encoderInputs = ['delta', 'temporal', 'rate'].map((value) => Object.assign(
+    Object.create(globalThis.HTMLInputElement.prototype),
+    {
+      name: 'encoder-mode',
+      value,
+      checked: value === 'temporal',
+    },
+  ));
   const encoder = {
     changeHandler: undefined,
     addEventListener(type, handler) {
@@ -1226,6 +1229,7 @@ function createFakeIsland() {
 function installBindingHost({ reducedMotion = false } = {}) {
   const previousDocument = globalThis.document;
   const previousWindow = globalThis.window;
+  const previousHTMLInputElement = globalThis.HTMLInputElement;
   const windowListeners = new Map();
   const motionListeners = new Set();
   const motionQuery = {
@@ -1262,9 +1266,15 @@ function installBindingHost({ reducedMotion = false } = {}) {
   };
   globalThis.document = document;
   globalThis.window = windowObject;
+  globalThis.HTMLInputElement = class TestHTMLInputElement {};
   const restore = () => {
     globalThis.document = previousDocument;
     globalThis.window = previousWindow;
+    if (previousHTMLInputElement === undefined) {
+      delete globalThis.HTMLInputElement;
+    } else {
+      globalThis.HTMLInputElement = previousHTMLInputElement;
+    }
   };
   restore.dispatchWindow = (type, event) => {
     for (const handler of windowListeners.get(type) ?? []) {
@@ -1295,8 +1305,8 @@ async function withBoundDemo(
       inViewport,
       documentHidden,
     });
-  const island = createFakeIsland();
   const restoreHost = installBindingHost({ reducedMotion });
+  const island = createFakeIsland();
   let binding;
   try {
     binding = enhance.bindDemoIsland(island.root, boundDemo);
