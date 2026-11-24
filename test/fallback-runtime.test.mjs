@@ -410,6 +410,16 @@ test('applyDemoView exposes status, play affordance, and reason for assistive te
   runtime.applyDemoView({ ...snapshot, mode: 'live' }, elements);
   assert.equal(elements.readout.restart.textContent, 'ready');
   assert.equal(elements.root.dataset.demoHasRun, 'true');
+  elements.root.dataset.encoderRestart = 'failed';
+  runtime.applyDemoView({ ...snapshot, mode: 'fallback' }, elements);
+  assert.equal(elements.readout.restart.textContent, 'restart failed');
+  elements.root.dataset.encoderRestart = 'restarted';
+  runtime.applyDemoView({ ...snapshot, mode: 'awaiting-play' }, elements);
+  assert.equal(elements.readout.restart.textContent, 'restarted');
+  elements.root.dataset.encoderRestart = 'paused';
+  runtime.applyDemoView({ ...snapshot, mode: 'awaiting-play' }, elements);
+  assert.equal(elements.readout.restart.textContent, 'paused');
+  delete elements.root.dataset.encoderRestart;
   runtime.applyDemoView({ ...snapshot, mode: 'fallback' }, elements);
   assert.equal(elements.readout.restart.textContent, 'unavailable');
 });

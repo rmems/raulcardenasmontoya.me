@@ -25,13 +25,29 @@ import { createTopologyRendererSeam, type TopologyRendererSeam } from './topolog
 import { createWasmSeam, type TelemetryFrame } from './wasm-session';
 import type { NeuromorphicState } from './neuromorphic-adapter';
 
-export interface HeroEncoderReadout {
-  update: (...args: [NeuromorphicState]) => void;
-  reset: (...args: [string]) => void;
+const rasterLevelClasses = [
+  'spike-level-0',
+  'spike-level-1',
+  'spike-level-2',
+  'spike-level-3',
+  'spike-level-4',
+  'spike-level-5',
+  'spike-level-6',
+  'spike-level-7',
+  'spike-level-8',
+  'spike-level-9',
+  'spike-level-10',
+] as const;
+
+export function setHeroRasterLevel(cell: HTMLElement, count: number): void {
+  const level = Math.min(Math.max(Math.floor(count), 0), rasterLevelClasses.length - 1);
+  for (let index = 0; index < rasterLevelClasses.length; index += 1) {
+    cell.classList.toggle(rasterLevelClasses[index], index === level);
+  }
 }
 
 /** Snapshot-only homepage readout: it never invents counts or advances on its own. */
-export function createHeroEncoderReadout(island: HTMLElement): HeroEncoderReadout {
+export function createHeroEncoderReadout(island: HTMLElement) {
   const query = <T extends Element>(selector: string): T | null =>
     typeof island.querySelector === 'function' ? island.querySelector<T>(selector) : null;
   const encoder = query<HTMLElement>('[data-readout-encoder]');
@@ -51,7 +67,7 @@ export function createHeroEncoderReadout(island: HTMLElement): HeroEncoderReadou
 
   const renderRaster = (counts: number[]) => {
     for (let index = 0; index < cells.length; index += 1) {
-      cells[index].setAttribute('data-spike-level', String(Math.min(counts[index] ?? 0, 10)));
+      setHeroRasterLevel(cells[index], counts[index] ?? 0);
     }
     const raster = query<HTMLElement>('[data-readout-raster]');
     if (raster) {
@@ -59,7 +75,7 @@ export function createHeroEncoderReadout(island: HTMLElement): HeroEncoderReadou
       const tickLabel = counts.length === 1 ? 'tick' : 'ticks';
       raster.setAttribute(
         'aria-label',
-        `Recent network spike activity: ${counts.length} ${tickLabel}, ${spikes} spikes`,
+        `Recent network spike activity: ${counts.length === 0 ? 'no ticks recorded' : `${counts.length} recorded ${tickLabel}`}, ${spikes} spikes across the 20-tick raster`,
       );
     }
   };

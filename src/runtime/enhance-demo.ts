@@ -7,7 +7,7 @@ import {
   type DemoRuntime,
   type DemoViewElements,
 } from './demo-runtime';
-import { provideLiveDemoSeams } from './live-seams';
+import { provideLiveDemoSeams, setHeroRasterLevel } from './live-seams';
 import { bindDemoTelemetryPanel } from './telemetry-entry';
 
 interface BoundIsland {
@@ -70,11 +70,11 @@ function clearHeroReadout(root: HTMLElement): void {
     if (value) value.textContent = '0';
   }
   for (const cell of root.querySelectorAll<HTMLElement>('[data-raster-cell]')) {
-    cell.setAttribute('data-spike-level', '0');
+    setHeroRasterLevel(cell, 0);
   }
   root.querySelector<HTMLElement>('[data-readout-raster]')?.setAttribute(
     'aria-label',
-    'Recent network spike activity: 0 ticks, 0 spikes',
+    'Recent network spike activity: no ticks recorded, 0 spikes across the 20-tick raster',
   );
 }
 
@@ -131,7 +131,15 @@ export function bindDemoIsland(root: HTMLElement, runtime?: DemoRuntime): BoundI
   const onPlay = () => {
     const pending = boundRuntime.play();
     paint();
-    void pending.then(paint);
+    void pending.then(() => {
+      const snapshot = boundRuntime.getSnapshot();
+      if (snapshot.mode === 'awaiting-play' && snapshot.userPaused) {
+        root.dataset.encoderRestart = 'paused';
+        const restart = root.querySelector<HTMLElement>('[data-readout-restart]');
+        if (restart) restart.textContent = 'paused';
+      }
+      paint();
+    });
   };
 
   // The encoder radios: a change restarts the WASM session with the same seed

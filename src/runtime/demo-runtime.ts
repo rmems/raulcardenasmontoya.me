@@ -360,8 +360,10 @@ export function applyDemoView(snapshot: DemoSnapshot, elements: DemoViewElements
     const unavailable = snapshot.mode === 'fallback' || snapshot.mode === 'frozen';
     if (elements.readout.restart) {
       elements.readout.restart.textContent =
-        unavailable
-          ? 'unavailable'
+        elements.root.dataset.encoderRestart === 'failed'
+          ? 'restart failed'
+          : unavailable
+            ? 'unavailable'
           : snapshot.mode === 'static'
             ? 'waiting to start'
             : snapshot.mode === 'initializing'
