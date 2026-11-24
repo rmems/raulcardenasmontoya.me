@@ -34,11 +34,41 @@ function viewElements(root: HTMLElement): DemoViewElements {
     encoder: fieldset
       ? { fieldset, inputs: fieldset.querySelectorAll<HTMLInputElement>('input[name="encoder-mode"]') }
       : undefined,
+    readout: {
+      encoder: root.querySelector<HTMLElement>('[data-readout-encoder]'),
+      step: root.querySelector<HTMLElement>('[data-readout-step]'),
+      window: root.querySelector<HTMLElement>('[data-readout-window]'),
+      total: root.querySelector<HTMLElement>('[data-readout-total]'),
+      restart: root.querySelector<HTMLElement>('[data-readout-restart]'),
+      raster: root.querySelector<HTMLElement>('[data-readout-raster]'),
+    },
   };
 }
 
 function isEncoderModeName(value: string): value is EncoderModeName {
   return (ENCODER_MODE_NAMES as readonly string[]).includes(value);
+}
+
+function resetHeroReadout(root: HTMLElement, encoderName: EncoderModeName, state: 'queued' | 'restarted' | 'failed'): void {
+  const encoder = root.querySelector<HTMLElement>('[data-readout-encoder]');
+  const step = root.querySelector<HTMLElement>('[data-readout-step]');
+  const windowEl = root.querySelector<HTMLElement>('[data-readout-window]');
+  const total = root.querySelector<HTMLElement>('[data-readout-total]');
+  const restart = root.querySelector<HTMLElement>('[data-readout-restart]');
+  const raster = root.querySelector<HTMLElement>('[data-readout-raster]');
+  if (encoder) encoder.textContent = encoderName;
+  if (state !== 'queued') {
+    if (step) step.textContent = '0';
+    if (windowEl) windowEl.textContent = '0';
+    if (total) total.textContent = '0';
+    for (const cell of root.querySelectorAll<HTMLElement>('[data-raster-cell]')) {
+      cell.style.height = '1px';
+      cell.style.opacity = '0.25';
+    }
+    raster?.setAttribute('aria-label', 'Recent network spike activity: 20 ticks, no recorded spikes');
+  }
+  if (restart) restart.textContent = state === 'restarted' ? 'restarted' : state === 'failed' ? 'restart failed' : 'restart queued';
+  root.dataset.encoderRestart = state;
 }
 
 /** Elements whose visibility gates the island (`[data-demo-viewport]`), else the root. */
@@ -92,12 +122,16 @@ export function bindDemoIsland(root: HTMLElement, runtime?: DemoRuntime): BoundI
   const onEncoderChange = (event: Event) => {
     const target = event.target;
     if (target instanceof HTMLInputElement && target.name === 'encoder-mode' && isEncoderModeName(target.value)) {
-      const readoutRestart = root.querySelector<HTMLElement>('[data-readout-restart]');
-      if (readoutRestart) readoutRestart.textContent = 'restart queued';
-      root.dataset.encoderRestart = 'queued';
+      resetHeroReadout(root, target.value, 'queued');
       const pending = boundRuntime.setEncoderMode(target.value);
       paint();
-      void pending.then(paint);
+      void pending.then(() => {
+        resetHeroReadout(root, boundRuntime.getSnapshot().encoderMode, 'restarted');
+        paint();
+      }).catch(() => {
+        resetHeroReadout(root, boundRuntime.getSnapshot().encoderMode, 'failed');
+        paint();
+      });
     }
   };
 

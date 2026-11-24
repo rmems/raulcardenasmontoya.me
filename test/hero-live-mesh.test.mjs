@@ -36,23 +36,31 @@ async function liveAdapter(encoderMode) {
 
 test('the same seed and scripted drive produce measurably distinct encoder activity', async () => {
   const counts = {};
+  const traces = {};
   for (const mode of ['delta', 'temporal', 'rate']) {
     const adapter = await liveAdapter(mode);
     try {
       let spikes = 0;
+      traces[mode] = [];
       for (let sequence = 1n; sequence <= 100n; sequence += 1n) {
         adapter.input(sequence, stimulus.scriptedTelemetry(sequence));
         const state = adapter.step();
         assert.equal(state.seed, stimulus.DEMO_SEED);
         assert.equal(state.encoderName, mode);
         spikes += state.spikeNeurons.length;
+        traces[mode].push(state.spikeNeurons.length);
       }
       counts[mode] = spikes;
     } finally {
       adapter.dispose();
     }
   }
-  assert.equal(new Set(Object.values(counts)).size > 1, true, `mode spike counts differ: ${JSON.stringify(counts)}`);
+  for (const [left, right] of [['delta', 'temporal'], ['delta', 'rate'], ['temporal', 'rate']]) {
+    const totalsDiffer = counts[left] !== counts[right];
+    const tracesDiffer = traces[left].some((count, index) => count !== traces[right][index]);
+    assert.equal(totalsDiffer || tracesDiffer, true,
+      `encoder pair ${left}/${right} must differ in totals or per-tick activity: ${JSON.stringify({ counts, traces })}`);
+  }
 });
 
 test('the audited topology is exactly what the committed homepage package exports', async () => {

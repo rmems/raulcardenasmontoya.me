@@ -129,6 +129,14 @@ export interface DemoViewElements {
     fieldset: { disabled: boolean };
     inputs: ArrayLike<{ value: string; checked: boolean }>;
   };
+  readout?: {
+    encoder: HTMLElement | null;
+    step: HTMLElement | null;
+    window: HTMLElement | null;
+    total: HTMLElement | null;
+    restart: HTMLElement | null;
+    raster: HTMLElement | null;
+  };
   surface?: {
     hidden: boolean | string;
   };
@@ -342,6 +350,20 @@ export function applyDemoView(snapshot: DemoSnapshot, elements: DemoViewElements
     for (let index = 0; index < elements.encoder.inputs.length; index += 1) {
       const input = elements.encoder.inputs[index];
       input.checked = input.value === snapshot.encoderMode;
+    }
+  }
+  if (elements.readout) {
+    if (elements.readout.encoder) elements.readout.encoder.textContent = snapshot.encoderMode;
+    const unavailable = snapshot.mode === 'fallback' || snapshot.mode === 'frozen';
+    if (elements.readout.restart) {
+      elements.readout.restart.textContent =
+        unavailable
+          ? 'unavailable'
+          : snapshot.mode === 'static'
+            ? 'waiting to start'
+            : snapshot.mode === 'initializing'
+              ? 'restarting'
+              : elements.readout.restart.textContent ?? 'ready';
     }
   }
   if (elements.surface) {

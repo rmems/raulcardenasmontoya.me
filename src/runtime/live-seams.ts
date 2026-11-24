@@ -36,7 +36,7 @@ export function createHeroEncoderReadout(island: HTMLElement): HeroEncoderReadou
     typeof island.querySelector === 'function' ? island.querySelector<T>(selector) : null;
   const encoder = query<HTMLElement>('[data-readout-encoder]');
   const step = query<HTMLElement>('[data-readout-step]');
-  const window = query<HTMLElement>('[data-readout-window]');
+  const windowEl = query<HTMLElement>('[data-readout-window]');
   const total = query<HTMLElement>('[data-readout-total]');
   const restart = query<HTMLElement>('[data-readout-restart]');
   const cells = typeof island.querySelectorAll === 'function'
@@ -47,16 +47,18 @@ export function createHeroEncoderReadout(island: HTMLElement): HeroEncoderReadou
   let windowCounts: number[] = [];
   let rasterCounts: number[] = [];
   let totalSpikes = 0;
+  let hasSnapshot = false;
 
   const reset = (name: string) => {
     encoderName = name;
     lastStep = -1n;
+    hasSnapshot = false;
     windowCounts = [];
     rasterCounts = [];
     totalSpikes = 0;
     if (encoder) encoder.textContent = name;
     if (step) step.textContent = '0';
-    if (window) window.textContent = '0';
+    if (windowEl) windowEl.textContent = '0';
     if (total) total.textContent = '0';
     if (restart) restart.textContent = 'restarted';
     island.dataset.encoderRestart = 'restarted';
@@ -64,11 +66,16 @@ export function createHeroEncoderReadout(island: HTMLElement): HeroEncoderReadou
       cell.style.height = '1px';
       cell.style.opacity = '0.25';
     }
+    const raster = typeof island.querySelector === 'function'
+      ? island.querySelector<HTMLElement>('[data-readout-raster]')
+      : null;
+    raster?.setAttribute('aria-label', 'Recent network spike activity: 20 ticks, no recorded spikes');
   };
 
   const update = (state: NeuromorphicState) => {
-    const newRun = state.completedStep < lastStep || state.encoderName !== encoderName;
+    const newRun = hasSnapshot && (state.completedStep < lastStep || state.encoderName !== encoderName);
     if (newRun) reset(state.encoderName);
+    hasSnapshot = true;
     lastStep = state.completedStep;
 
     const spikes = state.spikeNeurons.length;
@@ -80,13 +87,23 @@ export function createHeroEncoderReadout(island: HTMLElement): HeroEncoderReadou
 
     if (encoder) encoder.textContent = state.encoderName;
     if (step) step.textContent = state.completedStep.toString();
-    if (window) window.textContent = String(windowCounts.reduce((sum, count) => sum + count, 0));
+    if (windowEl) windowEl.textContent = String(windowCounts.reduce((sum, count) => sum + count, 0));
     if (total) total.textContent = String(totalSpikes);
     for (let index = 0; index < cells.length; index += 1) {
       const count = rasterCounts[index] ?? 0;
       const height = count === 0 ? 1 : Math.min(12, 2 + count);
       cells[index].style.height = `${height}px`;
       cells[index].style.opacity = count === 0 ? '0.25' : '1';
+    }
+    const raster = typeof island.querySelector === 'function'
+      ? island.querySelector<HTMLElement>('[data-readout-raster]')
+      : null;
+    if (raster) {
+      const windowSpikeCount = windowCounts.reduce((sum, count) => sum + count, 0);
+      raster.setAttribute(
+        'aria-label',
+        `Recent network spike activity: ${rasterCounts.length} ticks, ${windowSpikeCount} spikes in the 100-tick window`,
+      );
     }
   };
 

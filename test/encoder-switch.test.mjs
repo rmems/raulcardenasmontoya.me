@@ -270,4 +270,17 @@ test('each session records its own [contract, mode] config and the worker is tol
   assert.match(liveSeamsSource, /windowCounts\.slice\(-100\)/);
   assert.match(liveSeamsSource, /rasterCounts\.slice\(-20\)/);
   assert.match(liveSeamsSource, /totalSpikes \+= spikes/);
+  assert.match(liveSeamsSource, /hasSnapshot &&/);
+  assert.match(liveSeamsSource, /Recent network spike activity/);
+
+  const islandMarkup = readSource('../src/components/NeuromorphicDemo.astro');
+  assert.doesNotMatch(islandMarkup, /class="hero-encoder-readout"[^>]*aria-live=/);
+  assert.match(islandMarkup, /data-readout-restart aria-live="polite">waiting to start<\/span>/);
+
+  const styles = readSource('../src/styles/hero.css');
+  assert.match(styles, /@media \(prefers-reduced-motion: no-preference\) \{\s*\.hero-encoder-raster span \{ transition: height 80ms linear, opacity 80ms linear; \}/);
+
+  const enhanceSource = readSource('../src/runtime/enhance-demo.ts');
+  assert.match(enhanceSource, /restart failed/);
+  assert.match(enhanceSource, /resetHeroReadout\(root, boundRuntime\.getSnapshot\(\)\.encoderMode, 'restarted'\)/);
 });

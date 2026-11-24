@@ -219,7 +219,9 @@
   height: 1px;
   background: var(--accent);
   opacity: 0.25;
-  transition: height 80ms linear, opacity 80ms linear;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .hero-encoder-raster span { transition: height 80ms linear, opacity 80ms linear; }
 }
 
 @media (prefers-reduced-motion: reduce) {
