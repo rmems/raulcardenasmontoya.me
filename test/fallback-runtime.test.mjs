@@ -414,11 +414,15 @@ test('applyDemoView exposes status, play affordance, and reason for assistive te
   runtime.applyDemoView({ ...snapshot, mode: 'fallback' }, elements);
   assert.equal(elements.readout.restart.textContent, 'restart failed');
   elements.root.dataset.encoderRestart = 'restarted';
+  delete elements.root.dataset.demoHasRun;
   runtime.applyDemoView({ ...snapshot, mode: 'awaiting-play' }, elements);
   assert.equal(elements.readout.restart.textContent, 'restarted');
-  elements.root.dataset.encoderRestart = 'paused';
+  elements.root.dataset.demoHasRun = 'true';
   runtime.applyDemoView({ ...snapshot, mode: 'awaiting-play' }, elements);
-  assert.equal(elements.readout.restart.textContent, 'paused');
+  assert.equal(elements.readout.restart.textContent, 'paused', 'the current pause wins over the last restart');
+  delete elements.root.dataset.demoHasRun;
+  runtime.applyDemoView({ ...snapshot, mode: 'awaiting-play', userPaused: true }, elements);
+  assert.equal(elements.readout.restart.textContent, 'paused', 'an explicit user pause wins even before demoHasRun is painted');
   delete elements.root.dataset.encoderRestart;
   runtime.applyDemoView({ ...snapshot, mode: 'fallback' }, elements);
   assert.equal(elements.readout.restart.textContent, 'unavailable');
@@ -1157,22 +1161,44 @@ function createFakeIsland() {
   };
   const surface = { hidden: true };
   const origin = { textContent: 'STATIC · diagram', dataset: { origin: 'static' } };
+  const rasterCells = Array.from({ length: 20 }, () => ({ textContent: '' }));
+  const readout = {
+    encoder: { textContent: 'temporal' },
+    step: { textContent: '0' },
+    window: { textContent: '0' },
+    total: { textContent: '0' },
+    restart: { textContent: 'waiting to start' },
+    raster: {
+      attributes: {},
+      setAttribute(name, value) { this.attributes[name] = value; },
+      getAttribute(name) { return this.attributes[name] ?? null; },
+    },
+  };
   const elements = {
     '[data-demo-status]': status,
     '[data-demo-play]': play,
     '[data-demo-surface]': surface,
     '[data-demo-origin]': origin,
+    '[data-readout-encoder]': readout.encoder,
+    '[data-readout-step]': readout.step,
+    '[data-readout-window]': readout.window,
+    '[data-readout-total]': readout.total,
+    '[data-readout-restart]': readout.restart,
+    '[data-readout-raster]': readout.raster,
   };
   const root = {
     dataset: {},
     querySelector(selector) {
       return elements[selector] ?? null;
     },
+    querySelectorAll(selector) {
+      return selector === '[data-raster-cell]' ? rasterCells : [];
+    },
     addEventListener() {},
     removeEventListener() {},
   };
 
-  return { root, status, play, surface, origin };
+  return { root, status, play, surface, origin, readout, rasterCells };
 }
 
 function installBindingHost({ reducedMotion = false } = {}) {
@@ -1306,6 +1332,21 @@ test('binding paints the live surface after deferred init from a viewport return
     assert.equal(origin.textContent, 'LIVE · Rust/WASM');
     assert.equal(origin.dataset.origin, 'live');
     assert.equal(demo.getSnapshot().hasGraphicsSurface, true);
+  });
+});
+
+test('the Pause click handler paints paused over the last restart state', async () => {
+  const fixture = connectedSeams();
+  await withBoundDemo({ seams: fixture.seams, inViewport: true }, async ({ demo, root, play, readout }) => {
+    await waitFor(() => demo.getSnapshot().mode === 'live');
+    await demo.setEncoderMode('rate');
+    root.dataset.encoderRestart = 'restarted';
+    readout.restart.textContent = 'restarted';
+
+    assert.equal(typeof play.clickHandler, 'function');
+    play.clickHandler();
+    await waitFor(() => readout.restart.textContent === 'paused');
+    assert.equal(readout.restart.textContent, 'paused');
   });
 });
 

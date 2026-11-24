@@ -87,6 +87,10 @@ function resetHeroReadout(root: HTMLElement, encoderName: EncoderModeName, state
     restart.textContent = restartMessage(state);
   }
   root.dataset.encoderRestart = state;
+  if (state === 'queued') {
+    const generation = Number.parseInt(root.dataset.encoderReadoutGeneration ?? '0', 10);
+    root.dataset.encoderReadoutGeneration = String((Number.isFinite(generation) ? generation : 0) + 1);
+  }
 }
 
 /** Elements whose visibility gates the island (`[data-demo-viewport]`), else the root. */
@@ -132,12 +136,6 @@ export function bindDemoIsland(root: HTMLElement, runtime?: DemoRuntime): BoundI
     const pending = boundRuntime.play();
     paint();
     void pending.then(() => {
-      const snapshot = boundRuntime.getSnapshot();
-      if (snapshot.mode === 'awaiting-play' && snapshot.userPaused) {
-        root.dataset.encoderRestart = 'paused';
-        const restart = root.querySelector<HTMLElement>('[data-readout-restart]');
-        if (restart) restart.textContent = 'paused';
-      }
       paint();
     });
   };
@@ -152,11 +150,12 @@ export function bindDemoIsland(root: HTMLElement, runtime?: DemoRuntime): BoundI
       encoderChangeController?.abort();
       const controller = new AbortController();
       encoderChangeController = controller;
-      resetHeroReadout(root, target.value, 'queued');
-      const pending = boundRuntime.setEncoderMode(target.value);
+      const requestedMode = target.value;
+      resetHeroReadout(root, requestedMode, 'queued');
+      const pending = boundRuntime.setEncoderMode(requestedMode);
       paint();
       void pending.then(() => {
-        if (controller.signal.aborted) return;
+        if (controller.signal.aborted || boundRuntime.getSnapshot().encoderMode !== requestedMode) return;
         const snapshot = boundRuntime.getSnapshot();
         const failed = snapshot.mode === 'fallback' || snapshot.mode === 'frozen';
         const state = failed
@@ -167,7 +166,7 @@ export function bindDemoIsland(root: HTMLElement, runtime?: DemoRuntime): BoundI
         resetHeroReadout(root, snapshot.encoderMode, state);
         paint();
       }).catch(() => {
-        if (controller.signal.aborted) return;
+        if (controller.signal.aborted || boundRuntime.getSnapshot().encoderMode !== requestedMode) return;
         resetHeroReadout(root, boundRuntime.getSnapshot().encoderMode, 'failed');
         paint();
       });

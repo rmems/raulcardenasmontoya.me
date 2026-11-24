@@ -225,6 +225,12 @@
   font-weight: 700;
   line-height: 1;
 }
+.hero-encoder-raster-key {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .live-hero:is([data-mode='live'], [data-mode='awaiting-play'], [data-mode='initializing']) .hero-mesh-motion-note { display: block; }

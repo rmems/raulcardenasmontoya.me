@@ -137,6 +137,7 @@ const pulseSpeedLabel = `1/${Math.round(1 / PULSE_DISPLAY_SPEED)}`;
           <div class="hero-encoder-raster" data-readout-raster role="img" aria-label="Recent network spike activity: no ticks recorded, 0 spikes across the 20-tick raster">
             {Array.from({ length: 20 }, (_, index) => <span data-raster-cell={index} aria-hidden="true"></span>)}
           </div>
+          <p class="hero-encoder-raster-key">blank unused · 0 quiet · .:-=+*#@ = 1–8+ spikes/tick · oldest → newest</p>
         </div>
         <ul class="hero-mesh-legend" aria-label="What the colours in the drawing mean">
           <li><span class="hero-mesh-legend-key" aria-hidden="true"></span>Neuron spike</li>

@@ -25,11 +25,12 @@ import { createTopologyRendererSeam, type TopologyRendererSeam } from './topolog
 import { createWasmSeam, type TelemetryFrame } from './wasm-session';
 import type { NeuromorphicState } from './neuromorphic-adapter';
 
-const RASTER_MARKERS = ' .:-=+*#@';
+const RASTER_MARKERS = '.:-=+*#@';
 
 function rasterMarker(count: number): string {
-  const level = Math.min(Math.max(Math.floor(count), 0), RASTER_MARKERS.length - 1);
-  return RASTER_MARKERS.charAt(level).trim();
+  if (count < 1) return '0';
+  const level = Math.min(Math.floor(count), RASTER_MARKERS.length);
+  return RASTER_MARKERS.charAt(level - 1);
 }
 
 /** Snapshot-only homepage readout: it never invents counts or advances on its own. */
@@ -41,34 +42,38 @@ export function createHeroEncoderReadout(island: HTMLElement) {
   const windowEl = query<HTMLElement>('[data-readout-window]');
   const total = query<HTMLElement>('[data-readout-total]');
   const restart = query<HTMLElement>('[data-readout-restart]');
+  const raster = query<HTMLElement>('[data-readout-raster]');
   const cells = typeof island.querySelectorAll === 'function'
     ? Array.from(island.querySelectorAll<HTMLElement>('[data-raster-cell]'))
     : [];
   let encoderName = island.dataset.encoderMode ?? 'temporal';
+  let readoutGeneration = island.dataset.encoderReadoutGeneration ?? '';
   let lastStep = -1n;
   let windowCounts: number[] = [];
   let rasterCounts: number[] = [];
   let totalSpikes = 0;
   let hasSnapshot = false;
+  let lastRasterLabel: string | null = null;
 
   const renderRaster = (counts: number[]) => {
-    const cellIterator = cells.values();
-    for (const count of counts) {
-      const cell = cellIterator.next();
-      if (cell.done) break;
-      cell.value.textContent = rasterMarker(count);
-    }
-    for (const cell of cellIterator) {
-      cell.textContent = '';
-    }
-    const raster = query<HTMLElement>('[data-readout-raster]');
+    const visibleCounts = counts.slice(-cells.length);
+    const emptyCells = Math.max(0, cells.length - visibleCounts.length);
+    cells.forEach((cell, index) => {
+      const count = index < emptyCells ? null : visibleCounts[index - emptyCells];
+      const marker = count === null ? '' : rasterMarker(count);
+      if (cell.textContent !== marker) {
+        cell.textContent = marker;
+      }
+    });
     if (raster) {
       const spikes = counts.reduce((sum, count) => sum + count, 0);
       const tickLabel = counts.length === 1 ? 'tick' : 'ticks';
-      raster.setAttribute(
-        'aria-label',
-        `Recent network spike activity: ${counts.length === 0 ? 'no ticks recorded' : `${counts.length} recorded ${tickLabel}`}, ${spikes} spikes across the 20-tick raster`,
-      );
+      const label = `Recent network spike activity: ${counts.length === 0 ? 'no ticks recorded' : `${counts.length} recorded ${tickLabel}`}, ${spikes} spikes across the 20-tick raster`;
+      const currentLabel = typeof raster.getAttribute === 'function' ? raster.getAttribute('aria-label') : lastRasterLabel;
+      if (currentLabel !== label) {
+        raster.setAttribute('aria-label', label);
+      }
+      lastRasterLabel = label;
     }
   };
 
@@ -89,8 +94,13 @@ export function createHeroEncoderReadout(island: HTMLElement) {
   };
 
   const update = (state: NeuromorphicState) => {
-    const newRun = hasSnapshot && (state.completedStep < lastStep || state.encoderName !== encoderName);
+    const generation = island.dataset.encoderReadoutGeneration ?? '';
+    const newRun =
+      generation !== readoutGeneration ||
+      (hasSnapshot && (state.completedStep < lastStep || state.encoderName !== encoderName));
     if (newRun) reset(state.encoderName);
+    readoutGeneration = generation;
+    encoderName = state.encoderName;
     hasSnapshot = true;
     lastStep = state.completedStep;
 
