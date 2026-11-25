@@ -110,11 +110,11 @@ export class FakeElement {
     const match = ATTRIBUTE_SELECTOR.exec(selector);
     if (!match) throw new Error(`fake DOM supports only attribute selectors, not ${selector}`);
     const name = match[1];
-    const value = match[3] ?? null;
+    const value = match[3];
     const found = [];
     const visit = (element) => {
       for (const child of element.children) {
-        if (child.hasAttribute(name) && (value === null || child.getAttribute(name) === value)) found.push(child);
+        if (child.hasAttribute(name) && (value === undefined || Object.is(child.getAttribute(name), value))) found.push(child);
         visit(child);
       }
     };
