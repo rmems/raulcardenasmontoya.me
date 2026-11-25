@@ -114,7 +114,7 @@ export class FakeElement {
     const found = [];
     const visit = (element) => {
       for (const child of element.children) {
-        if (child.hasAttribute(name) && (value === undefined || Object.is(child.getAttribute(name), value))) found.push(child);
+        if (child.hasAttribute(name) && (typeof value === 'undefined' || child.getAttribute(name) === value)) found.push(child);
         visit(child);
       }
     };
