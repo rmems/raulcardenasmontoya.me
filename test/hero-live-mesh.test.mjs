@@ -14,12 +14,13 @@ const renderer = await loadTsModule('../src/runtime/topology-renderer.ts');
 const adapterModule = await loadTsModule('../src/runtime/neuromorphic-adapter.ts');
 const stimulus = await loadTsModule('../src/runtime/demo-stimulus.ts');
 const wasmSession = await loadTsModule('../src/runtime/wasm-session.ts');
+const liveSeams = await loadTsModule('../src/runtime/live-seams.ts');
 const runtimeData = await loadTsModule('../src/data/live-runtime.ts');
 
 const wasmUrl = new URL('../public/wasm/neuromorphic-adapter/neuromorphic_adapter.js', import.meta.url);
 const wasmBytes = readFileSync(new URL('../public/wasm/neuromorphic-adapter/neuromorphic_adapter_bg.wasm', import.meta.url));
 
-async function liveAdapter() {
+async function liveAdapter(encoderMode) {
   // The committed homepage package through the shipped bridge and live options.
   return adapterModule.initNeuromorphicAdapter(
     async () => {
@@ -30,9 +31,69 @@ async function liveAdapter() {
       };
     },
     stimulus.DEMO_SEED,
-    wasmSession.LIVE_ADAPTER_OPTIONS,
+    encoderMode ? wasmSession.liveAdapterOptions(encoderMode) : wasmSession.LIVE_ADAPTER_OPTIONS,
   );
 }
+
+test('the same seed and scripted drive produce measurably distinct displayed encoder readouts', async () => {
+  const counts = {};
+  const traces = {};
+  const displayed = {};
+  const readoutFor = (mode) => {
+    const values = new Map([
+      ['[data-readout-encoder]', { textContent: mode }],
+      ['[data-readout-step]', { textContent: '0' }],
+      ['[data-readout-window]', { textContent: '0' }],
+      ['[data-readout-total]', { textContent: '0' }],
+      ['[data-readout-restart]', { textContent: 'ready' }],
+      ['[data-readout-raster]', { setAttribute(name, value) { this[name] = value; } }],
+    ]);
+    const island = {
+      dataset: { encoderMode: mode },
+      querySelector(selector) { return values.get(selector) ?? null; },
+      querySelectorAll() { return Array.from({ length: 20 }, () => ({ textContent: '' })); },
+    };
+    return { values, readout: liveSeams.createHeroEncoderReadout(island) };
+  };
+  for (const mode of ['delta', 'temporal', 'rate']) {
+    const adapter = await liveAdapter(mode);
+    const readout = readoutFor(mode);
+    try {
+      let spikes = 0;
+      traces[mode] = [];
+      for (let sequence = 1n; sequence <= 100n; sequence += 1n) {
+        adapter.input(sequence, stimulus.scriptedTelemetry(sequence));
+        const state = adapter.step();
+        assert.equal(state.seed, stimulus.DEMO_SEED);
+        assert.equal(state.encoderName, mode);
+        spikes += state.spikeNeurons.length;
+        traces[mode].push(state.spikeNeurons.length);
+        readout.readout.update(state);
+      }
+      counts[mode] = spikes;
+      displayed[mode] = {
+        step: readout.values.get('[data-readout-step]').textContent,
+        window: readout.values.get('[data-readout-window]').textContent,
+        total: readout.values.get('[data-readout-total]').textContent,
+      };
+    } finally {
+      adapter.dispose();
+    }
+  }
+  assert.deepEqual(counts, { delta: 765, temporal: 512, rate: 839 }, 'recorded 100-tick totals for the shipped seed and scripted drive');
+  for (const mode of ['delta', 'temporal', 'rate']) {
+    assert.equal(displayed[mode].step, '100');
+    assert.equal(displayed[mode].window, String(counts[mode]), `${mode} displays the same 100-tick window visitors see`);
+    assert.equal(displayed[mode].total, String(counts[mode]), `${mode} displays the same total visitors see`);
+  }
+  for (const [left, right] of [['delta', 'temporal'], ['delta', 'rate'], ['temporal', 'rate']]) {
+    assert.notEqual(displayed[left].total, displayed[right].total,
+      `encoder pair ${left}/${right} must display different totals: ${JSON.stringify({ counts, displayed })}`);
+    const tracesDiffer = traces[left].some((count, index) => count !== traces[right][index]);
+    assert.equal(tracesDiffer, true,
+      `encoder pair ${left}/${right} must differ in per-tick timing: ${JSON.stringify({ counts, traces })}`);
+  }
+});
 
 test('the audited topology is exactly what the committed homepage package exports', async () => {
   const audited = adapterModule.auditedBrowserTopology();
@@ -300,7 +361,8 @@ test('the visible legend sits under the stage and passes contrast in both scheme
   // desktop and mobile, beside it on tablet. No mode or scheme hides them.
   // The reduced-motion note (RM-2355) sits above them, hidden unless the
   // device asks for reduced motion.
-  assert.match(island, /<figcaption class="hero-mesh-caption">\s*<p class="hero-mesh-motion-note">[^<]+<\/p>\s*<ul class="hero-mesh-legend" aria-label="What the colours in the drawing mean">/);
+  assert.match(island, /<figcaption class="hero-mesh-caption">\s*<p class="hero-mesh-motion-note">[^<]+<\/p>\s*<div class="hero-encoder-readout" data-encoder-readout[^>]*>/);
+  assert.match(island, /blank unused · 0 quiet · \.:-=\+\*#@ = 1–8\+ spikes\/tick · oldest → newest/, 'the raster explains its marks and direction');
   for (const item of ['Neuron spike', 'Excitatory synapse', 'Inhibitory synapse']) {
     assert.match(island, new RegExp(`>${item}</li>`), item);
   }

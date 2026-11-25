@@ -258,4 +258,31 @@ test('each session records its own [contract, mode] config and the worker is tol
   assert.match(source, /options: adapterOptions,/);
   assert.match(source, /createTelemetryRecorder\(DEMO_SEED, config\)/);
   assert.doesNotMatch(source, /LIVE_ADAPTER_CONFIG/);
+
+  const island = readSource('../src/components/NeuromorphicDemo.astro');
+  assert.match(island, /data-readout-step/);
+  assert.match(island, /data-readout-window/);
+  assert.match(island, /data-readout-total/);
+  assert.match(island, /data-readout-raster/);
+
+  const liveSeamsSource = readSource('../src/runtime/live-seams.ts');
+  assert.match(liveSeamsSource, /completedStep < lastStep \|\| state\.encoderName !== encoderName/);
+  assert.match(liveSeamsSource, /slice\(-100\)/);
+  assert.match(liveSeamsSource, /slice\(-20\)/);
+  assert.match(liveSeamsSource, /totalSpikes \+= spikes/);
+  assert.match(liveSeamsSource, /!hasSnapshot/);
+  assert.match(liveSeamsSource, /Recent network spike activity/);
+
+  const islandMarkup = readSource('../src/components/NeuromorphicDemo.astro');
+  assert.doesNotMatch(islandMarkup, /class="hero-encoder-readout"[^>]*aria-live=/);
+  assert.match(islandMarkup, /data-readout-restart aria-live="polite">waiting to start<\/span>/);
+
+  const styles = readSource('../src/styles/hero.css');
+  assert.doesNotMatch(styles, /transition:\s*height 80ms linear/);
+
+  const enhanceSource = readSource('../src/runtime/enhance-demo.ts');
+  assert.match(enhanceSource, /restart failed/);
+  assert.match(enhanceSource, /root\.dataset\.demoHasRun === 'true'/);
+  assert.match(enhanceSource, /controller\.signal\.aborted/);
+  assert.match(enhanceSource, /resetHeroReadout\(root, snapshot\.encoderMode, state\)/);
 });

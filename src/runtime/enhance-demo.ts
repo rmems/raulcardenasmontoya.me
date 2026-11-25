@@ -34,11 +34,63 @@ function viewElements(root: HTMLElement): DemoViewElements {
     encoder: fieldset
       ? { fieldset, inputs: fieldset.querySelectorAll<HTMLInputElement>('input[name="encoder-mode"]') }
       : undefined,
+    readout: {
+      encoder: root.querySelector<HTMLElement>('[data-readout-encoder]'),
+      step: root.querySelector<HTMLElement>('[data-readout-step]'),
+      window: root.querySelector<HTMLElement>('[data-readout-window]'),
+      total: root.querySelector<HTMLElement>('[data-readout-total]'),
+      restart: root.querySelector<HTMLElement>('[data-readout-restart]'),
+      raster: root.querySelector<HTMLElement>('[data-readout-raster]'),
+    },
   };
 }
 
 function isEncoderModeName(value: string): value is EncoderModeName {
   return (ENCODER_MODE_NAMES as readonly string[]).includes(value);
+}
+
+type EncoderRestartState = 'queued' | 'restarted' | 'failed' | 'waiting';
+
+function restartMessage(state: EncoderRestartState): string {
+  switch (state) {
+    case 'queued':
+      return 'restart queued';
+    case 'restarted':
+      return 'restarted';
+    case 'failed':
+      return 'restart failed';
+    case 'waiting':
+      return 'waiting to start';
+  }
+}
+
+function clearHeroReadout(root: HTMLElement): void {
+  for (const selector of ['[data-readout-step]', '[data-readout-window]', '[data-readout-total]']) {
+    const value = root.querySelector<HTMLElement>(selector);
+    if (value) value.textContent = '0';
+  }
+  for (const cell of root.querySelectorAll<HTMLElement>('[data-raster-cell]')) {
+    cell.textContent = '';
+  }
+  root.querySelector<HTMLElement>('[data-readout-raster]')?.setAttribute(
+    'aria-label',
+    'Recent network spike activity: no ticks recorded, 0 spikes across the 20-tick raster',
+  );
+}
+
+function resetHeroReadout(root: HTMLElement, encoderName: EncoderModeName, state: EncoderRestartState): void {
+  const encoder = root.querySelector<HTMLElement>('[data-readout-encoder]');
+  const restart = root.querySelector<HTMLElement>('[data-readout-restart]');
+  if (encoder) encoder.textContent = encoderName;
+  clearHeroReadout(root);
+  if (restart) {
+    restart.textContent = restartMessage(state);
+  }
+  root.dataset.encoderRestart = state;
+  if (state === 'restarted') {
+    const generation = Number.parseInt(root.dataset.encoderReadoutGeneration ?? '0', 10);
+    root.dataset.encoderReadoutGeneration = String((Number.isFinite(generation) ? generation : 0) + 1);
+  }
 }
 
 /** Elements whose visibility gates the island (`[data-demo-viewport]`), else the root. */
@@ -83,18 +135,41 @@ export function bindDemoIsland(root: HTMLElement, runtime?: DemoRuntime): BoundI
   const onPlay = () => {
     const pending = boundRuntime.play();
     paint();
-    void pending.then(paint);
+    void pending.then(() => {
+      paint();
+    });
   };
 
   // The encoder radios: a change restarts the WASM session with the same seed
   // and the chosen `axon-encoder` mode; the runtime coalesces quick changes.
   const encoder = elements.encoder?.fieldset as HTMLFieldSetElement | undefined;
+  let encoderChangeController: AbortController | null = null;
   const onEncoderChange = (event: Event) => {
     const target = event.target;
     if (target instanceof HTMLInputElement && target.name === 'encoder-mode' && isEncoderModeName(target.value)) {
-      const pending = boundRuntime.setEncoderMode(target.value);
+      encoderChangeController?.abort();
+      const controller = new AbortController();
+      encoderChangeController = controller;
+      const requestedMode = target.value;
+      resetHeroReadout(root, requestedMode, 'queued');
+      const pending = boundRuntime.setEncoderMode(requestedMode);
       paint();
-      void pending.then(paint);
+      void pending.then(() => {
+        if (controller.signal.aborted || boundRuntime.getSnapshot().encoderMode !== requestedMode) return;
+        const snapshot = boundRuntime.getSnapshot();
+        const failed = snapshot.mode === 'fallback' || snapshot.mode === 'frozen';
+        const state = failed
+          ? 'failed'
+          : root.dataset.demoHasRun === 'true'
+            ? 'restarted'
+            : 'waiting';
+        resetHeroReadout(root, snapshot.encoderMode, state);
+        paint();
+      }).catch(() => {
+        if (controller.signal.aborted || boundRuntime.getSnapshot().encoderMode !== requestedMode) return;
+        resetHeroReadout(root, boundRuntime.getSnapshot().encoderMode, 'failed');
+        paint();
+      });
     }
   };
 
@@ -136,6 +211,7 @@ export function bindDemoIsland(root: HTMLElement, runtime?: DemoRuntime): BoundI
     }
 
     disposed = true;
+    encoderChangeController?.abort();
     unsubscribeSnapshot();
     play.removeEventListener('click', onPlay);
     encoder?.removeEventListener('change', onEncoderChange);

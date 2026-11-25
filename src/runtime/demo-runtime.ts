@@ -129,6 +129,14 @@ export interface DemoViewElements {
     fieldset: { disabled: boolean };
     inputs: ArrayLike<{ value: string; checked: boolean }>;
   };
+  readout?: {
+    encoder: HTMLElement | null;
+    step: HTMLElement | null;
+    window: HTMLElement | null;
+    total: HTMLElement | null;
+    restart: HTMLElement | null;
+    raster: HTMLElement | null;
+  };
   surface?: {
     hidden: boolean | string;
   };
@@ -337,11 +345,38 @@ export function applyDemoView(snapshot: DemoSnapshot, elements: DemoViewElements
   elements.play.disabled = !snapshot.playEnabled;
   elements.play.textContent = snapshot.playLabel;
   elements.root.dataset.encoderMode = snapshot.encoderMode;
+  if (snapshot.mode === 'live') {
+    elements.root.dataset.demoHasRun = 'true';
+  }
   if (elements.encoder) {
     elements.encoder.fieldset.disabled = !snapshot.encoderSwitchEnabled;
     for (let index = 0; index < elements.encoder.inputs.length; index += 1) {
       const input = elements.encoder.inputs[index];
       input.checked = input.value === snapshot.encoderMode;
+    }
+  }
+  if (elements.readout) {
+    if (elements.readout.encoder) elements.readout.encoder.textContent = snapshot.encoderMode;
+    const unavailable = snapshot.mode === 'fallback' || snapshot.mode === 'frozen';
+    if (elements.readout.restart) {
+      elements.readout.restart.textContent =
+        elements.root.dataset.encoderRestart === 'failed'
+          ? 'restart failed'
+          : unavailable
+            ? 'unavailable'
+          : snapshot.mode === 'static'
+            ? 'waiting to start'
+            : snapshot.mode === 'initializing'
+              ? elements.root.dataset.encoderRestart === 'queued' ? 'restarting' : 'starting'
+              : snapshot.mode === 'awaiting-play'
+                ? snapshot.userPaused || elements.root.dataset.demoHasRun === 'true'
+                  ? 'paused'
+                  : elements.root.dataset.encoderRestart === 'restarted'
+                    ? 'restarted'
+                    : 'waiting to start'
+                : elements.root.dataset.encoderRestart === 'queued'
+                  ? 'restart queued'
+                  : elements.root.dataset.encoderRestart === 'restarted' ? 'restarted' : 'ready';
     }
   }
   if (elements.surface) {

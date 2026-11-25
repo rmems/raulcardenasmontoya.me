@@ -184,6 +184,61 @@
   font-size: 0.82rem;
 }
 
+.hero-encoder-readout {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+  margin: 0;
+  color: var(--ink);
+}
+.hero-encoder-readout-numbers {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.85rem;
+  font-size: 0.72rem;
+}
+.hero-encoder-readout-numbers strong { color: var(--accent); font-variant-numeric: tabular-nums; }
+.hero-encoder-readout-numbers [data-readout-restart] {
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.hero-encoder-raster {
+  display: grid;
+  grid-template-columns: repeat(20, minmax(1ch, 1fr));
+  align-items: end;
+  gap: 2px;
+  min-width: 0;
+  min-height: 0.75rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  line-height: 1;
+  border-bottom: 1px solid color-mix(in srgb, var(--muted) 45%, transparent);
+}
+.hero-encoder-raster:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.hero-encoder-raster span {
+  display: grid;
+  place-items: end center;
+  min-height: 1px;
+  height: 0.75rem;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 700;
+}
+.hero-encoder-raster-key {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .live-hero:is([data-mode='live'], [data-mode='awaiting-play'], [data-mode='initializing']) .hero-mesh-motion-note { display: block; }
 }

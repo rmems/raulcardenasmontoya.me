@@ -60,6 +60,199 @@ function fakeAdapter(state = fakeState()) {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+test('the homepage encoder readout derives step, window, total, and raster from snapshots', () => {
+  const cells = Array.from({ length: 20 }, () => {
+    return { textContent: '' };
+  });
+  const raster = { setAttribute(name, value) { this[name] = value; } };
+  const values = new Map([
+    ['[data-readout-encoder]', { textContent: 'temporal' }],
+    ['[data-readout-step]', { textContent: '0' }],
+    ['[data-readout-window]', { textContent: '0' }],
+    ['[data-readout-total]', { textContent: '0' }],
+    ['[data-readout-restart]', { textContent: 'ready' }],
+    ['[data-readout-raster]', raster],
+  ]);
+  const island = {
+    dataset: { encoderMode: 'temporal' },
+    querySelector(selector) {
+      return values.get(selector) ?? null;
+    },
+    querySelectorAll() {
+      return cells;
+    },
+  };
+  const readout = liveSeams.createHeroEncoderReadout(island);
+  readout.update(fakeState({
+    completedStep: 1n,
+    encoderName: 'temporal',
+    spikeNeurons: new Uint32Array([0, 1]),
+  }));
+  readout.update(fakeState({
+    completedStep: 2n,
+    encoderName: 'temporal',
+    spikeNeurons: new Uint32Array(),
+  }));
+  assert.equal(values.get('[data-readout-step]').textContent, '2');
+  assert.equal(values.get('[data-readout-window]').textContent, '2');
+  assert.equal(values.get('[data-readout-total]').textContent, '2');
+  assert.equal(cells[18].textContent, ':');
+  assert.equal(cells[19].textContent, '0', 'a recorded quiet tick is distinct from an unused cell');
+  assert.equal(raster['aria-label'], 'Recent network spike activity: 2 recorded ticks, 2 spikes across the 20-tick raster');
+
+  readout.update(fakeState({
+    completedStep: 1n,
+    encoderName: 'rate',
+    spikeNeurons: new Uint32Array([0, 1, 2, 3]),
+  }));
+  assert.equal(values.get('[data-readout-encoder]').textContent, 'rate');
+  assert.equal(values.get('[data-readout-step]').textContent, '1');
+  assert.equal(values.get('[data-readout-window]').textContent, '4');
+  assert.equal(values.get('[data-readout-total]').textContent, '4');
+  assert.equal(values.get('[data-readout-restart]').textContent, 'restarted');
+  assert.equal(island.dataset.encoderRestart, 'restarted');
+  assert.equal(raster['aria-label'], 'Recent network spike activity: 1 recorded tick, 4 spikes across the 20-tick raster');
+  assert.equal(cells[19].textContent, '=', 'newer ticks stay on the right');
+
+});
+
+test('the homepage encoder readout reset clears counters and the raster label', () => {
+  const values = new Map([
+    ['[data-readout-encoder]', { textContent: 'temporal' }],
+    ['[data-readout-step]', { textContent: '12' }],
+    ['[data-readout-window]', { textContent: '7' }],
+    ['[data-readout-total]', { textContent: '30' }],
+    ['[data-readout-restart]', { textContent: 'ready' }],
+    ['[data-readout-raster]', { setAttribute(name, value) { this[name] = value; } }],
+  ]);
+  const cell = { textContent: '|' };
+  const island = {
+    dataset: { encoderMode: 'temporal' },
+    querySelector(selector) { return values.get(selector) ?? null; },
+    querySelectorAll() { return [cell]; },
+  };
+  const readout = liveSeams.createHeroEncoderReadout(island);
+  readout.update(fakeState({ completedStep: 1n, encoderName: 'temporal', spikeNeurons: new Uint32Array([0, 1]) }));
+  assert.equal(cell.textContent, ':', 'the reset test starts from visible active raster data');
+  readout.reset('delta');
+
+  assert.equal(values.get('[data-readout-encoder]').textContent, 'delta');
+  assert.equal(values.get('[data-readout-step]').textContent, '0');
+  assert.equal(values.get('[data-readout-window]').textContent, '0');
+  assert.equal(values.get('[data-readout-total]').textContent, '0');
+  assert.equal(cell.textContent, '');
+  assert.equal(values.get('[data-readout-raster]')['aria-label'], 'Recent network spike activity: no ticks recorded, 0 spikes across the 20-tick raster');
+});
+
+test('the homepage encoder readout keeps the first preselected encoder sample', () => {
+  const values = new Map([
+    ['[data-readout-encoder]', { textContent: 'temporal' }],
+    ['[data-readout-step]', { textContent: '0' }],
+    ['[data-readout-window]', { textContent: '0' }],
+    ['[data-readout-total]', { textContent: '0' }],
+    ['[data-readout-restart]', { textContent: 'ready' }],
+    ['[data-readout-raster]', { setAttribute(name, value) { this[name] = value; } }],
+  ]);
+  const island = {
+    dataset: { encoderMode: 'temporal' },
+    querySelector(selector) { return values.get(selector) ?? null; },
+    querySelectorAll() { return Array.from({ length: 20 }, () => ({ textContent: '' })); },
+  };
+  const readout = liveSeams.createHeroEncoderReadout(island);
+  readout.update(fakeState({ completedStep: 1n, encoderName: 'rate', spikeNeurons: new Uint32Array([0, 1, 2]) }));
+  readout.update(fakeState({ completedStep: 2n, encoderName: 'rate', spikeNeurons: new Uint32Array([0, 1, 2, 3]) }));
+
+  assert.equal(values.get('[data-readout-total]').textContent, '7', 'the second tick must not reset the first tick away');
+  assert.equal(values.get('[data-readout-window]').textContent, '7');
+});
+
+test('the raster does not rewrite unchanged cells or labels', () => {
+  const writes = Array.from({ length: 20 }, () => 0);
+  const cells = writes.map((_, cellIndex) => {
+    let value = '';
+    return {
+      get textContent() { return value; },
+      set textContent(next) { value = next; writes[cellIndex] += 1; },
+    };
+  });
+  let labelWrites = 0;
+  const raster = {
+    setAttribute(name, value) { this[name] = value; labelWrites += 1; },
+  };
+  const values = new Map([
+    ['[data-readout-encoder]', { textContent: 'temporal' }],
+    ['[data-readout-step]', { textContent: '0' }],
+    ['[data-readout-window]', { textContent: '0' }],
+    ['[data-readout-total]', { textContent: '0' }],
+    ['[data-readout-restart]', { textContent: 'ready' }],
+    ['[data-readout-raster]', raster],
+  ]);
+  const island = {
+    dataset: { encoderMode: 'temporal' },
+    querySelector(selector) { return values.get(selector) ?? null; },
+    querySelectorAll() { return cells; },
+  };
+  const readout = liveSeams.createHeroEncoderReadout(island);
+  for (let step = 1n; step <= 20n; step += 1n) {
+    readout.update(fakeState({ completedStep: step, encoderName: 'temporal', spikeNeurons: new Uint32Array() }));
+  }
+  writes.fill(0);
+  labelWrites = 0;
+
+  readout.update(fakeState({ completedStep: 21n, encoderName: 'temporal', spikeNeurons: new Uint32Array() }));
+  assert.deepEqual(writes, Array.from({ length: 20 }, () => 0), 'a repeated full quiet raster writes no cell');
+  assert.equal(labelWrites, 0, 'a repeated full quiet raster writes no aria label');
+});
+
+test('an explicit readout generation reset wins over same-step same-encoder snapshots', () => {
+  const values = new Map([
+    ['[data-readout-encoder]', { textContent: 'temporal' }],
+    ['[data-readout-step]', { textContent: '0' }],
+    ['[data-readout-window]', { textContent: '0' }],
+    ['[data-readout-total]', { textContent: '0' }],
+    ['[data-readout-restart]', { textContent: 'ready' }],
+    ['[data-readout-raster]', { setAttribute(name, value) { this[name] = value; } }],
+  ]);
+  const island = {
+    dataset: { encoderMode: 'temporal', encoderReadoutGeneration: '1' },
+    querySelector(selector) { return values.get(selector) ?? null; },
+    querySelectorAll() { return Array.from({ length: 20 }, () => ({ textContent: '' })); },
+  };
+  const readout = liveSeams.createHeroEncoderReadout(island);
+  readout.update(fakeState({ completedStep: 100n, encoderName: 'temporal', spikeNeurons: new Uint32Array([0, 1, 2, 3, 4]) }));
+  assert.equal(values.get('[data-readout-total]').textContent, '5');
+
+  island.dataset.encoderReadoutGeneration = '2';
+  readout.update(fakeState({ completedStep: 100n, encoderName: 'temporal', spikeNeurons: new Uint32Array([0, 1]) }));
+  assert.equal(values.get('[data-readout-total]').textContent, '2');
+  assert.equal(values.get('[data-readout-window]').textContent, '2');
+});
+
+test('queued encoder restarts ignore transitional frames', () => {
+  const values = new Map([
+    ['[data-readout-encoder]', { textContent: 'temporal' }],
+    ['[data-readout-step]', { textContent: '0' }],
+    ['[data-readout-window]', { textContent: '0' }],
+    ['[data-readout-total]', { textContent: '0' }],
+    ['[data-readout-restart]', { textContent: 'ready' }],
+    ['[data-readout-raster]', { setAttribute(name, value) { this[name] = value; } }],
+  ]);
+  const island = {
+    dataset: { encoderMode: 'temporal', encoderRestart: 'queued' },
+    querySelector(selector) { return values.get(selector) ?? null; },
+    querySelectorAll() { return Array.from({ length: 20 }, () => ({ textContent: '' })); },
+  };
+  const readout = liveSeams.createHeroEncoderReadout(island);
+  readout.update(fakeState({ completedStep: 99n, encoderName: 'temporal', spikeNeurons: new Uint32Array([0, 1, 2, 3, 4]) }));
+  assert.equal(values.get('[data-readout-total]').textContent, '0');
+
+  island.dataset.encoderRestart = 'restarted';
+  island.dataset.encoderReadoutGeneration = '2';
+  readout.update(fakeState({ completedStep: 1n, encoderName: 'rate', spikeNeurons: new Uint32Array([0]) }));
+  assert.equal(values.get('[data-readout-total]').textContent, '1');
+  assert.equal(values.get('[data-readout-encoder]').textContent, 'rate');
+});
+
 test('scripted telemetry is a deterministic [x, y, pressure] path inside the island', () => {
   assert.deepEqual(stimulus.scriptedTelemetry(7n), stimulus.scriptedTelemetry(7n));
   assert.notDeepEqual(stimulus.scriptedTelemetry(7n), stimulus.scriptedTelemetry(8n));

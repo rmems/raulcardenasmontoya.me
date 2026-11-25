@@ -368,23 +368,26 @@ test('applyDemoView exposes status, play affordance, and reason for assistive te
     play: { hidden: true, disabled: false, textContent: '' },
     surface: { hidden: true },
     origin: { textContent: 'STATIC · diagram', dataset: { origin: 'static' } },
+    readout: {
+      encoder: { textContent: '' },
+      restart: { textContent: 'waiting to start' },
+    },
   };
 
-  runtime.applyDemoView(
-    {
-      mode: 'awaiting-play',
-      reason: 'reduced-motion',
-      status: 'Motion is paused. Play animation to start the live visualization.',
-      liveControlsEnabled: true,
-      playVisible: true,
-      playEnabled: true,
-      playLabel: 'Play animation',
-      cameraMotionEnabled: false,
-      freezeFrame: false,
-      hasGraphicsSurface: false,
-    },
-    elements,
-  );
+  const snapshot = {
+    mode: 'awaiting-play',
+    reason: 'reduced-motion',
+    status: 'Motion is paused. Play animation to start the live visualization.',
+    liveControlsEnabled: true,
+    playVisible: true,
+    playEnabled: true,
+    playLabel: 'Play animation',
+    cameraMotionEnabled: false,
+    freezeFrame: false,
+    hasGraphicsSurface: false,
+    encoderMode: 'temporal',
+  };
+  runtime.applyDemoView(snapshot, elements);
 
   assert.equal(elements.root.dataset.mode, 'awaiting-play');
   assert.equal(elements.root.dataset.reason, 'reduced-motion');
@@ -396,6 +399,33 @@ test('applyDemoView exposes status, play affordance, and reason for assistive te
   assert.match(elements.status.textContent, /Play animation/);
   assert.equal(elements.origin.textContent, 'STATIC · diagram');
   assert.equal(elements.origin.dataset.origin, 'static');
+  assert.equal(elements.readout.restart.textContent, 'waiting to start');
+
+  elements.root.dataset.encoderRestart = 'queued';
+  runtime.applyDemoView({ ...snapshot, mode: 'initializing' }, elements);
+  assert.equal(elements.readout.restart.textContent, 'restarting');
+  delete elements.root.dataset.encoderRestart;
+  runtime.applyDemoView({ ...snapshot, mode: 'initializing' }, elements);
+  assert.equal(elements.readout.restart.textContent, 'starting');
+  runtime.applyDemoView({ ...snapshot, mode: 'live' }, elements);
+  assert.equal(elements.readout.restart.textContent, 'ready');
+  assert.equal(elements.root.dataset.demoHasRun, 'true');
+  elements.root.dataset.encoderRestart = 'failed';
+  runtime.applyDemoView({ ...snapshot, mode: 'fallback' }, elements);
+  assert.equal(elements.readout.restart.textContent, 'restart failed');
+  elements.root.dataset.encoderRestart = 'restarted';
+  delete elements.root.dataset.demoHasRun;
+  runtime.applyDemoView({ ...snapshot, mode: 'awaiting-play' }, elements);
+  assert.equal(elements.readout.restart.textContent, 'restarted');
+  elements.root.dataset.demoHasRun = 'true';
+  runtime.applyDemoView({ ...snapshot, mode: 'awaiting-play' }, elements);
+  assert.equal(elements.readout.restart.textContent, 'paused', 'the current pause wins over the last restart');
+  delete elements.root.dataset.demoHasRun;
+  runtime.applyDemoView({ ...snapshot, mode: 'awaiting-play', userPaused: true }, elements);
+  assert.equal(elements.readout.restart.textContent, 'paused', 'an explicit user pause wins even before demoHasRun is painted');
+  delete elements.root.dataset.encoderRestart;
+  runtime.applyDemoView({ ...snapshot, mode: 'fallback' }, elements);
+  assert.equal(elements.readout.restart.textContent, 'unavailable');
 });
 
 test('the paused wording only appears for a user pause or reduced motion (RM-2354)', async () => {
@@ -1131,27 +1161,75 @@ function createFakeIsland() {
   };
   const surface = { hidden: true };
   const origin = { textContent: 'STATIC · diagram', dataset: { origin: 'static' } };
+  const encoderInputs = ['delta', 'temporal', 'rate'].map((value) => Object.assign(
+    Object.create(globalThis.HTMLInputElement.prototype),
+    {
+      name: 'encoder-mode',
+      value,
+      checked: value === 'temporal',
+    },
+  ));
+  const encoder = {
+    changeHandler: undefined,
+    addEventListener(type, handler) {
+      if (type === 'change') {
+        encoder.changeHandler = handler;
+      }
+    },
+    removeEventListener(type, handler) {
+      if (type === 'change' && encoder.changeHandler === handler) {
+        encoder.changeHandler = undefined;
+      }
+    },
+    querySelectorAll(selector) {
+      return selector === 'input[name="encoder-mode"]' ? encoderInputs : [];
+    },
+  };
+  const rasterCells = Array.from({ length: 20 }, () => ({ textContent: '' }));
+  const readout = {
+    encoder: { textContent: 'temporal' },
+    step: { textContent: '0' },
+    window: { textContent: '0' },
+    total: { textContent: '0' },
+    restart: { textContent: 'waiting to start' },
+    raster: {
+      attributes: {},
+      setAttribute(name, value) { this.attributes[name] = value; },
+      getAttribute(name) { return this.attributes[name] ?? null; },
+    },
+  };
   const elements = {
     '[data-demo-status]': status,
     '[data-demo-play]': play,
     '[data-demo-surface]': surface,
     '[data-demo-origin]': origin,
+    '[data-demo-encoder]': encoder,
+    '[data-readout-encoder]': readout.encoder,
+    '[data-readout-step]': readout.step,
+    '[data-readout-window]': readout.window,
+    '[data-readout-total]': readout.total,
+    '[data-readout-restart]': readout.restart,
+    '[data-readout-raster]': readout.raster,
   };
   const root = {
     dataset: {},
     querySelector(selector) {
       return elements[selector] ?? null;
     },
+    querySelectorAll(selector) {
+      return selector === '[data-raster-cell]' ? rasterCells : [];
+    },
     addEventListener() {},
     removeEventListener() {},
   };
 
-  return { root, status, play, surface, origin };
+  return { root, status, play, surface, origin, encoder, encoderInputs, readout, rasterCells };
 }
 
 function installBindingHost({ reducedMotion = false } = {}) {
   const previousDocument = globalThis.document;
   const previousWindow = globalThis.window;
+  const previousHTMLInputElement = globalThis.HTMLInputElement;
   const windowListeners = new Map();
   const motionListeners = new Set();
   const motionQuery = {
@@ -1188,9 +1266,15 @@ function installBindingHost({ reducedMotion = false } = {}) {
   };
   globalThis.document = document;
   globalThis.window = windowObject;
+  globalThis.HTMLInputElement = class TestHTMLInputElement {};
   const restore = () => {
     globalThis.document = previousDocument;
     globalThis.window = previousWindow;
+    if (previousHTMLInputElement === undefined) {
+      delete globalThis.HTMLInputElement;
+    } else {
+      globalThis.HTMLInputElement = previousHTMLInputElement;
+    }
   };
   restore.dispatchWindow = (type, event) => {
     for (const handler of windowListeners.get(type) ?? []) {
@@ -1221,8 +1305,8 @@ async function withBoundDemo(
       inViewport,
       documentHidden,
     });
-  const island = createFakeIsland();
   const restoreHost = installBindingHost({ reducedMotion });
+  const island = createFakeIsland();
   let binding;
   try {
     binding = enhance.bindDemoIsland(island.root, boundDemo);
@@ -1281,6 +1365,57 @@ test('binding paints the live surface after deferred init from a viewport return
     assert.equal(origin.dataset.origin, 'live');
     assert.equal(demo.getSnapshot().hasGraphicsSurface, true);
   });
+});
+
+test('the Pause click handler paints paused over the last restart state', async () => {
+  const fixture = connectedSeams();
+  await withBoundDemo({ seams: fixture.seams, inViewport: true }, async ({ demo, root, play, readout }) => {
+    await waitFor(() => demo.getSnapshot().mode === 'live');
+    await demo.setEncoderMode('rate');
+    root.dataset.encoderRestart = 'restarted';
+    readout.restart.textContent = 'restarted';
+
+    assert.equal(typeof play.clickHandler, 'function');
+    play.clickHandler();
+    await waitFor(() => readout.restart.textContent === 'paused');
+    assert.equal(readout.restart.textContent, 'paused');
+  });
+});
+
+test('the encoder radio handler queues then completes a live restart generation', async () => {
+  const fixture = connectedSeams();
+  await withBoundDemo({ seams: fixture.seams, inViewport: true }, async ({ demo, root, encoder, encoderInputs, readout }) => {
+    await waitFor(() => demo.getSnapshot().mode === 'live');
+    assert.equal(typeof encoder.changeHandler, 'function');
+
+    encoder.changeHandler({ target: encoderInputs.find((input) => input.value === 'rate') });
+    assert.equal(root.dataset.encoderRestart, 'queued');
+    assert.equal(readout.step.textContent, '0');
+
+    await waitFor(() => root.dataset.encoderRestart === 'restarted');
+    assert.equal(root.dataset.encoderReadoutGeneration, '1');
+    assert.equal(readout.encoder.textContent, 'rate');
+    assert.equal(readout.restart.textContent, 'restarted');
+  });
+});
+
+test('a pre-start radio choice settles waiting without a restart generation', async () => {
+  const fixture = connectedSeams();
+  await withBoundDemo(
+    { seams: fixture.seams, capabilities: { ...capable, prefersReducedMotion: true }, inViewport: true },
+    async ({ demo, root, encoder, encoderInputs, readout }) => {
+      await waitFor(() => demo.getSnapshot().mode === 'awaiting-play');
+      assert.equal(typeof encoder.changeHandler, 'function');
+
+      encoder.changeHandler({ target: encoderInputs.find((input) => input.value === 'rate') });
+      assert.equal(root.dataset.encoderRestart, 'queued');
+
+      await waitFor(() => root.dataset.encoderRestart === 'waiting');
+      assert.equal(root.dataset.encoderReadoutGeneration, undefined);
+      assert.equal(readout.restart.textContent, 'waiting to start');
+      assert.equal(demo.getSnapshot().encoderMode, 'rate');
+    },
+  );
 });
 
 function workerAwareSeams({ freeze = true } = {}) {
