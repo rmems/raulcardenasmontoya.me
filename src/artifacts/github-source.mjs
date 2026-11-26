@@ -63,7 +63,7 @@ export const REPO_GROUPS = Object.freeze([
  */
 export const EXCLUDED_REPOS = Object.freeze({
   'rmems/raulcardenasmontoya.me': 'This site.',
-  'rmems/combine-for-AI': 'Held back until it has results (RM-2267).',
+  'rmems/peira': 'Held back until it has results (RM-2267).',
   'rmems/blackwell-kernel-lab': 'Held back until it has results (RM-2267).',
   'rmems/silicon-bridge': 'Held back until it has results (RM-2267).',
   'rmems/Limen-Capital': 'Held back until it has results (RM-2267).',
