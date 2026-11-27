@@ -449,7 +449,7 @@ browser.
 
 ### Topology projection handoff
 
-`synaptic-wiring = "=0.3.0"` remains the sole owner of graph construction,
+`synaptic-wiring = "=0.5.0"` remains the sole owner of graph construction,
 synapse multiplicity, routing relationships, delays, polarity, and the
 versioned topology digest. The adapter reads its `SynapticGraph` and produces a
 browser transport projection; it does not generate a replacement graph.
@@ -1301,6 +1301,7 @@ decision above places it outside the browser.
 | `axon-encoder` | `Limen-Neural/axon-encoder` | `=0.6.0` | crates.io checksum `a9a7cc719717f712b69baf57edb06c056b390a5a23c3fdca39d6e35f9ff59733`; source `bf5ded147f4fbfa433d4781bf02b1576ba6ce638` per the published crate's `.cargo_vcs_info.json` | `default-features = false, features = ["serde", "wasm-js"]` | **Pass** on 2026-10-31 inside the adapter crate with `--locked`: `npm run validate:rust`, including every golden trace fixture. The `wasm-js` feature first shipped in 0.5.0; 0.4.0 on crates.io has none, which is why the earlier pin was a git revision. Replaces the git pin. |
 | `neuromod` | `Limen-Neural/neuromod` (crates.io) | =0.7.0 | `a897cc9` (v0.7.0 tag) | `--no-default-features --features wasm-js` | **Pass**. The opt-in `wasm-js` feature enables the supported `getrandom` browser backend; the default-only graph remains intentionally unsupported. |
 | `synaptic-wiring` | `Limen-Neural/synaptic-wiring` | `=0.3.0` | crates.io checksum `311aed9804c027f786ed5385883bd22469f8cb87fe804b88f77162466b9137b2`; audited source/main `5f70762b4ef09346d0689a65a1a8b20531cfbdab` | `--no-default-features` | **Pass** |
+| `synaptic-wiring` | `Limen-Neural/synaptic-wiring` | `=0.5.0` | crates.io checksum `1aa72d0e63f6509b27a0d3f50ef48ffcb8c70cd1c8391ed9be533fd84ddbf2cc`; audited source/tag `v0.5.0` = `192c35f4a1d4f18bdc077a79a4c0f1e9cac02a2b` | default | **Pass** on 2026-11-27 inside the adapter crate with `--locked`: `npm run validate:rust` (fmt, clippy `-D warnings`, tests, and `wasm32-unknown-unknown` checks for the default and all-features graphs), plus the WASM adapter and browser smoke checks; the golden digest, seed-9 trace, and contract-7/8 topologies are byte-identical. Replaces the `=0.3.0` pin. |
 | `nir-rs` | `Limen-Neural/nir-rs` | 0.4.3 | `1043cbf7bc6acbece250c769b9c2c8f7c58ce681` | `--no-default-features --features serde` (`hdf5` excluded) | **Pass** |
 | `nir-rs` | `Limen-Neural/nir-rs` | `=0.4.5` | crates.io checksum `cd21419b28aac9b71ec7abc63ec9c596e578f8fa7ce87019c255b93f84d09e00`; audited source/tag `f2d61779b261661a2c8eca14d79bde1e48c39969` (`v0.4.5`) | `default-features = false, features = ["serde"]` (`hdf5` excluded) | **Pass** on 2026-10-09 inside the adapter crate with `--locked --features nir`; approved as the NIR graph model behind the adapter's `nir` feature, linked only into the labs package (see [NIR network inspection](#nir-network-inspection-github-16--linear-rm-1653)). |
 | `limbic-critic` | `Limen-Neural/limbic-critic` | 0.3.0 | `9bf0c79f5a47fac9c5b921dd9011b013d1ae52bb` | `--no-default-features` | **Pass** |
