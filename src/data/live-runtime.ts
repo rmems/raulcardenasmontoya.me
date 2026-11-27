@@ -21,7 +21,7 @@ export const liveCrateLayers: readonly LiveCrateLayer[] = [
   { name: 'kinetic-signals', role: 'pointer features', version: '0.5.0', source: { kind: 'crates.io' } },
   { name: 'axon-encoder', role: 'spike encoding', version: '0.6.0', source: { kind: 'crates.io' } },
   { name: 'neuromod', role: 'LIF neurons', version: '0.7.0', source: { kind: 'crates.io' } },
-  { name: 'synaptic-wiring', role: 'synapses and delays', version: '0.3.0', source: { kind: 'crates.io' } },
+  { name: 'synaptic-wiring', role: 'synapses and delays', version: '0.5.0', source: { kind: 'crates.io' } },
 ];
 
 /** Static link for a crate layer: its pinned source tree or its crates.io release. */
