@@ -137,8 +137,8 @@
       "fork": false
     },
     {
-      "fullName": "rmems/combine-for-AI",
-      "url": "https://github.com/rmems/combine-for-AI",
+      "fullName": "rmems/peira",
+      "url": "https://github.com/rmems/peira",
       "description": "Neutral benchmark harness for evaluating quantization AI models across accuracy,throughput, latency, VRAM, and routing metrics.",
       "language": "Python",
       "pushedAt": "2026-10-26",

@@ -280,7 +280,7 @@ export const projects: Project[] = [
       featured: false,
       shippedLabel: 'What exists today',
       shipped:
-        'The Grok-1 dissection collection on Hugging Face (the structural parse inventory, the ternary quantization experiment reports and the GOZ1 packs) and the repositories: corinth-canal, the Rust hybrid MoE/SNN runner; xai-dissect, a Rust CLI for raw Grok-1 shards; magere-brug, the artifact registry with recipes and manifests; and combine-for-AI, a neutral benchmark harness.',
+        'The Grok-1 dissection collection on Hugging Face (the structural parse inventory, the ternary quantization experiment reports and the GOZ1 packs) and the repositories: corinth-canal, the Rust hybrid MoE/SNN runner; xai-dissect, a Rust CLI for raw Grok-1 shards; magere-brug, the artifact registry with recipes and manifests; and peira, a neutral benchmark harness.',
       evidence:
         '{{grokDatasets}} datasets in the Grok-1 dissection collection across {{grokCollections}} collections as of {{datasetsAsOf}}.',
       next:
@@ -292,7 +292,7 @@ export const projects: Project[] = [
         { label: 'corinth-canal', href: 'https://github.com/rmems/corinth-canal' },
         { label: 'xai-dissect', href: 'https://github.com/rmems/xai-dissect' },
         { label: 'magere-brug', href: 'https://github.com/rmems/magere-brug' },
-        { label: 'combine-for-AI', href: 'https://github.com/rmems/combine-for-AI' },
+        { label: 'peira', href: 'https://github.com/rmems/peira' },
       ],
     },
   ),
